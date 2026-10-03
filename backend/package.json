@@ -1,32 +1,30 @@
 {
-  "name": "backend",
-  "version": "1.0.0",
-  "description": "CorePresupuesto API",
-  "main": "dist/index.js",
-  "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "watch": "ts-node --watch src/index.ts",
-    "test": "jest",
-    "lint": "eslint src --ext .ts"
+  "name": "corepresupuesto-backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "API de CorePresupuesto",
+  "engines": {
+    "node": ">=24"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "check": "tsc --noEmit",
+    "db:setup": "tsx --env-file=.env scripts/db-setup.ts",
+    "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
+    "test": "tsx --env-file=.env --import ./test/setup.ts --test \"test/**/*.test.ts\""
+  },
   "dependencies": {
-    "cors": "^2.8.6",
-    "dotenv": "^18.0.5",
     "express": "^5.2.1",
     "pg": "^8.23.1",
-    "uuid": "^14.0.2"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.10.6",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.3.3"
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.1",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
-

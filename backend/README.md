@@ -1,82 +1,22 @@
-# CorePresupuesto Backend
+# Backend
 
-API REST para CorePresupuesto.
-
-## Inicio Rápido
-
-### 1. Instalar dependencias
-
-```bash
-npm install
-```
-
-### 2. Configurar variables de entorno
-
-Copiar `.env.example` a `.env` y ajustar:
-
-```bash
-cp .env.example .env
-```
-
-Editar `.env` con la configuración local de PostgreSQL.
-
-### 3. Crear base de datos
-
-```bash
-# En psql
-psql -U postgres
-CREATE DATABASE core_prespuestos;
-\c core_prespuestos
-\i schema.sql
-```
-
-O importar schema:
-
-```bash
-psql -U postgres -d core_prespuestos -f schema.sql
-```
-
-### 4. Ejecutar en desarrollo
-
-```bash
-npm run dev
-```
-
-Servidor escuchando en `http://localhost:3001`
-
-- 🏥 Health: `http://localhost:3001/health`
-- 🗄️ DB Health: `http://localhost:3001/health/db`
-- 📡 API: `http://localhost:3001/api/v1`
+API REST de CorePresupuesto. El contrato está en [Contrato de API](<../docs/Contrato de API.md>) y el esquema en [Contrato de Base de Datos](<../docs/Contrato de Base de Datos.md>); el diseño técnico, en [Arquitectura técnica](<../docs/Arquitectura técnica.md>).
 
 ## Scripts
 
-- `npm run dev` — Ejecutar en desarrollo con hot-reload
-- `npm run build` — Compilar TypeScript
-- `npm run start` — Ejecutar build de producción
-- `npm run watch` — Watch mode
-- `npm test` — Ejecutar tests
+| Comando | Qué hace |
+|---------|----------|
+| `npm run dev` | Servidor con recarga (`tsx watch`) |
+| `npm run check` | Tipos (`tsc --noEmit`) |
+| `npm run build` / `npm start` | Compila a `dist/` y ejecuta |
+| `npm run db:setup` | Crea las bases de `.env` si no existen y migra |
+| `npm run db:migrate` | Aplica migraciones pendientes en `DATABASE_URL` |
+| `npm test` | Pruebas contra `TEST_DATABASE_URL` (se niegan a correr en una base que no termine en `-test`) |
 
-## Estructura
+## Migraciones
 
-```
-src/
-├── config/         # Configuración (DB, etc)
-├── middleware/     # Middlewares (auth, etc)
-├── routes/         # Rutas de la API
-├── controllers/    # Lógica de negocio
-├── types/          # Tipos TypeScript
-└── index.ts        # Entrada principal
+Archivos `migrations/NNNN_nombre.sql`, aplicados en orden y registrados en `schema_migrations`. **Una migración ya aplicada no se edita**: los cambios van en una nueva.
 
-schema.sql          # Schema PostgreSQL
-```
+## Variables de entorno
 
-## API
-
-Ver [../docs/Contrato de API.md](<../docs/Contrato de API.md>)
-
-## Notas
-
-- TypeScript obligatorio para type safety
-- PostgreSQL como base de datos
-- Express como framework web
-- JWT para autenticación (pendiente)
+Ver `.env.example`. `.env` no se versiona. Las variables de cada proveedor (SMS, correo, almacenamiento) se agregan junto con la fase que las usa.
