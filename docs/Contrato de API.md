@@ -38,6 +38,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | Tipo de archivo no admitido |
 | 422 | `VALIDATION_FAILED` | Campos inválidos (con `details`) |
 | 429 | `RATE_LIMITED` | Demasiados intentos (cabecera `Retry-After`) |
+| 502 | `DELIVERY_FAILED` | No se pudo enviar el código (SMS o correo) o el correo del presupuesto. No se registra el envío |
 | 500 | `INTERNAL` | Error no esperado; nunca expone detalles internos |
 
 ### Idempotencia y offline
