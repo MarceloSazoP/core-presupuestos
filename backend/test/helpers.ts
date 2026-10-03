@@ -38,6 +38,16 @@ export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: 
     return { status: res.status, headers: res.headers, json: text ? JSON.parse(text) : undefined };
   }
 
+  // Subida multipart: `file` es el contenido; el nombre y el Content-Type declarados son irrelevantes para el servidor.
+  async function upload(method: string, path: string, o: { token?: string; file?: Buffer; fields?: Record<string, string> }) {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(o.fields ?? {})) form.set(k, v);
+    if (o.file) form.set('file', new Blob([new Uint8Array(o.file)], { type: 'image/jpeg' }), 'cualquiera.jpg');
+    const res = await fetch(base + path, { method, headers: o.token ? { Authorization: `Bearer ${o.token}` } : {}, body: form });
+    const text = await res.text();
+    return { status: res.status, json: text ? JSON.parse(text) : undefined };
+  }
+
   // Registra (o ingresa) y devuelve el token y el usuario.
   async function login(phone: string, email: string, name = 'Test') {
     const start = await api('POST', '/auth/start', { body: { phone, name, email, channel: 'EMAIL' } });
@@ -48,5 +58,5 @@ export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: 
     return { token: v.json.token as string, user: v.json.user as { id: string } };
   }
 
-  return { api, sent, login, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { base, api, upload, sent, login, close: () => new Promise<void>((r) => server.close(() => r())) };
 }

@@ -32,3 +32,6 @@ venv/
 
 # Serena
 .serena/
+
+# Archivos subidos (desarrollo)
+backend/storage/

@@ -6,6 +6,7 @@ import { sendCode as defaultSendCode, type SendCode } from './lib/deliver';
 import { accessRoutes } from './modules/access/routes';
 import { authRoutes } from './modules/auth/routes';
 import { customerRoutes } from './modules/customers/routes';
+import { fileRoutes } from './modules/files/routes';
 import { meRoutes } from './modules/me/routes';
 import { quoteRoutes } from './modules/quotes/routes';
 
@@ -37,6 +38,7 @@ export function createApp(deps: { sendCode?: SendCode; ipStartLimit?: number; ip
   api.use('/me', meRoutes());
   api.use('/customers', customerRoutes());
   api.use('/quotes', quoteRoutes());
+  api.use('/files', fileRoutes());
   api.use('/access', accessRoutes(deps.ipExchangeLimit));
   app.use('/api/v1', api);
 

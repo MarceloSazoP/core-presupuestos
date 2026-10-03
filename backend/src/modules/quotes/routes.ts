@@ -1,42 +1,19 @@
-import { Router, type Request, type RequestHandler } from 'express';
+import { Router } from 'express';
 import type { PoolClient } from 'pg';
-import { z } from 'zod';
 import { query, withTx } from '../../db';
-import { AppError, notFound } from '../../errors';
-import { requireSession, type AuthedRequest, type Session } from '../../http/session';
+import { AppError } from '../../errors';
+import { requireSession } from '../../http/session';
 import { parse } from '../../http/validate';
 import { audit } from '../../lib/audit';
+import { removeMany } from '../../lib/files';
 import { formatCode, hashSecret, newSecret, newShortId } from '../../lib/code';
+import { allow, editable, loadQuote, session } from './guard';
+import { addMediaRoutes } from './media';
 import { CreateQuote, Items, ListQuotes, Measurements, PatchQuote, Survey } from './schemas';
 import { quoteDetail, type QuoteRow } from './serialize';
 import { lineTotal, sumTotals } from './totals';
 
 const TODAY = `(now() AT TIME ZONE 'America/Santiago')::date`;
-const session = (req: Request) => (req as AuthedRequest).session;
-const isUuid = (v: unknown): v is string => z.uuid().safeParse(v).success;
-
-// Qué sesiones pueden usar cada ruta (Contrato API §9 y §13).
-const allow = (...scopes: Session['scope'][]): RequestHandler => (req, _res, next) => {
-  if (!scopes.includes(session(req).scope)) throw new AppError(403, 'INSUFFICIENT_SCOPE', 'Esta sesión no permite esa operación');
-  next();
-};
-
-// Único punto de entrada por presupuesto (Arquitectura §3, regla 1): filtra por el dueño y, si la sesión es
-// QUOTE_CODE, exige que sea justamente su presupuesto. Ajeno o inexistente ⇒ 404.
-export async function loadQuote(req: Request, id: unknown): Promise<QuoteRow> {
-  const s = session(req);
-  if (!isUuid(id)) throw notFound();
-  const { rows } = await query<QuoteRow>(
-    `SELECT * FROM quotes WHERE id = $1 AND user_id = $2 AND ($3::uuid IS NULL OR id = $3)`,
-    [id, s.userId, s.scope === 'QUOTE_CODE' ? s.quoteId : null],
-  );
-  if (!rows[0]) throw notFound();
-  return rows[0];
-}
-
-const editable = (q: QuoteRow) => {
-  if (q.doc_status === 'FINALIZED') throw new AppError(409, 'INVALID_STATE', 'El presupuesto ya está finalizado y no se puede editar');
-};
 
 const customerNotFound = () => new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'customer_id', message: 'Cliente no encontrado' }]);
 const dup = (e: unknown) => (e as { code?: string }).code === '23505';
@@ -44,6 +21,7 @@ const dup = (e: unknown) => (e as { code?: string }).code === '23505';
 export const quoteRoutes = () => {
   const r = Router();
   r.use(requireSession);
+  addMediaRoutes(r);
 
   // ── Listado ────────────────────────────────────────────────────────────────
   r.get('/', allow('USER'), async (req, res) => {
@@ -226,7 +204,10 @@ export const quoteRoutes = () => {
   r.delete('/:id', allow('USER'), async (req, res) => {
     const q = await loadQuote(req, req.params.id);
     editable(q);
+    // Las filas de `files` caen en cascada; las claves se leen antes para borrar también los archivos del disco.
+    const keys = (await query<{ storage_key: string }>('SELECT storage_key FROM files WHERE quote_id = $1', [q.id])).rows.map((f) => f.storage_key);
     await query('DELETE FROM quotes WHERE id = $1 AND user_id = $2', [q.id, q.user_id]);
+    await removeMany(keys);
     await audit(req, 'QUOTE_DELETED', { userId: q.user_id, quoteId: q.id });
     res.status(204).end();
   });

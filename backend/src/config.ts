@@ -10,6 +10,7 @@ const schema = z
     TEST_DATABASE_URL: z.string().min(1).optional(),
     WEB_BASE_URL: z.string().url().default('http://localhost:3012'),
     CORS_ORIGINS: z.string().default(''),
+    STORAGE_DIR: z.string().default('./storage'),
     TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
     // Verificación por código (Arquitectura §3, Autenticación)
