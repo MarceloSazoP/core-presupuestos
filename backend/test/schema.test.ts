@@ -3,6 +3,7 @@ import { after, before, beforeEach, afterEach, describe, it } from 'node:test';
 import type { PoolClient } from 'pg';
 import { migrate } from '../scripts/migrate';
 import { pool } from '../src/db';
+import { resetDb } from './helpers';
 
 const FINALIZED = `doc_status='FINALIZED', number='CP-2026-0001', finalized_at=now(),
                    service_description='x', validity_days=15`;
@@ -31,6 +32,7 @@ describe('esquema: restricciones del Contrato de BD', () => {
     const { rows } = await pool.query<{ db: string }>('SELECT current_database() AS db');
     assert.ok(rows[0]!.db.endsWith('-test'), `Las pruebas solo corren en una BD *-test, no en ${rows[0]!.db}`);
     await migrate(pool);
+    await resetDb(); // las pruebas de la API dejan filas confirmadas
   });
   after(async () => {
     await pool.end();

@@ -13,10 +13,11 @@
     "check": "tsc --noEmit",
     "db:setup": "tsx --env-file=.env scripts/db-setup.ts",
     "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
-    "test": "tsx --env-file=.env --import ./test/setup.ts --test \"test/**/*.test.ts\""
+    "test": "tsx --env-file=.env --import ./test/setup.ts --test-concurrency=1 --test \"test/**/*.test.ts\""
   },
   "dependencies": {
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
     "pg": "^8.23.1",
     "zod": "^4.6.5"
   },
