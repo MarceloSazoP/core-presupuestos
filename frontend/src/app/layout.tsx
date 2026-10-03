@@ -28,7 +28,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${plex.variable} h-full antialiased`}>
+    <html lang="es" className={`${plex.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Aplica el tema guardado antes de pintar, para evitar el parpadeo. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("tema");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}` }} />
+      </head>
       <body className="min-h-dvh pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {children}
       </body>

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Profesional } from "@/lib/presupuestos";
+import { BotonTema } from "../boton-tema";
 import { Reloj } from "../reloj";
 
 // Dueño del presupuesto (usuario de la app móvil): logo, nombre y contacto, con la fecha y hora en vivo.
@@ -23,7 +24,10 @@ export function Encabezado({ profesional }: { profesional: Profesional }) {
           </p>
         </div>
       </div>
-      <Reloj />
+      <div className="flex items-center gap-4">
+        <Reloj />
+        <BotonTema />
+      </div>
     </header>
   );
 }
