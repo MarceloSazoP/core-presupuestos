@@ -23,12 +23,9 @@ export default async function PresupuestoPage() {
   // Pendiente: se completa o se edita. Cerrado: solo se ve.
   if (!esFinalizado(p)) {
     return (
-      <main className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
         <Encabezado profesional={p.profesional} />
-        <header className="flex flex-col items-start gap-2">
-          <span className="estado estado-pendiente">Pendiente</span>
-          <h1 className="text-2xl font-semibold leading-tight">Completar presupuesto</h1>
-        </header>
+        <h1 className="sr-only">Completar presupuesto</h1>
         <Editor
           inicial={{
             descripcion: p.descripcion,
@@ -62,7 +59,7 @@ export default async function PresupuestoPage() {
   );
 
   return (
-    <main className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
       <Encabezado profesional={p.profesional} />
       <header className="flex flex-col items-start gap-2">
         <span className="estado estado-cerrado">Cerrado · {p.numero}</span>

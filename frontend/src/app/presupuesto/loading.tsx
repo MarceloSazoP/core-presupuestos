@@ -1,7 +1,7 @@
 // Esqueleto con la forma de la pantalla: evita el salto de layout mientras carga el presupuesto.
 export default function Cargando() {
   return (
-    <main className="flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8" aria-busy="true" aria-label="Cargando presupuesto">
+    <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0" aria-busy="true" aria-label="Cargando presupuesto">
       <div className="esqueleto h-20 w-full" />
       <div className="flex flex-col gap-2">
         <div className="esqueleto h-6 w-24 rounded-full" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
-import { clp } from "@/lib/formato";
+import { clp, miles } from "@/lib/formato";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
 import { completarPresupuestoAction, salirAction, type EstadoEdicion } from "../actions";
@@ -22,6 +22,7 @@ type Inicial = {
 // Solo para la vista previa: el servidor vuelve a calcular y valida todo.
 const aNumero = (s: string) => Number(s.trim().replace(",", ".")) || 0;
 const aEntero = (s: string) => Number(s.replace(/[^\d]/g, "")) || 0;
+const MAX_ITEMS = 100; // igual que el servidor
 const filaVacia = (clave: number): Fila => ({ clave, descripcion: "", cantidad: "1", unidad: UNIDAD_POR_DEFECTO, precio: "" });
 
 // En pantallas anchas: [contexto] [formulario] [resumen y acciones]. En el teléfono: una columna en ese mismo orden.
@@ -58,12 +59,18 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   };
   const salir = () => enTransicion(() => salirAction());
 
-  const agregar = () => setFilas((actuales) => [...actuales, filaVacia(Math.max(...actuales.map((f) => f.clave)) + 1)]);
+  const agregar = () =>
+    setFilas((actuales) => (actuales.length >= MAX_ITEMS ? actuales : [...actuales, filaVacia(Math.max(...actuales.map((f) => f.clave)) + 1)]));
 
-  // Enter nunca envía el formulario (terminar es irreversible); dentro de la grilla lo maneja ella misma.
+  // Enter nunca envía el formulario (terminar es irreversible): en un campo suelto pasa al siguiente. La grilla maneja el suyo.
   const alPulsarTecla = (e: KeyboardEvent<HTMLFormElement>) => {
     if (e.key === "Escape") return setConfirmando(false);
-    if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
+    if (e.key !== "Enter" || !(e.target instanceof HTMLInputElement) || e.target.closest(".ag-root-wrapper")) return;
+    e.preventDefault();
+    const campos = [...e.currentTarget.elements].filter(
+      (el): el is HTMLElement => el instanceof HTMLElement && !el.matches("[type=hidden], :disabled, .ag-root-wrapper *"),
+    );
+    campos[campos.indexOf(e.target) + 1]?.focus();
   };
 
   const sinItems = filas.every((f) => !f.descripcion.trim() || !f.precio.trim());
@@ -111,80 +118,69 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   }
 
   return (
-    <form
-      method="post"
-      onSubmit={enviar}
-      onKeyDown={alPulsarTecla}
-      className="grid gap-6 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start xl:grid-cols-[18rem_minmax(0,1fr)_22rem]"
-    >
-      {/* Columna 1: contexto que viene del móvil (solo lectura) */}
-      <aside className="flex flex-col gap-4 lg:row-span-2 lg:sticky lg:top-6 xl:row-span-1">
-        <section aria-labelledby="levantamiento" className="tarjeta flex flex-col gap-2 text-sm">
-          <h2 id="levantamiento" className="seccion">
-            Levantamiento
-          </h2>
-          <p className="ayuda">Viene de la app móvil. Es interno: no aparece en el PDF.</p>
+    <form method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
+      {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-3">
+        <h2 className="text-2xl font-bold uppercase tracking-wide">Presupuesto</h2>
+        <span className="estado estado-pendiente">Borrador</span>
+      </div>
+
+      <div className="grid gap-6 @3xl:grid-cols-2">
+        <section aria-labelledby="cliente" className="flex flex-col gap-1">
+          <h3 id="cliente" className="etiqueta uppercase tracking-wide text-muted">
+            Cliente
+          </h3>
+          <p className="text-lg font-semibold">{inicial.cliente.nombre}</p>
+          <p className="text-muted">{inicial.cliente.telefono}</p>
+          <p className="text-muted">{inicial.cliente.correo}</p>
+        </section>
+
+        <section aria-labelledby="levantamiento" className="flex flex-col gap-1">
+          <h3 id="levantamiento" className="etiqueta uppercase tracking-wide text-muted">
+            Notas de la visita <span className="font-normal normal-case">(internas, no salen en el PDF)</span>
+          </h3>
           {inicial.levantamiento.notas ? <p>{inicial.levantamiento.notas}</p> : <p className="text-muted">Sin notas.</p>}
           {inicial.levantamiento.medidas.length > 0 && (
-            <dl className="flex flex-col gap-1 border-t border-borde pt-2">
-              {inicial.levantamiento.medidas.map((m) => (
-                <div key={m.etiqueta} className="flex justify-between gap-3">
-                  <dt className="text-muted">{m.etiqueta}</dt>
-                  <dd className="font-medium tabular-nums">{m.valor}</dd>
-                </div>
-              ))}
-            </dl>
+            <p className="text-sm text-muted">{inicial.levantamiento.medidas.map((m) => `${m.etiqueta}: ${m.valor}`).join(" · ")}</p>
           )}
         </section>
+      </div>
 
-        <section aria-labelledby="cliente" className="tarjeta flex flex-col gap-1 text-sm">
-          <h2 id="cliente" className="seccion">
-            Cliente
-          </h2>
-          <p>{inicial.cliente.nombre}</p>
-          <p className="text-muted">{inicial.cliente.correo}</p>
-          <p className="text-muted">{inicial.cliente.telefono}</p>
-        </section>
-      </aside>
+      <section className="flex flex-col gap-1">
+        <label htmlFor="descripcion" className="etiqueta uppercase tracking-wide text-muted">
+          Servicio
+        </label>
+        <textarea
+          id="descripcion"
+          name="descripcion"
+          rows={2}
+          maxLength={2000}
+          autoFocus={!servicio.trim()}
+          placeholder="Qué trabajo se va a hacer (aparece en el PDF)"
+          value={servicio}
+          onChange={(e) => setServicio(e.target.value)}
+          className="campo"
+        />
+      </section>
 
-      {/* Columna 2: lo que se completa */}
-      <div className="@container flex min-w-0 flex-col gap-8">
-        <section className="flex flex-col gap-2">
-          <label htmlFor="descripcion" className="seccion">
-            Servicio
-          </label>
-          <p id="servicio-ayuda" className="ayuda">
-            Qué trabajo se va a hacer. Aparece en el PDF.
-          </p>
-          <textarea
-            id="descripcion"
-            name="descripcion"
-            rows={2}
-            maxLength={2000}
-            value={servicio}
-            onChange={(e) => setServicio(e.target.value)}
-            aria-describedby="servicio-ayuda"
-            className="campo"
-          />
-        </section>
+      <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
+        <h3 id="titulo-items" className="etiqueta uppercase tracking-wide text-muted">
+          Ítems
+        </h3>
+        <GrillaItems filas={filas} onChange={setFilas} onAgregar={agregar} enfocarAlCargar={Boolean(servicio.trim())} />
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <button type="button" onClick={agregar} className="boton-secundario">
+            + Agregar ítem
+          </button>
+          <p className="ayuda">Enter confirma y pasa a la celda siguiente; tras el último precio crea otra fila.</p>
+        </div>
+      </section>
 
-        <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
-          <h2 id="titulo-items" className="seccion">
-            Ítems
-          </h2>
-          <GrillaItems filas={filas} onChange={setFilas} onAgregar={agregar} />
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <button type="button" onClick={agregar} className="boton-secundario">
-              + Agregar ítem
-            </button>
-            <p className="ayuda">Enter confirma y pasa a la celda siguiente; tras el último precio crea otra fila. Escribe sobre una celda para editarla.</p>
-          </div>
-        </section>
-
+      <div className="grid gap-8 @3xl:grid-cols-[minmax(0,1fr)_22rem] @3xl:items-start">
         <section aria-labelledby="titulo-condiciones" className="flex flex-col gap-4">
-          <h2 id="titulo-condiciones" className="seccion">
+          <h3 id="titulo-condiciones" className="etiqueta uppercase tracking-wide text-muted">
             Condiciones
-          </h2>
+          </h3>
           <div className="grid gap-4 @xl:grid-cols-2">
             <div className="flex flex-col gap-1">
               <label htmlFor="garantia" className="etiqueta">
@@ -213,29 +209,23 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             <label htmlFor="observaciones" className="etiqueta">
               Observaciones (opcional)
             </label>
-            <p id="obs-ayuda" className="ayuda">
-              Condiciones o aclaraciones para el cliente. Aparecen en el PDF.
-            </p>
             <textarea
               id="observaciones"
               name="observaciones"
               rows={3}
               maxLength={5000}
+              placeholder="Aclaraciones para el cliente (aparecen en el PDF)"
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
-              aria-describedby="obs-ayuda"
               className="campo"
             />
           </div>
         </section>
-      </div>
 
-      {/* Columna 3: resumen y acciones */}
-      <aside className="flex flex-col gap-4 lg:col-start-2 xl:col-start-3 xl:row-start-1 xl:sticky xl:top-6">
-        <section aria-labelledby="titulo-resumen" className="tarjeta flex flex-col gap-3">
-          <h2 id="titulo-resumen" className="seccion">
-            Resumen
-          </h2>
+        <section aria-labelledby="titulo-resumen" className="flex flex-col gap-3">
+          <h3 id="titulo-resumen" className="sr-only">
+            Totales
+          </h3>
           <dl className="flex flex-col gap-2 tabular-nums">
             <div className="flex justify-between gap-3 text-muted">
               <dt>Subtotal</dt>
@@ -254,23 +244,25 @@ export function Editor({ inicial }: { inicial: Inicial }) {
                   inputMode="numeric"
                   autoComplete="off"
                   placeholder="$0"
-                  value={descuento}
-                  onChange={(e) => setDescuento(e.target.value)}
+                  value={miles(descuento)}
+                  onChange={(e) => setDescuento(e.target.value.replace(/\D/g, "").slice(0, 9))}
                   aria-invalid={descuentoExcesivo}
                   className="campo w-32 text-right"
                 />
               </dd>
             </div>
-            <div className="flex items-baseline justify-between gap-3 border-t border-borde pt-3">
-              <dt className="font-medium">Total</dt>
-              <dd className={`text-2xl font-semibold ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">
+            <div className="flex items-baseline justify-between gap-3 border-t-2 border-foreground pt-3">
+              <dt className="font-bold uppercase">Total</dt>
+              <dd className={`text-3xl font-bold ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">
                 {clp(totales.total)}
               </dd>
             </div>
           </dl>
           {descuentoExcesivo && <p className="text-sm text-error">El descuento no puede superar el subtotal.</p>}
         </section>
+      </div>
 
+      <div className="flex flex-col gap-4 border-t border-borde pt-6">
         {estado.errores && (
           <ul role="alert" className="list-disc pl-5 text-sm text-error">
             {estado.errores.map((e) => (
@@ -290,35 +282,37 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         )}
 
         {confirmando ? (
-          <div role="group" aria-labelledby="confirmar" className="tarjeta flex flex-col gap-3 border-aviso">
+          <div role="group" aria-labelledby="confirmar" className="flex flex-col gap-3 rounded-xl border border-aviso p-4">
             <p id="confirmar" className="font-medium">
               ¿Cerrar y enviar este presupuesto?
             </p>
-            <p className="ayuda">
-              Se enviará el PDF a {inicial.cliente.correo} y ya no podrás editarlo.
-            </p>
-            <button type="submit" name="accion" value="terminar" className="boton" disabled={pendiente}>
-              Sí, terminar y enviar
-            </button>
-            <button type="button" onClick={() => setConfirmando(false)} className="boton-secundario">
-              Volver a editar
-            </button>
+            <p className="ayuda">Se enviará el PDF a {inicial.cliente.correo} y ya no podrás editarlo.</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button type="submit" name="accion" value="terminar" className="boton" disabled={pendiente}>
+                Sí, terminar y enviar
+              </button>
+              <button type="button" onClick={() => setConfirmando(false)} className="boton-secundario">
+                Volver a editar
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <button type="button" onClick={intentarTerminar} className="boton" disabled={pendiente}>
-              {pendiente && <span className="spinner" aria-hidden="true" />}
-              {pendiente ? "Procesando…" : "Terminar y enviar"}
-            </button>
-            <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
-              Guardar y seguir después
-            </button>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button type="button" onClick={salir} className="boton-texto">
               Consultar otro presupuesto
             </button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
+                Guardar y seguir después
+              </button>
+              <button type="button" onClick={intentarTerminar} className="boton" disabled={pendiente}>
+                {pendiente && <span className="spinner" aria-hidden="true" />}
+                {pendiente ? "Procesando…" : "Terminar y enviar"}
+              </button>
+            </div>
           </div>
         )}
-      </aside>
+      </div>
     </form>
   );
 }
