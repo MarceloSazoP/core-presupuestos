@@ -7,6 +7,7 @@ import { sendMail as defaultSendMail, type SendMail } from './lib/mail';
 import { accessRoutes } from './modules/access/routes';
 import { authRoutes } from './modules/auth/routes';
 import { customerRoutes } from './modules/customers/routes';
+import { dashboardRoutes } from './modules/dashboard/routes';
 import { fileRoutes } from './modules/files/routes';
 import { meRoutes } from './modules/me/routes';
 import { publicRoutes } from './modules/public/routes';
@@ -41,6 +42,7 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
   api.use('/customers', customerRoutes());
   api.use('/quotes', quoteRoutes({ sendMail: deps.sendMail ?? defaultSendMail, mailLimit: deps.mailLimit }));
   api.use('/files', fileRoutes());
+  api.use('/dashboard', dashboardRoutes());
   api.use('/access', accessRoutes(deps.ipExchangeLimit));
   api.use('/public', publicRoutes(deps.publicLimit));
   app.use('/api/v1', api);

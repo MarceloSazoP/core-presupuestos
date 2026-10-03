@@ -380,7 +380,7 @@ Opcional; la preferencia de mostrarlos la guarda el cliente.
 |-----------|-----------|
 | `quotes_count`, `quoted_amount` | Presupuestos con `finalized_at` en el mes |
 | `accepted_count`, `accepted_amount`, `avg_ticket` | Presupuestos con `accepted_at` en el mes; ticket = monto / cantidad |
-| `acceptance_rate` | `aceptados / (aceptados + rechazados)` decididos en el mes |
+| `acceptance_rate` | `aceptados / (aceptados + rechazados)` decididos en el mes; `null` si no hubo ninguno. La fecha de un rechazo es la de su último cambio de estado a `REJECTED` (no existe `rejected_at`) |
 | `follow_up_pending` | Tamaño de la sección Seguimiento hoy |
 
 ---

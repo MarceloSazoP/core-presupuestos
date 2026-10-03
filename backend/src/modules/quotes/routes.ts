@@ -10,12 +10,12 @@ import type { SendMail } from '../../lib/mail';
 import { formatCode, hashSecret, newSecret, newShortId } from '../../lib/code';
 import { allow, editable, loadQuote, session } from './guard';
 import { addEmissionRoutes } from './emission';
+import { addFollowUpRoutes } from './followups';
 import { addMediaRoutes } from './media';
 import { CreateQuote, Items, ListQuotes, Measurements, PatchQuote, Survey } from './schemas';
 import { quoteDetail, type QuoteRow } from './serialize';
+import { FOLLOW_UP, SUMMARY_COLS, SUMMARY_FROM, toSummary } from './summary';
 import { lineTotal, sumTotals } from './totals';
-
-const TODAY = `(now() AT TIME ZONE 'America/Santiago')::date`;
 
 const customerNotFound = () => new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'customer_id', message: 'Cliente no encontrado' }]);
 const dup = (e: unknown) => (e as { code?: string }).code === '23505';
@@ -25,6 +25,7 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
   r.use(requireSession);
   addMediaRoutes(r);
   addEmissionRoutes(r, deps);
+  addFollowUpRoutes(r);
 
   // ── Listado ────────────────────────────────────────────────────────────────
   r.get('/', allow('USER'), async (req, res) => {
@@ -35,23 +36,14 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     if (f.doc_status) add('q.doc_status = ?', f.doc_status);
     if (f.commercial_status) add('q.commercial_status = ?', f.commercial_status);
     if (f.customer_id) add('q.customer_id = ?', f.customer_id);
-    const followUp = `(q.commercial_status IN ('SENT','FOLLOW_UP') AND q.next_contact_date <= ${TODAY})`;
+    const followUp = FOLLOW_UP;
     if (f.section === 'pending') where.push(`q.doc_status IN ('DRAFT','PENDING')`);
     if (f.section === 'follow_up') where.push(followUp);
     if (f.section === 'finalized') where.push(`q.doc_status = 'FINALIZED' AND NOT ${followUp}`);
     const { rows } = await query(
-      `SELECT q.id, q.number, q.service_description, q.total, q.doc_status, q.commercial_status, q.next_contact_date,
-              q.sent_at, q.updated_at, c.id AS customer_id, c.name AS customer_name, count(*) OVER ()::int AS total_rows
-         FROM quotes q JOIN customers c ON c.id = q.customer_id AND c.user_id = q.user_id
+      `SELECT ${SUMMARY_COLS}, count(*) OVER ()::int AS total_rows ${SUMMARY_FROM}
         WHERE ${where.join(' AND ')} ORDER BY q.updated_at DESC, q.id LIMIT ${f.limit} OFFSET ${f.offset}`, params);
-    res.json({
-      total: rows[0]?.total_rows ?? 0,
-      data: rows.map((q) => ({
-        id: q.id, number: q.number, customer: { id: q.customer_id, name: q.customer_name },
-        service_description: q.service_description ?? '', total: q.total, doc_status: q.doc_status, commercial_status: q.commercial_status,
-        next_contact_date: q.next_contact_date, sent_at: q.sent_at, updated_at: q.updated_at,
-      })),
-    });
+    res.json({ total: rows[0]?.total_rows ?? 0, data: rows.map(toSummary) });
   });
 
   // ── Crear (Etapa 1) ────────────────────────────────────────────────────────
