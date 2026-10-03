@@ -2,14 +2,16 @@
 
 React Native + Expo Router. Sin reglas de negocio: captura y presenta, y todo lo decide la API (CLAUDE.md §6). Las pautas de código salen de CLAUDE.md §29.1 (skills `vercel-react-native-skills`, `mobile-app-ui-design`) y de la documentación del SDK 57.
 
-## Qué hace hoy (hito 1)
+## Qué hace hoy (hitos 1 y 2)
 
 - **Ingreso**: nombre, teléfono y correo → confirmar y elegir SMS o correo → código de 6 dígitos → entra. La sesión queda en el Keychain (`expo-secure-store`), así la app abre sin señal.
 - **Presupuestos**: lista (`GET /quotes`) con su estado y botón «Nuevo presupuesto» en la zona del pulgar.
 - **Nuevo presupuesto** (Etapa 1): cliente, teléfono, correo y dirección opcionales, y el trabajo. Al crearlo, el servidor entrega el **código del presupuesto**.
 - **Detalle**: muestra el código en grande, con **Copiar** y **Compartir**. Ese código se escribe en la web («Consultar presupuesto») para completar, editar o cerrar el presupuesto desde el computador. El secreto solo se entrega una vez: se guarda en el teléfono y, si se pierde, se genera uno nuevo.
 
-Falta: fotos, medidas, voz, ítems, finalizar y enviar desde la app, seguimiento y captura sin conexión.
+- **Visita en terreno** (Etapa 2, en el detalle de un presupuesto pendiente): **notas** (se guardan al salir del campo), **medidas** (etiqueta y valor), **fotos** (cámara o galería, reducidas a JPEG de hasta 2048 px antes de subirlas) y **notas de voz** (hasta 5 min, se pueden escuchar y quitar). Todo es interno: no sale en el PDF. Por ahora requiere conexión.
+
+Falta: ítems, finalizar y enviar desde la app, seguimiento y captura **sin conexión** (SQLite + cola de envíos).
 
 ## Probar en tu iPhone (gratis, con Expo Go)
 

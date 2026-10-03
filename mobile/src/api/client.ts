@@ -27,12 +27,14 @@ type Opciones = { method?: string; body?: unknown; token?: string | null };
 
 export async function api<T = unknown>(path: string, { method = 'GET', body, token }: Opciones = {}): Promise<T> {
   const t = token === undefined ? obtenerToken() : token;
+  const esForm = body instanceof FormData;
   let res: Response;
   try {
     res = await fetch(BASE + path, {
       method,
-      headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}) },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      // En multipart no se fija Content-Type: React Native agrega el boundary.
+      headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(body !== undefined && !esForm ? { 'Content-Type': 'application/json' } : {}) },
+      body: body === undefined ? undefined : esForm ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'SIN_CONEXION', 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.');
@@ -53,3 +55,17 @@ export function mensajeDe(e: unknown): string {
   if (e.status === 422 && e.details.length) return e.details.map((d) => d.message).join('. ');
   return e.message;
 }
+
+// Subida multipart (fotos y notas de voz, Contrato API §6): el archivo viaja por su ruta local, sin cargarlo en memoria de JS.
+export const subir = <T>(path: string, archivo: { uri: string; name: string; type: string }, campos: Record<string, string> = {}) => {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(campos)) form.append(k, v);
+  form.append('file', archivo as unknown as Blob);
+  return api<T>(path, { method: 'POST', body: form });
+};
+
+// Fuente para expo-image y expo-audio: los archivos de la API se descargan con el token.
+export const fuenteDeArchivo = (ruta: string) => {
+  const t = obtenerToken();
+  return { uri: BASE + ruta, headers: t ? { Authorization: `Bearer ${t}` } : undefined };
+};

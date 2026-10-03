@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { Levantamiento } from '@/components/levantamiento';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
 import { clp } from '@/lib/formato';
@@ -20,6 +21,14 @@ export default function Detalle() {
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [generando, setGenerando] = useState(false);
+
+  const recargar = useCallback(async () => {
+    try {
+      setQ(await api<Presupuesto>(`/quotes/${id}`));
+    } catch (err) {
+      setError(mensajeDe(err));
+    }
+  }, [id]);
 
   useEffect(() => {
     void leerCodigo(id).then(setCodigo);
@@ -69,7 +78,7 @@ export default function Detalle() {
 
   const cerrado = q.doc_status === 'FINALIZED';
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
+    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <Stack.Screen options={{ title: q.number ?? 'Presupuesto' }} />
 
       <View style={e.bloque}>
@@ -105,6 +114,8 @@ export default function Detalle() {
           </>
         )}
       </View>
+
+      {cerrado ? null : <Levantamiento q={q} recargar={recargar} />}
 
       {q.items.length ? (
         <View style={e.bloque}>

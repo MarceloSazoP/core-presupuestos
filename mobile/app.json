@@ -13,8 +13,6 @@
       "bundleIdentifier": "com.corepresupuesto.app",
       "icon": "./assets/expo.icon",
       "infoPlist": {
-        "NSCameraUsageDescription": "Necesitamos acceso a la cámara para tomar fotos de levantamientos",
-        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tus fotos para agregar a presupuestos",
         "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar dónde se tomaron las fotos"
       }
     },
@@ -48,7 +46,21 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesitamos acceso a tus fotos para agregarlas al presupuesto.",
+          "cameraPermission": "Necesitamos la cámara para fotografiar lo que ves en la visita."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Necesitamos el micrófono para grabar notas de voz de la visita."
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
