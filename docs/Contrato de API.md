@@ -1,6 +1,6 @@
 # CorePresupuesto — Contrato de API
 
-**Versión:** 0.1 (borrador para revisión)
+**Versión:** 0.2 (decisiones cerradas, pendiente de revisión final)
 **Fecha:** 2026-10-03
 **Depende de:** `Contrato de Base de Datos.md` (estados, transiciones, permisos, límites).
 **Base:** `/api/v1` · JSON UTF-8 · fechas en ISO 8601 UTC (`timestamptz`) y `YYYY-MM-DD` para `date` · dinero en **CLP enteros**.
@@ -48,7 +48,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (u
 
 `?limit=` (1–100, defecto 20) y `?offset=`. Respuesta: `{ "data": [...], "total": 42 }`.
 
-### Rate limits (propuestos)
+### Rate limits (valores iniciales, ajustables)
 
 | Ruta | Límite |
 |------|--------|
@@ -138,7 +138,7 @@ Errores: 422, 429.
   "user": { "id": "uuid", "name": "Pedro Soto", "phone": "+56912345678", "email": "pedro@mail.cl",
             "has_logo": false, "has_signature": false } }
 ```
-Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Sesión: 90 días móviles (propuesto).
+Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Sesión: 90 días móviles.
 
 ### `POST /auth/logout` → **204** (revoca la sesión actual)
 
@@ -360,7 +360,7 @@ Opcional; la preferencia de mostrarlos la guarda el cliente.
 |-----------|-----------|
 | `quotes_count`, `quoted_amount` | Presupuestos con `finalized_at` en el mes |
 | `accepted_count`, `accepted_amount`, `avg_ticket` | Presupuestos con `accepted_at` en el mes; ticket = monto / cantidad |
-| `acceptance_rate` | `aceptados / (aceptados + rechazados)` decididos en el mes (ver pregunta abierta 5 del contrato de BD) |
+| `acceptance_rate` | `aceptados / (aceptados + rechazados)` decididos en el mes |
 | `follow_up_pending` | Tamaño de la sección Seguimiento hoy |
 
 ---
@@ -419,11 +419,14 @@ Cualquier campo desconocido en el cuerpo se **rechaza** con 422; nunca se copia 
 
 ---
 
-## 15. Preguntas abiertas
+## 15. Decisiones cerradas (2026-10-03)
 
-Las del contrato de BD §10 (numeración, corrección tras finalizar, enlace vs código, datos del cliente en la vista pública, tasa de aceptación, eliminación de cuenta) siguen vigentes. Se suman:
+Las de numeración, corrección tras finalizar, enlace privado, datos del cliente, tasa de aceptación, eliminación de cuenta y Pendientes están en el contrato de BD §10. Para la API:
 
-1. **PDF y QR en el backend:** requieren una librería de generación (pendiente en *Arquitectura técnica*).
-2. **Proveedor de SMS y de correo:** sin elegir; define costos y límites reales.
-3. **`finalize` síncrono:** genera el PDF dentro de la petición. Si tarda demasiado en móvil, pasaría a asíncrono.
-4. **Duración de la sesión:** 90 días móviles es propuesta mía.
+| # | Tema | Decisión |
+|---|------|----------|
+| 1 | Sesión | 90 días móviles. |
+| 2 | `finalize` | Síncrono: genera el PDF dentro de la petición. Pasa a asíncrono solo si en móvil tarda demasiado. |
+| 3 | Librería de PDF y QR | Se elige en *Arquitectura técnica*, no afecta este contrato. |
+| 4 | Proveedor de SMS y de correo | Se elige en *Arquitectura técnica*. El contrato solo exige un envío de código y de correo con PDF adjunto. |
+| 5 | Rate limits | Valores iniciales de §1, ajustables. |

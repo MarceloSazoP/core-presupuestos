@@ -1,6 +1,6 @@
 # CorePresupuesto — Contrato de Base de Datos
 
-**Versión:** 0.1 (borrador para revisión)
+**Versión:** 0.2 (decisiones cerradas, pendiente de revisión final)
 **Fecha:** 2026-10-03
 **Motor:** PostgreSQL 14+ · **Base:** `core-prespuestos` (local) · credenciales solo por `DATABASE_URL`
 **Fuentes:** `CLAUDE.md`, `Definición Funcional del Producto — v1.0`, `Alcance Exacto del MVP`, `Reemplazo de las secciones 11 a 17 (Wizard)`.
@@ -393,12 +393,12 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 | Cliente | Solo se elimina si no tiene presupuestos (`ON DELETE RESTRICT`). |
 | `auth_challenges` | Se purgan a las 24 h. |
 | `sessions` | Se purgan al vencer o ser revocadas. |
-| `audit_events` | 12 meses (propuesto). |
-| Eliminación de cuenta | Fuera del MVP; ver preguntas abiertas. |
+| `audit_events` | 12 meses. |
+| Eliminación de cuenta | Fuera del MVP (§10, decisión 6). |
 
 ---
 
-## 8. Archivos y límites (propuestos, ajustables)
+## 8. Archivos y límites (valores iniciales, ajustables)
 
 | Recurso | Límite |
 |---------|--------|
@@ -424,13 +424,17 @@ Almacenamiento del MVP: disco local detrás de una función `put/get/delete` por
 
 ---
 
-## 10. Preguntas abiertas
+## 10. Decisiones cerradas (2026-10-03)
 
-1. **Numeración:** elegí `CP-AAAA-NNNN` por usuario (como en Definición §11). La vista online de Definición §22 muestra `CP-8F42K`. ¿Cuál queda?
-2. **Corregir tras finalizar:** un `FINALIZED` es inmutable. ¿Se necesita "duplicar como nuevo presupuesto" en el MVP? No está en la doc, así que no lo incluí.
-3. **Acceso del profesional:** Definición §35 permite "ID + código privado" **o** enlace privado. Implementé solo el enlace privado; el código se puede sumar después.
-4. **Datos del cliente en la vista pública y el PDF:** el enlace puede reenviarse, así que el snapshot incluye solo nombre y dirección del servicio, sin teléfono ni correo. ¿Lo confirmas?
-5. **Tasa de aceptación:** definí `aceptados / (aceptados + rechazados)` del mes. ¿Prefieres `aceptados / enviados`?
-6. **Eliminación de cuenta y retención:** sin definición legal; queda fuera del MVP hasta decidirla.
-7. **Límites de §8:** son propuestas mías, sin respaldo en la doc.
-8. **Dashboard "Pendientes":** incluye `DRAFT`. Si prefieres solo `PENDING`, hay que decidir qué pasa con los borradores abandonados.
+Cerradas con las recomendaciones del asistente por delegación del usuario; se pueden reabrir.
+
+| # | Tema | Decisión |
+|---|------|----------|
+| 1 | Numeración | `CP-AAAA-NNNN` por usuario y año (Definición §11). El ejemplo `CP-8F42K` de la vista online (§22) era ilustrativo. |
+| 2 | Corregir tras finalizar | `FINALIZED` es inmutable y el MVP **no** incluye "duplicar presupuesto" (no está en la doc). Para corregir se crea un presupuesto nuevo. Reabrir la decisión si en las pruebas aparece como dolor real. |
+| 3 | Acceso del profesional | Solo **enlace privado de edición**. "ID + código" queda fuera del MVP; Definición §35 permite cualquiera de los dos. Quien pierda el dispositivo recupera el acceso entrando con SMS o correo. |
+| 4 | Datos del cliente en vista pública y PDF | Solo nombre del cliente y dirección del servicio; sin teléfono ni correo, porque el enlace puede reenviarse. |
+| 5 | Tasa de aceptación | `aceptados / (aceptados + rechazados)` decididos en el mes. Un presupuesto sin respuesta no cuenta como rechazo. |
+| 6 | Eliminación de cuenta | Fuera del MVP. Se define junto con la política de privacidad antes de publicar en tiendas. |
+| 7 | Límites de §8 y retención de §7 | Se adoptan como valores iniciales del MVP; son ajustables sin cambiar el esquema. |
+| 8 | Pendientes del dashboard | Incluye `DRAFT` y `PENDING`. Un borrador abandonado sigue visible hasta que el usuario lo guarde, finalice o borre. |
