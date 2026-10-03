@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "description": "Captura información, prepara presupuestos y haz seguimiento",
     "ios": {
-      "supportsTabletMode": true,
+      "supportsTablet": true,
       "bundleIdentifier": "com.corepresupuesto.app",
       "icon": "./assets/expo.icon",
       "infoPlist": {
@@ -47,12 +47,6 @@
           "backgroundColor": "#208AEF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
-        }
-      ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Necesitamos acceso a la cámara para capturar fotos"
         }
       ]
     ],

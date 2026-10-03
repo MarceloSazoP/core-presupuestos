@@ -1,56 +1,45 @@
-# Welcome to your Expo app 👋
+# App móvil (Expo SDK 57, iPhone primero)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native + Expo Router. Sin reglas de negocio: captura y presenta, y todo lo decide la API (CLAUDE.md §6). Las pautas de código salen de CLAUDE.md §29.1 (skills `vercel-react-native-skills`, `mobile-app-ui-design`) y de la documentación del SDK 57.
 
-## Get started
+## Qué hace hoy (hito 1)
 
-1. Install dependencies
+- **Ingreso**: nombre, teléfono y correo → confirmar y elegir SMS o correo → código de 6 dígitos → entra. La sesión queda en el Keychain (`expo-secure-store`), así la app abre sin señal.
+- **Presupuestos**: lista (`GET /quotes`) con su estado y botón «Nuevo presupuesto» en la zona del pulgar.
+- **Nuevo presupuesto** (Etapa 1): cliente, teléfono, correo y dirección opcionales, y el trabajo. Al crearlo, el servidor entrega el **código del presupuesto**.
+- **Detalle**: muestra el código en grande, con **Copiar** y **Compartir**. Ese código se escribe en la web («Consultar presupuesto») para completar, editar o cerrar el presupuesto desde el computador. El secreto solo se entrega una vez: se guarda en el teléfono y, si se pierde, se genera uno nuevo.
 
-   ```bash
-   npm install
+Falta: fotos, medidas, voz, ítems, finalizar y enviar desde la app, seguimiento y captura sin conexión.
+
+## Probar en tu iPhone (gratis, con Expo Go)
+
+1. Instala **Expo Go** desde la App Store. No hace falta cuenta de Apple Developer.
+2. Con el computador y el iPhone en la **misma red Wi-Fi**, en `mobile/.env.local` pon la IP del computador (no `localhost`, que en el teléfono es el propio teléfono):
+
+   ```
+   EXPO_PUBLIC_API_URL=http://<IP-del-computador>:3013/api/v1
    ```
 
-2. Start the app
+3. Levanta la API (`iniciar-api.bat`, o `cd backend && npm run dev`) y la app:
 
    ```bash
+   cd mobile
+   npm install
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. Escanea el QR con la cámara del iPhone y ábrelo en Expo Go.
+5. Sin cuentas de SMS ni correo configuradas, el código de verificación aparece en la consola de la API (`OTP_LOG_CODES=true` en `backend/.env`).
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Si no conecta, revisa el cortafuegos de Windows: debe permitir a Node en redes privadas los puertos **3013** (API) y **8081** (Metro).
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Comandos
 
 ```bash
-npm run reset-project
+npm test          # lógica pura: teléfono y montos
+npm run check     # tipos
+npx expo lint     # lint
+npx expo-doctor   # diagnóstico de dependencias y configuración
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+El movimiento y los gestos finos se validan en un build de release (`eas build`), no en Expo Go. Las builds propias en el teléfono y TestFlight sí requieren Apple Developer.
