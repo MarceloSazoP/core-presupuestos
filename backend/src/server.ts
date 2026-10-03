@@ -1,10 +1,13 @@
 import { createApp } from './app';
 import { config } from './config';
 import { pool } from './db';
+import { afinarServidor } from './http/servidor';
 
-const server = createApp().listen(config.PORT, () => {
-  console.log(`API escuchando en http://localhost:${config.PORT}`);
-});
+const server = afinarServidor(
+  createApp().listen(config.PORT, () => {
+    console.log(`API escuchando en http://localhost:${config.PORT}`);
+  }),
+);
 
 function shutdown() {
   server.close(() => {

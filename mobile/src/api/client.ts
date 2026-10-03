@@ -23,19 +23,23 @@ export function configurarApi(o: { token: () => string | null; alVencer: () => v
   alVencer = o.alVencer;
 }
 
-type Opciones = { method?: string; body?: unknown; token?: string | null };
+// `reintentar`: ante un corte de red (iOS reutiliza conexiones que el servidor ya cerró) se repite UNA vez. Por defecto solo
+// en métodos idempotentes; un POST solo si es seguro repetirlo (p. ej. subidas con `id`, que el servidor trata como reintento).
+type Opciones = { method?: string; body?: unknown; token?: string | null; reintentar?: boolean };
 
-export async function api<T = unknown>(path: string, { method = 'GET', body, token }: Opciones = {}): Promise<T> {
+export async function api<T = unknown>(path: string, { method = 'GET', body, token, reintentar = method !== 'POST' }: Opciones = {}): Promise<T> {
   const t = token === undefined ? obtenerToken() : token;
   const esForm = body instanceof FormData;
-  let res: Response;
-  try {
-    res = await fetch(BASE + path, {
+  const pedir = () =>
+    fetch(BASE + path, {
       method,
       // En multipart no se fija Content-Type: React Native agrega el boundary.
       headers: { ...(t ? { Authorization: `Bearer ${t}` } : {}), ...(body !== undefined && !esForm ? { 'Content-Type': 'application/json' } : {}) },
       body: body === undefined ? undefined : esForm ? (body as FormData) : JSON.stringify(body),
     });
+  let res: Response;
+  try {
+    res = await pedir().catch((e) => (reintentar ? pedir() : Promise.reject(e)));
   } catch {
     throw new ApiError(0, 'SIN_CONEXION', 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.');
   }
@@ -61,7 +65,7 @@ export const subir = <T>(path: string, archivo: { uri: string; name: string; typ
   const form = new FormData();
   for (const [k, v] of Object.entries(campos)) form.append(k, v);
   form.append('file', archivo as unknown as Blob);
-  return api<T>(path, { method: 'POST', body: form });
+  return api<T>(path, { method: 'POST', body: form, reintentar: 'id' in campos }); // con `id` repetir es seguro (Contrato API §1)
 };
 
 // Fuente para expo-image y expo-audio: los archivos de la API se descargan con el token.

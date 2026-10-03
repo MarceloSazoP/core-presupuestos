@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../src/app';
+import { afinarServidor } from '../src/http/servidor';
 import { pool } from '../src/db';
 import { AppError } from '../src/errors';
 import type { Channel } from '../src/lib/deliver';
@@ -25,14 +26,14 @@ export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: 
   const sent: Sent[] = [];
   const mails: QuoteMail[] = [];
   const mailState = { fail: false };
-  const server: Server = createApp({
+  const server: Server = afinarServidor(createApp({
     sendCode: async (channel, destination, code) => void sent.push({ channel, destination, code }),
     sendMail: async (m) => {
       if (mailState.fail) throw new AppError(502, 'DELIVERY_FAILED', 'No se pudo enviar el correo.');
       mails.push(m);
     },
     ...opts,
-  }).listen(0);
+  }).listen(0));
   await new Promise((r) => server.once('listening', r));
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/v1`;
 

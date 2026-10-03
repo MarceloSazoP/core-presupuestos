@@ -99,7 +99,7 @@ export default function Detalle() {
         <Texto variante="chico" suave fuerte>CÓDIGO DEL PRESUPUESTO</Texto>
         {codigo ? (
           <>
-            <Texto selectable accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
+            <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
             <Texto variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web para completar, editar o cerrar este presupuesto. No se lo des a tu cliente: a él se le envía el enlace del PDF.</Texto>
             <View style={e.fila}>
               <Boton titulo={copiado ? 'Copiado' : 'Copiar'} variante="secundario" onPress={copiar} style={e.mitad} />
@@ -145,7 +145,8 @@ const e = StyleSheet.create({
   bloque: { gap: espacio.s },
   exito: { borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
   tarjeta: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.xl, gap: espacio.m },
-  codigo: { fontSize: 26, fontWeight: '600', letterSpacing: 1, fontVariant: ['tabular-nums'] },
+  // El alto de línea va con la letra: Texto trae uno de 22 pt y con letra de 26 recortaba la parte de arriba.
+  codigo: { fontSize: 26, lineHeight: 36, fontWeight: '600', letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
   fila: { flexDirection: 'row', gap: espacio.m },
   mitad: { flex: 1 },
   item: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: espacio.m },

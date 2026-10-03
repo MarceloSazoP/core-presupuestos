@@ -159,5 +159,5 @@ const e = StyleSheet.create({
   opcionTexto: { flex: 1 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDentro: { width: 10, height: 10, borderRadius: 5 },
-  codigo: { fontSize: 28, letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  codigo: { fontSize: 28, lineHeight: 34, letterSpacing: 8, textAlign: 'center', fontVariant: ['tabular-nums'] },
 });

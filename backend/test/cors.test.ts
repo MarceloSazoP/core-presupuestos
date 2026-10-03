@@ -38,3 +38,29 @@ describe('CORS: lista cerrada de orígenes', () => {
     }
   });
 });
+
+describe('Servidor: conexiones inactivas', () => {
+  it('una conexión inactiva más de 5 s sigue sirviendo el siguiente POST (lo que hace un iPhone tras sacar una foto)', async () => {
+    const http = await import('node:http');
+    const app2 = await startApp();
+    try {
+      const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+      const pedir = (method: string, path: string) =>
+        new Promise<number | string>((resolve) => {
+          const url = new URL(app2.base + path);
+          const r = http.request({ host: url.hostname, port: url.port, path: url.pathname, method, agent, headers: method === 'POST' ? { 'Content-Type': 'application/json', 'Content-Length': 2 } : {} }, (res) => {
+            res.resume();
+            res.on('end', () => resolve(res.statusCode!));
+          });
+          r.on('error', (e: NodeJS.ErrnoException) => resolve(`ERROR ${e.code}`));
+          r.end(method === 'POST' ? '{}' : undefined);
+        });
+      assert.equal(await pedir('GET', '/me'), 401);
+      await new Promise((r) => setTimeout(r, 6000));
+      assert.equal(await pedir('POST', '/auth/logout'), 401, 'antes del arreglo esto terminaba en ECONNRESET');
+      agent.destroy();
+    } finally {
+      await app2.close();
+    }
+  });
+});

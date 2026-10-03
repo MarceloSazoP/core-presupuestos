@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { requestRecordingPermissionsAsync, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
+import { randomUUID } from 'expo-crypto';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -128,7 +129,7 @@ function Fotos({ q, recargar }: Props) {
     for (const a of r.assets) {
       try {
         const uri = await prepararFoto(a.uri, a.width, a.height);
-        await subir(`/quotes/${q.id}/photos`, { uri, name: 'foto.jpg', type: 'image/jpeg' });
+        await subir(`/quotes/${q.id}/photos`, { uri, name: 'foto.jpg', type: 'image/jpeg' }, { id: randomUUID() });
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (err) {
         Alert.alert('No se pudo subir la foto', mensajeDe(err));
@@ -208,7 +209,7 @@ function Voz({ q, recargar }: Props) {
     if (!uri) return;
     setGuardando(true);
     try {
-      await subir(`/quotes/${q.id}/voice-notes`, { uri, name: 'nota.m4a', type: 'audio/mp4' }, { duration_seconds: String(duracion) });
+      await subir(`/quotes/${q.id}/voice-notes`, { uri, name: 'nota.m4a', type: 'audio/mp4' }, { id: randomUUID(), duration_seconds: String(duracion) });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await recargar();
     } catch (err) {
