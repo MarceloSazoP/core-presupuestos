@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+.expo/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env*.local
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
+# Backend
+__pycache__/
+*.pyc
+venv/
