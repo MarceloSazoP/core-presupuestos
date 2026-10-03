@@ -8,9 +8,14 @@ export function ConsultaForm() {
 
   return (
     <form action={accion} className="flex flex-col gap-3">
-      <label htmlFor="codigo" className="text-base font-medium">
-        Consultar presupuesto
-      </label>
+      <div className="flex flex-col gap-1">
+        <label id="consultar" htmlFor="codigo" className="seccion text-lg">
+          Consultar presupuesto
+        </label>
+        <p id="codigo-ayuda" className="ayuda">
+          El código lo genera la app móvil al crear el presupuesto.
+        </p>
+      </div>
       <input
         id="codigo"
         name="codigo"
@@ -22,15 +27,16 @@ export function ConsultaForm() {
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="search"
-        placeholder="Escribe el código, por ejemplo pre-1"
+        placeholder="Por ejemplo: pre-1"
         className="campo"
         aria-invalid={Boolean(estado.error)}
-        aria-describedby="codigo-estado"
+        aria-describedby={estado.error ? "codigo-error codigo-ayuda" : "codigo-ayuda"}
       />
       <button type="submit" className="boton" disabled={pendiente}>
+        {pendiente && <span className="spinner" aria-hidden="true" />}
         {pendiente ? "Consultando…" : "Consultar"}
       </button>
-      <p id="codigo-estado" role="status" aria-live="polite" className="min-h-6 text-sm text-error">
+      <p id="codigo-error" role="alert" className="min-h-5 text-sm text-error">
         {estado.error}
       </p>
     </form>
