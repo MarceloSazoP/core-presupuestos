@@ -110,6 +110,23 @@ describe('esquema: restricciones del Contrato de BD', () => {
     await c.query(file('PHOTO', q));
   });
 
+  it('la unidad de medida del ítem vale "un" por defecto y solo admite códigos cortos en minúscula', async () => {
+    const q = await newQuote();
+    await c.query(
+      `INSERT INTO quote_items (quote_id, position, description, quantity, unit_price, line_total)
+       VALUES ($1, 1, 'i', 1, 100, 100)`,
+      [q],
+    );
+    const { rows } = await c.query<{ unit: string }>('SELECT unit FROM quote_items WHERE quote_id = $1', [q]);
+    assert.equal(rows[0]!.unit, 'un');
+
+    const conUnidad = `INSERT INTO quote_items (quote_id, position, description, quantity, unit_price, line_total, unit)
+                       VALUES ($1, $2, 'i', 1, 100, 100, $3)`;
+    await c.query(conUnidad, [q, 2, 'm2']);
+    await expectCode('23514', conUnidad, [q, 3, 'M²']);
+    await expectCode('23514', conUnidad, [q, 4, '']);
+  });
+
   it('sesiones QUOTE_EDIT exigen presupuesto y las USER no lo admiten', async () => {
     const q = await newQuote();
     const ins = `INSERT INTO sessions (user_id, token_hash, scope, quote_id, expires_at)

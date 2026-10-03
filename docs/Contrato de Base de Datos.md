@@ -286,6 +286,19 @@ CREATE INDEX audit_events_quote_idx ON audit_events (quote_id, created_at DESC);
 
 ---
 
+### Cambios posteriores al esquema inicial
+
+La migración `0001` ya está aplicada y no se edita; los cambios van en migraciones nuevas.
+
+**0002 — unidad de medida por ítem** (`m²`, `m³`, galón, etc.). Solo exige un código corto; el catálogo permitido lo valida la API (Contrato de API §12.1), para no migrar cada vez que se agrega una unidad.
+
+```sql
+ALTER TABLE quote_items
+  ADD COLUMN unit text NOT NULL DEFAULT 'un' CHECK (unit ~ '^[a-z0-9]{1,16}$');
+```
+
+---
+
 ## 4. Estados y transiciones
 
 ### Documental (`quotes.doc_status`)
@@ -343,7 +356,7 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
   "customer": { "name": "" },
   "service_description": "",
   "service_address": null,
-  "items": [{ "description": "", "quantity": 1, "unit_price": 5000, "line_total": 5000 }],
+  "items": [{ "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
   "subtotal": 0, "discount": 0, "total": 0,
   "warranty": { "kind": "M3", "text": "3 meses" },
   "validity_days": 15,

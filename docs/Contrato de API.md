@@ -87,7 +87,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (u
     "photos":      [{ "id": "uuid", "url": "/files/uuid", "caption": null, "created_at": "…" }],
     "voice_notes": [{ "id": "uuid", "url": "/files/uuid", "duration_seconds": 42, "created_at": "…" }]
   },
-  "items": [{ "id": "uuid", "description": "", "quantity": 1, "unit_price": 5000, "line_total": 5000 }],
+  "items": [{ "id": "uuid", "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
   "subtotal": 0, "discount": 0, "total": 0,
   "warranty": { "kind": "NONE", "text": null },
   "validity_days": null, "observations": null,
@@ -217,10 +217,10 @@ Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, emai
 **`PUT /quotes/{id}/items`** — reemplaza la lista completa y su orden.
 ```json
 { "items": [
-  { "id": "uuid?", "description": "Pilas grandes", "quantity": 1, "unit_price": 5000 },
-  { "description": "Limpiar chispero", "quantity": 1, "unit_price": 5000 } ] }
+  { "id": "uuid?", "description": "Pilas grandes", "quantity": 1, "unit": "un", "unit_price": 5000 },
+  { "description": "Piso flotante", "quantity": 12.5, "unit": "m2", "unit_price": 18000 } ] }
 ```
-Responde `Quote` con `line_total`, `subtotal` y `total` calculados. `line_total = round(quantity × unit_price)`, redondeo hacia arriba en `.5`.
+`unit` es el código del catálogo de §12.1 y vale `un` si se omite. Responde `Quote` con `line_total`, `subtotal` y `total` calculados. `line_total = round(quantity × unit_price)`, redondeo hacia arriba en `.5`.
 
 ### Guardar
 
@@ -380,6 +380,7 @@ Opcional; la preferencia de mostrarlos la guarda el cliente.
 | `measurement.label` / `value` | 1–60 |
 | `item.description` | 1–300 |
 | `item.quantity` | > 0, ≤ 1.000.000, hasta 3 decimales |
+| `item.unit` | código del catálogo de §12.1 (defecto `un`) |
 | `item.unit_price` | entero 0–999.999.999 |
 | `discount` | entero ≥ 0 |
 | `validity_days` | entero 1–365 |
@@ -388,6 +389,21 @@ Opcional; la preferencia de mostrarlos la guarda el cliente.
 | `follow_up.note` | ≤ 2000 |
 
 Cualquier campo desconocido en el cuerpo se **rechaza** con 422; nunca se copia al modelo.
+
+---
+
+### 12.1 Catálogo de unidades de medida
+
+El código es lo que se guarda y se envía; el símbolo es lo que se muestra en pantalla y en el PDF. El catálogo vive en la API (la BD solo exige un código de 1–16 letras o dígitos), así que agregar una unidad no requiere migración.
+
+| Grupo | Códigos |
+|-------|---------|
+| Conteo y piezas | `un`, `par`, `juego`, `kit`, `doc` (docena), `pza` (pieza), `pto` (punto), `tramo` |
+| Envases y formatos | `caja`, `bolsa`, `saco`, `rollo`, `bobina`, `plancha`, `paquete`, `tubo`, `barra`, `tarro`, `balde`, `tineta` |
+| Longitud | `mm`, `cm`, `m`, `ml` (metro lineal), `km`, `plg` (pulgada), `pie` |
+| Superficie y volumen | `m2` (m²), `m3` (m³), `l` (litro), `gal` (galón) |
+| Peso | `g`, `kg`, `ton`, `lb` |
+| Tiempo y servicios | `hr`, `hh` (hora hombre), `jornada`, `dia`, `semana`, `mes`, `visita`, `servicio`, `gl` (global) |
 
 ---
 
