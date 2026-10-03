@@ -72,7 +72,7 @@ schema.sql          # Schema PostgreSQL
 
 ## API
 
-Ver [../docs/03-API-CONTRACT.md](../docs/03-API-CONTRACT.md)
+Ver [../docs/Contrato de API.md](<../docs/Contrato de API.md>)
 
 ## Notas
 

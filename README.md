@@ -11,9 +11,8 @@ Aplicación para capturar información en terreno, preparar presupuestos comerci
 ```
 core-presupuestos-10-2026/
 ├── docs/                          # Documentación del producto
-│   ├── 01-MVP-SCOPE.md           # Alcance exacto del MVP
-│   ├── 02-DATABASE-SCHEMA.md     # Diseño de base de datos
-│   └── 03-API-CONTRACT.md        # Contrato de API
+│   ├── Contrato de Base de Datos.md
+│   └── Contrato de API.md
 ├── frontend/                      # Aplicación Web (Next.js + TypeScript)
 ├── mobile/                        # Aplicación Mobile (React Native + Expo)
 ├── backend/                       # Backend API (Node.js / Python)
@@ -29,9 +28,10 @@ core-presupuestos-10-2026/
 
 Lee en este orden:
 
-1. **[01-MVP-SCOPE.md](docs/01-MVP-SCOPE.md)** — Qué incluye y qué no incluye el MVP
-2. **[02-DATABASE-SCHEMA.md](docs/02-DATABASE-SCHEMA.md)** — Diseño de base de datos PostgreSQL
-3. **[03-API-CONTRACT.md](docs/03-API-CONTRACT.md)** — Endpoints y contratos de API
+1. **[Definición Funcional del Producto — v1.0](<docs/Definición Funcional del Producto — v1.0.md>)**
+2. **[Alcance Exacto del MVP](<docs/Alcance Exacto del MVP.md>)**
+3. **[Contrato de Base de Datos](<docs/Contrato de Base de Datos.md>)**
+4. **[Contrato de API](<docs/Contrato de API.md>)**
 
 ### 2. Configuración de Ambiente
 
@@ -135,9 +135,8 @@ Cada funcionalidad relevante debe tener pruebas:
 
 ## 📚 Documentación Técnica
 
-- **[01-MVP-SCOPE.md](docs/01-MVP-SCOPE.md)** — Funcionalidades exactas
-- **[02-DATABASE-SCHEMA.md](docs/02-DATABASE-SCHEMA.md)** — Tablas, relaciones, permisos
-- **[03-API-CONTRACT.md](docs/03-API-CONTRACT.md)** — Endpoints y formatos
+- **[Contrato de Base de Datos](<docs/Contrato de Base de Datos.md>)** — Tablas, estados, permisos
+- **[Contrato de API](<docs/Contrato de API.md>)** — Endpoints y formatos
 
 Siempre documentar ANTES de implementar.
 
