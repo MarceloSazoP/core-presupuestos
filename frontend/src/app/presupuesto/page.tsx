@@ -1,30 +1,31 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { clp, cant, enmascararCorreo, enmascararTelefono } from "@/lib/formato";
+import { clp, cant, enmascararCorreo } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
-import { esFinalizado, porId } from "@/lib/presupuestos";
-import { sesionActual } from "@/lib/sesion";
+import { cargarPresupuesto, esFinalizado } from "@/lib/presupuesto";
 import { calcularTotales, totalLinea } from "@/lib/totales";
 import { enlaceWhatsApp, mensajePresupuesto } from "@/lib/whatsapp";
 import { salirAction } from "../actions";
 import { Editor } from "./editor";
 import { Encabezado } from "./encabezado";
+import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { EnviarCorreo } from "./enviar-correo";
 
 export const metadata: Metadata = { title: "Presupuesto · CorePresupuesto" };
 
-const fechaHora = new Intl.DateTimeFormat("es-CL", { timeZone: "America/Santiago", dateStyle: "long", timeStyle: "short" });
+const LOGO = "/presupuesto/logo";
 
 export default async function PresupuestoPage() {
-  const id = await sesionActual();
-  const p = id ? await porId(id) : null;
-  if (!p) redirect("/");
+  const cargado = await cargarPresupuesto();
+  if (!cargado) redirect("/");
+  const { presupuesto: p } = cargado;
+  const logoSrc = p.profesional.tieneLogo ? LOGO : null;
 
   // Pendiente: se completa o se edita. Cerrado: solo se ve.
   if (!esFinalizado(p)) {
     return (
       <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
-        <Encabezado profesional={p.profesional} />
+        <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
         <h1 className="sr-only">Completar presupuesto</h1>
         <Editor
           inicial={{
@@ -35,11 +36,7 @@ export default async function PresupuestoPage() {
             validezDias: p.validezDias,
             observaciones: p.observaciones,
             levantamiento: p.levantamiento,
-            cliente: {
-              nombre: p.cliente.nombre,
-              correo: enmascararCorreo(p.cliente.correo),
-              telefono: enmascararTelefono(p.cliente.telefono),
-            },
+            cliente: { nombre: p.cliente.nombre, correo: p.cliente.correo && enmascararCorreo(p.cliente.correo), telefono: p.cliente.telefono },
           }}
         />
       </main>
@@ -49,18 +46,12 @@ export default async function PresupuestoPage() {
   const { subtotal, descuento, total } = calcularTotales(p.items, p.descuento);
   const whatsappUrl = enlaceWhatsApp(
     p.cliente.telefono,
-    mensajePresupuesto({
-      nombre: p.cliente.nombre,
-      numero: p.numero,
-      total: clp(total),
-      descripcion: p.descripcion,
-      porCorreo: Boolean(p.correoEnviadoEn),
-    }),
+    mensajePresupuesto({ nombre: p.cliente.nombre, numero: p.numero, total: clp(total), descripcion: p.descripcion, enlace: p.publicUrl ?? "" }),
   );
 
   return (
     <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
-      <Encabezado profesional={p.profesional} />
+      <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
       <header className="flex flex-col items-start gap-2">
         <span className="estado estado-cerrado">Cerrado · {p.numero}</span>
         <h1 className="text-2xl font-semibold leading-tight">{p.descripcion}</h1>
@@ -133,11 +124,8 @@ export default async function PresupuestoPage() {
             <a href="/presupuesto/pdf" download className="boton">
               Descargar PDF
             </a>
-            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="boton-secundario">
-              Enviar por WhatsApp
-            </a>
-            <EnviarCorreo destino={enmascararCorreo(p.cliente.correo)} />
-            {p.correoEnviadoEn && <p className="ayuda">Último envío por correo: {fechaHora.format(new Date(p.correoEnviadoEn))}.</p>}
+            <EnlaceWhatsApp href={whatsappUrl} className="boton-secundario" />
+            <EnviarCorreo destino={p.cliente.correo && enmascararCorreo(p.cliente.correo)} />
             <form action={salirAction}>
               <button type="submit" className="boton-texto w-full">
                 Consultar otro presupuesto

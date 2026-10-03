@@ -21,13 +21,13 @@ export function ConsultaForm() {
         name="codigo"
         type="text"
         required
-        maxLength={64}
+        maxLength={32}
         autoComplete="off"
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="search"
-        placeholder="Por ejemplo: pre-1"
+        placeholder="Por ejemplo: 7K4M2Q-X9D2P4HTRB"
         className="campo"
         aria-invalid={Boolean(estado.error)}
         aria-describedby={estado.error ? "codigo-error codigo-ayuda" : "codigo-ayuda"}

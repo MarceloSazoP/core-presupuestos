@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="Logo de demostración">
-  <rect width="96" height="96" rx="22" fill="#2563eb"/>
-  <path d="M30 24h26l12 12v36a4 4 0 0 1-4 4H30a4 4 0 0 1-4-4V28a4 4 0 0 1 4-4Z" fill="#ffffff"/>
-  <path d="M56 24v12h12" fill="#bfd3fb"/>
-  <path d="M34 50h28M34 58h28M34 66h16" stroke="#2563eb" stroke-width="4" stroke-linecap="round"/>
-</svg>

@@ -5,6 +5,7 @@ import { clp, miles } from "@/lib/formato";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
 import { completarPresupuestoAction, salirAction, type EstadoEdicion } from "../actions";
+import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { EnviarCorreo } from "./enviar-correo";
 import { GrillaItems, type Fila } from "./grilla-items";
 
@@ -16,7 +17,7 @@ type Inicial = {
   validezDias: number;
   observaciones: string | null;
   levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[] };
-  cliente: { nombre: string; correo: string; telefono: string };
+  cliente: { nombre: string; correo: string | null; telefono: string };
 };
 
 // Solo para la vista previa: el servidor vuelve a calcular y valida todo.
@@ -102,9 +103,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="boton">
-            Enviar por WhatsApp
-          </a>
+          <EnlaceWhatsApp href={whatsappUrl} className="boton" />
           {!correo.ok && <EnviarCorreo destino={inicial.cliente.correo} />}
           <a href="/presupuesto/pdf" download className="boton-secundario">
             Descargar PDF
@@ -132,7 +131,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </h3>
           <p className="text-lg font-semibold">{inicial.cliente.nombre}</p>
           <p className="text-muted">{inicial.cliente.telefono}</p>
-          <p className="text-muted">{inicial.cliente.correo}</p>
+          <p className="text-muted">{inicial.cliente.correo ?? "Sin correo"}</p>
         </section>
 
         <section aria-labelledby="levantamiento" className="flex flex-col gap-1">
@@ -286,7 +285,9 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             <p id="confirmar" className="font-medium">
               ¿Cerrar y enviar este presupuesto?
             </p>
-            <p className="ayuda">Se enviará el PDF a {inicial.cliente.correo} y ya no podrás editarlo.</p>
+            <p className="ayuda">
+              {inicial.cliente.correo ? `Se enviará el PDF a ${inicial.cliente.correo}` : "El cliente no tiene correo: se cerrará sin enviarlo"} y ya no podrás editarlo.
+            </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button type="submit" name="accion" value="terminar" className="boton" disabled={pendiente}>
                 Sí, terminar y enviar

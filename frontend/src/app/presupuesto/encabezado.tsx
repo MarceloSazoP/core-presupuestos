@@ -1,16 +1,17 @@
 import Image from "next/image";
-import type { Profesional } from "@/lib/presupuestos";
 import { BotonTema } from "../boton-tema";
 import { Reloj } from "../reloj";
 
+type Profesional = { nombre: string; telefono: string; correo: string };
+
 // Dueño del presupuesto (usuario de la app móvil): logo, nombre y contacto, con la fecha y hora en vivo.
-export function Encabezado({ profesional }: { profesional: Profesional }) {
+export function Encabezado({ profesional, logoSrc }: { profesional: Profesional; logoSrc: string | null }) {
   const telefono = profesional.telefono.replace(/[^\d+]/g, "");
   return (
     <header className="tarjeta flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-4">
-        {profesional.logoUrl && (
-          <Image src={profesional.logoUrl} alt={`Logo de ${profesional.nombre}`} width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl" />
+        {logoSrc && (
+          <Image src={logoSrc} alt={`Logo de ${profesional.nombre}`} width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl object-contain" />
         )}
         <div className="flex min-w-0 flex-col">
           <p className="truncate text-xl font-semibold leading-tight">{profesional.nombre}</p>

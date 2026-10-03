@@ -1,50 +1,33 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { z } from 'zod';
-import { normalizarCodigo } from '@/lib/codigo';
-import { enviarPresupuesto, ErrorCorreo } from '@/lib/correo';
-import { clp, enmascararCorreo } from '@/lib/formato';
-import { permitir } from '@/lib/limite';
-import { esUnidad, GARANTIAS } from '@/lib/opciones';
-import { generarPdf } from '@/lib/pdf';
-import {
-  buscarPorCodigo,
-  esFinalizado,
-  finalizar,
-  guardarBorrador,
-  marcarCorreoEnviado,
-  porId,
-  type DatosEditables,
-} from '@/lib/presupuestos';
+import { api, ApiError } from '@/lib/api';
+import { clp } from '@/lib/formato';
+import { codigoGarantia, mensajesDeError, type QuoteApi } from '@/lib/mapeo';
 import { abrirSesion, cerrarSesion, sesionActual } from '@/lib/sesion';
-import { calcularTotales } from '@/lib/totales';
 import { enlaceWhatsApp, mensajePresupuesto } from '@/lib/whatsapp';
 
-const DIEZ_MINUTOS = 10 * 60_000;
-
-// El encabezado solo es fiable detrás de un proxy propio; sirve como clave del límite de intentos.
-async function origen(): Promise<string> {
-  const h = await headers();
-  return h.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
-}
+// La web no tiene reglas propias: valida lo mínimo para dar buenos mensajes y deja que la API decida (CLAUDE.md §6).
 
 export type EstadoConsulta = { error?: string };
 
-const FORMATO_CODIGO = /^[a-z0-9][a-z0-9_-]{1,63}$/;
-
-// El código lo crea la app móvil. Aquí solo se verifica; qué se puede hacer lo decide el estado del presupuesto.
+// El código lo crea la app móvil y la API lo canjea por una sesión limitada a ese presupuesto (Contrato API §9).
+// La API responde el mismo 404 para un código inexistente, equivocado o revocado, y limita los intentos.
 export async function consultarAction(_previo: EstadoConsulta, datos: FormData): Promise<EstadoConsulta> {
-  const codigo = normalizarCodigo(String(datos.get('codigo') ?? ''));
-  if (!FORMATO_CODIGO.test(codigo)) return { error: 'El código no es válido. Revisa que esté completo.' };
-  // Argon2 es costoso a propósito: se limita antes de verificar.
-  if (!permitir(`consulta:${await origen()}`, 8, DIEZ_MINUTOS)) {
-    return { error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' };
+  const codigo = String(datos.get('codigo') ?? '').trim();
+  if (codigo.length < 8 || codigo.length > 64) return { error: 'El código no es válido. Revisa que esté completo.' };
+  try {
+    const r = await api<{ token: string; quote_id: string; expires_at: string }>('/access/code/exchange', { method: 'POST', body: { code: codigo } });
+    await abrirSesion(r.quote_id, r.token, r.expires_at);
+  } catch (e) {
+    if (e instanceof ApiError) {
+      if (e.status === 404) return { error: 'No existe un presupuesto con ese código.' };
+      if (e.status === 429) return { error: 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.' };
+      if (e.status === 422) return { error: 'El código no es válido. Revisa que esté completo.' };
+      return { error: e.message };
+    }
+    throw e;
   }
-  const presupuesto = await buscarPorCodigo(codigo);
-  if (!presupuesto) return { error: 'No existe un presupuesto con ese código.' };
-  await abrirSesion(presupuesto.id);
   redirect('/presupuesto');
 }
 
@@ -53,45 +36,32 @@ export async function salirAction(): Promise<void> {
   redirect('/');
 }
 
+// WhatsApp se abre en el teléfono (sin API de WhatsApp Business): se avisa a la API cuando la persona lo pulsa.
+export async function marcarEnviadoAction(canal: 'WHATSAPP' | 'SHARE' | 'LINK'): Promise<void> {
+  const s = await sesionActual();
+  if (!s) return;
+  await api(`/quotes/${s.quoteId}/mark-sent`, { token: s.token, method: 'POST', body: { channel: canal } }).catch(() => {});
+}
+
 export type EstadoCorreo = { ok?: boolean; mensaje?: string };
 
-export async function enviarCorreoAction(): Promise<EstadoCorreo> {
-  const id = await sesionActual();
-  if (!id) return { mensaje: 'La sesión venció. Vuelve a consultar el presupuesto.' };
-  if (!permitir(`correo:${id}`, 5, DIEZ_MINUTOS)) return { mensaje: 'Demasiados envíos. Espera unos minutos.' };
-  const presupuesto = await porId(id);
-  if (!presupuesto || !esFinalizado(presupuesto)) return { mensaje: 'El presupuesto aún no está terminado.' };
+export async function enviarCorreoAction(_previo: EstadoCorreo, datos: FormData): Promise<EstadoCorreo> {
+  const s = await sesionActual();
+  if (!s) return { mensaje: 'La sesión venció. Vuelve a consultar el presupuesto.' };
+  const para = String(datos.get('para') ?? '').trim();
   try {
-    await enviarPresupuesto(presupuesto, await generarPdf(presupuesto));
-    await marcarCorreoEnviado(id);
-    return { ok: true, mensaje: `Enviado a ${enmascararCorreo(presupuesto.cliente.correo)}.` };
-  } catch (err) {
-    return { mensaje: err instanceof ErrorCorreo ? err.message : 'No se pudo enviar el correo.' };
+    await api(`/quotes/${s.quoteId}/send-email`, { token: s.token, method: 'POST', body: para ? { to: para } : {} });
+    return { ok: true, mensaje: 'Enviado. Revisa la bandeja de entrada del cliente.' };
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    if (e.status === 401) return { mensaje: 'La sesión venció. Vuelve a consultar el presupuesto.' };
+    if (e.status === 429) return { mensaje: 'Demasiados envíos. Espera un rato e inténtalo de nuevo.' };
+    return { mensaje: mensajesDeError(e.details, e.message).join(' ') };
   }
 }
 
 const aDecimal = (s: string) => Number(s.trim().replace(',', '.'));
 const aEntero = (s: string) => Number(s.replace(/[^\d]/g, ''));
-
-const Item = z.object({
-  descripcion: z.string().trim().min(1, 'Cada ítem necesita una descripción.').max(300, 'Una descripción es demasiado larga.'),
-  cantidad: z.number().gt(0, 'La cantidad debe ser mayor que 0.').max(1_000_000, 'Una cantidad es demasiado grande.'),
-  unidad: z.string().refine(esUnidad, 'Elige una unidad de medida válida.'),
-  precioUnitario: z.number().int().min(0).max(999_999_999, 'Un precio es demasiado grande.'),
-});
-const Borrador = z.object({
-  descripcion: z.string().trim().max(2000, 'La descripción del servicio es demasiado larga.'),
-  items: z.array(Item).max(100, 'Máximo 100 ítems.'),
-  descuento: z.number().int().min(0),
-  garantia: z.enum(GARANTIAS),
-  validezDias: z.union([z.literal(7), z.literal(15), z.literal(30)]),
-  observaciones: z.string().trim().max(5000, 'Las observaciones son demasiado largas.').nullable(),
-});
-// Terminar exige un presupuesto emitible; guardar solo exige que lo escrito sea válido (Wizard §15.2).
-const Completo = Borrador.extend({
-  descripcion: z.string().trim().min(1, 'Describe el servicio.').max(2000),
-  items: z.array(Item).min(1, 'Agrega al menos un ítem.').max(100),
-});
 
 export type EstadoEdicion = {
   errores?: string[];
@@ -105,15 +75,10 @@ export type EstadoEdicion = {
 };
 
 export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: FormData): Promise<EstadoEdicion> {
-  const id = await sesionActual();
-  if (!id) return { errores: ['La sesión venció. Vuelve al inicio y escribe el código de nuevo.'] };
-  if (!permitir(`editar:${id}`, 20, DIEZ_MINUTOS)) return { errores: ['Demasiados intentos. Espera unos minutos.'] };
-
-  const actual = await porId(id);
-  if (!actual) return { errores: ['No se encontró el presupuesto.'] };
-  if (actual.estado !== 'PENDING') return { errores: ['El presupuesto ya está cerrado y no se puede modificar.'] };
-
+  const s = await sesionActual();
+  if (!s) return { errores: ['La sesión venció. Vuelve al inicio y escribe el código de nuevo.'] };
   const terminar = datos.get('accion') === 'terminar';
+
   const descripciones = datos.getAll('item_descripcion').map(String);
   const cantidades = datos.getAll('item_cantidad').map(String);
   const unidades = datos.getAll('item_unidad').map(String);
@@ -126,61 +91,58 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
   if (filas.some((f) => !f.descripcion.trim() || !f.cantidad.trim() || !f.precio.trim())) {
     return { errores: ['Completa la descripción, la cantidad y el precio de cada ítem.'] };
   }
-  const filasInvalidas = filas.some((f) => !/^\d+([.,]\d{1,3})?$/.test(f.cantidad.trim()) || !/^[\d.\s$]*\d[\d.\s$]*$/.test(f.precio));
-  if (filasInvalidas) return { errores: ['Revisa cantidades (hasta 3 decimales) y precios (solo números).'] };
-
-  const analizado = (terminar ? Completo : Borrador).safeParse({
-    descripcion: String(datos.get('descripcion') ?? ''),
-    items: filas.map((f) => ({
-      descripcion: f.descripcion,
-      cantidad: aDecimal(f.cantidad),
-      unidad: f.unidad,
-      precioUnitario: aEntero(f.precio),
-    })),
-    descuento: aEntero(String(datos.get('descuento') ?? '0')),
-    garantia: String(datos.get('garantia') ?? ''),
-    validezDias: Number(datos.get('validezDias')),
-    observaciones: String(datos.get('observaciones') ?? '').trim() || null,
-  });
-  if (!analizado.success) return { errores: [...new Set(analizado.error.issues.map((i) => i.message))] };
-
-  const editable: DatosEditables = analizado.data;
-  const { subtotal, total } = calcularTotales(editable.items, editable.descuento);
-  if (editable.descuento > subtotal) return { errores: ['El descuento no puede superar el subtotal.'] };
-
-  if (!terminar) {
-    await guardarBorrador(id, editable);
-    return { guardado: 'Guardado como pendiente. Puedes seguir después con el mismo código.' };
+  if (filas.some((f) => !/^\d+([.,]\d{1,3})?$/.test(f.cantidad.trim()) || !/^[\d.\s$]*\d[\d.\s$]*$/.test(f.precio))) {
+    return { errores: ['Revisa cantidades (hasta 3 decimales) y precios (solo números).'] };
   }
+  const garantia = codigoGarantia(String(datos.get('garantia') ?? ''));
+  const validez = Number(datos.get('validezDias'));
+  if (!garantia || ![7, 15, 30].includes(validez)) return { errores: ['Elige la garantía y la validez del presupuesto.'] };
 
-  const finalizado = await finalizar(id, editable);
-  if (!finalizado) return { errores: ['El presupuesto ya está cerrado y no se puede modificar.'] };
-
-  let correo = { ok: false, mensaje: 'No se pudo enviar el correo.' };
-  if (permitir(`correo:${id}`, 5, DIEZ_MINUTOS)) {
-    try {
-      await enviarPresupuesto(finalizado, await generarPdf(finalizado));
-      await marcarCorreoEnviado(id);
-      correo = { ok: true, mensaje: `Enviado a ${enmascararCorreo(finalizado.cliente.correo)}.` };
-    } catch (err) {
-      if (err instanceof ErrorCorreo) correo.mensaje = err.message;
+  const token = s.token;
+  const base = `/quotes/${s.quoteId}`;
+  try {
+    await api(base, {
+      token, method: 'PATCH',
+      body: {
+        service_description: String(datos.get('descripcion') ?? ''),
+        discount: aEntero(String(datos.get('descuento') ?? '0')),
+        warranty: { kind: garantia },
+        validity_days: validez,
+        observations: String(datos.get('observaciones') ?? '').trim() || null,
+      },
+    });
+    await api(base + '/items', {
+      token, method: 'PUT',
+      body: { items: filas.map((f) => ({ description: f.descripcion, quantity: aDecimal(f.cantidad), unit: f.unidad, unit_price: aEntero(f.precio) })) },
+    });
+    if (!terminar) {
+      await api(base + '/save', { token, method: 'POST', body: {} });
+      return { guardado: 'Guardado como pendiente. Puedes seguir después con el mismo código.' };
     }
+    const q = await api<QuoteApi & { public_url: string }>(base + '/finalize', { token, method: 'POST', body: {} });
+    // Terminar también envía el PDF por correo cuando el cliente tiene correo; si falla, el presupuesto queda cerrado igual.
+    let correo = { ok: false, mensaje: 'El cliente no tiene correo: usa «Enviar a correo» e indica uno.' };
+    if (q.customer.email) {
+      try {
+        await api(base + '/send-email', { token, method: 'POST', body: {} });
+        correo = { ok: true, mensaje: `Enviado a ${q.customer.email}.` };
+      } catch (e) {
+        correo = { ok: false, mensaje: e instanceof ApiError ? mensajesDeError(e.details, e.message).join(' ') : 'No se pudo enviar el correo.' };
+      }
+    }
+    const total = clp(q.total);
+    return {
+      terminado: {
+        numero: q.number!,
+        total,
+        correo,
+        whatsappUrl: enlaceWhatsApp(q.customer.phone, mensajePresupuesto({ nombre: q.customer.name, numero: q.number!, total, descripcion: q.service_description, enlace: q.public_url })),
+      },
+    };
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    if (e.status === 401) return { errores: ['La sesión venció. Vuelve al inicio y escribe el código de nuevo.'] };
+    if (e.status === 409) return { errores: ['El presupuesto ya está cerrado y no se puede modificar.'] };
+    return { errores: mensajesDeError(e.details, e.message) };
   }
-
-  const mensaje = mensajePresupuesto({
-    nombre: finalizado.cliente.nombre,
-    numero: finalizado.numero,
-    total: clp(total),
-    descripcion: finalizado.descripcion,
-    porCorreo: correo.ok,
-  });
-
-  return {
-    terminado: {
-      numero: finalizado.numero,
-      total: clp(total),
-      correo,
-      whatsappUrl: enlaceWhatsApp(finalizado.cliente.telefono, mensaje),
-    },
-  };
 }
