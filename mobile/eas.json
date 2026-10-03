@@ -1,44 +1,29 @@
 {
+  "cli": {
+    "appVersionSource": "remote"
+  },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "ios": {
-        "resourceClass": "m1"
-      },
       "android": {
         "gradleCommand": ":app:assembleDebug"
       }
     },
     "preview": {
-      "ios": {
-        "resourceClass": "m1"
-      },
+      "distribution": "internal",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
-      "ios": {
-        "resourceClass": "m1"
-      },
+      "autoIncrement": true,
       "android": {
-        "buildType": "aab"
+        "buildType": "app-bundle"
       }
     }
   },
   "submit": {
-    "production": {
-      "ios": {
-        "ascAppId": null,
-        "appleId": "your-apple-id@example.com",
-        "appleTeamId": "YOUR_TEAM_ID",
-        "appleAppSpecificPassword": null
-      },
-      "android": {
-        "serviceAccount": null,
-        "track": "internal"
-      }
-    }
+    "production": {}
   }
 }
