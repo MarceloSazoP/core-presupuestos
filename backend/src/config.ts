@@ -5,7 +5,7 @@ const bool = z.enum(['true', 'false']).default('false').transform((v) => v === '
 const schema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    PORT: z.coerce.number().int().min(1).max(65535).default(3001),
+    PORT: z.coerce.number().int().min(1).max(65535).default(3013),
     DATABASE_URL: z.string().min(1),
     TEST_DATABASE_URL: z.string().min(1).optional(),
     WEB_BASE_URL: z.string().url().default('http://localhost:3012'),

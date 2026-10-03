@@ -30,15 +30,16 @@ Requiere Node 24 (`nvm use 24`) y PostgreSQL local.
 
 ```bash
 cd backend
-cp .env.example .env     # completar usuario y contraseña de PostgreSQL
+cp .env.example .env     # completar PostgreSQL y AUTH_CODE_PEPPER (ver el archivo)
 npm install
 npm run db:setup         # crea core-prespuestos y core-prespuestos-test y aplica las migraciones
 npm test
-npm run dev              # http://localhost:3001/health
+npm run seed:demo       # opcional: presupuestos de demostración con códigos reales
+npm run dev              # http://localhost:3013/health
 ```
 
 Web y mobile se configuran en su fase (ver Arquitectura técnica §12).
 
 ## Estado
 
-Fase 0 (entorno) completa. Sigue la Fase 1: autenticación, perfil y clientes.
+Backend completo según los contratos v0.3 (autenticación por código, clientes, presupuestos con código de acceso, archivos, finalizar con PDF y QR, vista pública, envío por correo, seguimiento y dashboard). La web ya usa la API real. Sigue la app móvil (iPhone primero).
