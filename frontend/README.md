@@ -34,4 +34,4 @@ Para volver a los datos de demostración, borra `.data/`.
 - WhatsApp usa un enlace `wa.me` con el mensaje escrito; el PDF va solo por correo (el MVP no usa la API de WhatsApp Business).
 - Los códigos de demostración son adivinables. Los de la app móvil deben ser aleatorios y largos.
 - El límite de intentos vive en memoria de un solo proceso.
-- El cliente y el correo de envío salen de `.env.local`, no de un formulario.
+- El cliente, el correo de envío y el dueño del presupuesto (nombre, teléfono, correo y logo de demostración) salen de `.env.local` y de `public/demo`, no de un formulario. En producción vienen del perfil del usuario de la app móvil.

@@ -3,20 +3,26 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { hashCodigo, verificarCodigo } from './codigo';
+import { UNIDAD_POR_DEFECTO, type Unidad } from './opciones';
 import type { Item } from './totales';
 
 // PROVISIONAL: almacén en un JSON local que imita lo que la app móvil entrega (código + levantamiento).
 // Se reemplaza por la API (Contrato de API) sin tocar las pantallas: solo cambian las funciones de este archivo.
 // Estados documentales como en el Contrato de BD: PENDING (editable) y FINALIZED (solo lectura).
+export type ItemPresupuesto = Item & { unidad: Unidad };
+
+export type Profesional = { nombre: string; telefono: string; correo: string; logoUrl: string | null };
+
 export type Presupuesto = {
   id: string;
   numero: string | null;
   codigoHash: string;
   estado: 'PENDING' | 'FINALIZED';
+  profesional: Profesional;
   cliente: { nombre: string; telefono: string; correo: string };
   descripcion: string;
   levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[] };
-  items: Item[];
+  items: ItemPresupuesto[];
   descuento: number;
   garantia: string;
   validezDias: number;
@@ -42,6 +48,16 @@ function cliente(): Presupuesto['cliente'] {
   };
 }
 
+// Datos del dueño del presupuesto (usuario de la app móvil). Provisional: en producción vienen de su perfil.
+function profesionalDePrueba(): Profesional {
+  return {
+    nombre: process.env.DEV_PRO_NAME ?? 'Profesional de prueba',
+    telefono: process.env.DEV_PRO_PHONE ?? '+56 9 0000 0000',
+    correo: process.env.DEV_PRO_EMAIL ?? 'profesional@example.com',
+    logoUrl: '/demo/logo-profesional.svg',
+  };
+}
+
 const anioChile = () => new Intl.DateTimeFormat('es-CL', { timeZone: 'America/Santiago', year: 'numeric' }).format(new Date());
 const numeroDe = (n: number) => `CP-${anioChile()}-${String(n).padStart(4, '0')}`;
 
@@ -54,13 +70,14 @@ async function semillas(): Promise<Presupuesto[]> {
       numero: numeroDe(1),
       codigoHash: await hashCodigo('pre-1'),
       estado: 'FINALIZED',
+      profesional: profesionalDePrueba(),
       cliente: cliente(),
       descripcion: 'Mantención de calefón',
       levantamiento: { notas: 'Cambiar dos pilas grandes, limpiar chispero y revisar la conexión.', medidas: [] },
       items: [
-        { descripcion: 'Pilas grandes', cantidad: 1, precioUnitario: 5000 },
-        { descripcion: 'Limpiar chispero', cantidad: 1, precioUnitario: 5000 },
-        { descripcion: 'Revisión de conexión', cantidad: 1, precioUnitario: 10000 },
+        { descripcion: 'Pilas grandes', cantidad: 1, unidad: 'un', precioUnitario: 5000 },
+        { descripcion: 'Limpiar chispero', cantidad: 1, unidad: 'gl', precioUnitario: 5000 },
+        { descripcion: 'Revisión de conexión', cantidad: 1, unidad: 'gl', precioUnitario: 10000 },
       ],
       descuento: 0,
       garantia: '3 meses',
@@ -75,6 +92,7 @@ async function semillas(): Promise<Presupuesto[]> {
       numero: null,
       codigoHash: await hashCodigo('pre-2'),
       estado: 'PENDING',
+      profesional: profesionalDePrueba(),
       cliente: cliente(),
       descripcion: 'Instalación de enchufes y revisión de tablero',
       levantamiento: {
@@ -105,7 +123,13 @@ async function escribir(lista: Presupuesto[]): Promise<void> {
 
 async function leer(): Promise<Presupuesto[]> {
   try {
-    return JSON.parse(await readFile(ARCHIVO, 'utf8')) as Presupuesto[];
+    const guardados = JSON.parse(await readFile(ARCHIVO, 'utf8')) as Presupuesto[];
+    // Archivos creados antes de existir el perfil del profesional y la unidad de medida.
+    return guardados.map((p) => ({
+      ...p,
+      profesional: p.profesional ?? profesionalDePrueba(),
+      items: p.items.map((i) => ({ ...i, unidad: i.unidad ?? UNIDAD_POR_DEFECTO })),
+    }));
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     const iniciales = await semillas();

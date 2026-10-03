@@ -7,7 +7,7 @@ import { normalizarCodigo } from '@/lib/codigo';
 import { enviarPresupuesto, ErrorCorreo } from '@/lib/correo';
 import { clp, enmascararCorreo } from '@/lib/formato';
 import { permitir } from '@/lib/limite';
-import { GARANTIAS } from '@/lib/opciones';
+import { esUnidad, GARANTIAS } from '@/lib/opciones';
 import { generarPdf } from '@/lib/pdf';
 import {
   buscarPorCodigo,
@@ -76,6 +76,7 @@ const aEntero = (s: string) => Number(s.replace(/[^\d]/g, ''));
 const Item = z.object({
   descripcion: z.string().trim().min(1, 'Cada ítem necesita una descripción.').max(300, 'Una descripción es demasiado larga.'),
   cantidad: z.number().gt(0, 'La cantidad debe ser mayor que 0.').max(1_000_000, 'Una cantidad es demasiado grande.'),
+  unidad: z.string().refine(esUnidad, 'Elige una unidad de medida válida.'),
   precioUnitario: z.number().int().min(0).max(999_999_999, 'Un precio es demasiado grande.'),
 });
 const Borrador = z.object({
@@ -115,11 +116,12 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
   const terminar = datos.get('accion') === 'terminar';
   const descripciones = datos.getAll('item_descripcion').map(String);
   const cantidades = datos.getAll('item_cantidad').map(String);
+  const unidades = datos.getAll('item_unidad').map(String);
   const precios = datos.getAll('item_precio').map(String);
 
   // Al guardar se ignoran las filas totalmente vacías; al terminar, todas cuentan.
   const filas = descripciones
-    .map((descripcion, i) => ({ descripcion, cantidad: cantidades[i] ?? '', precio: precios[i] ?? '' }))
+    .map((descripcion, i) => ({ descripcion, cantidad: cantidades[i] ?? '', unidad: unidades[i] ?? '', precio: precios[i] ?? '' }))
     .filter((f) => terminar || f.descripcion.trim() !== '' || f.precio.trim() !== '');
   if (filas.some((f) => !f.descripcion.trim() || !f.cantidad.trim() || !f.precio.trim())) {
     return { errores: ['Completa la descripción, la cantidad y el precio de cada ítem.'] };
@@ -129,7 +131,12 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
 
   const analizado = (terminar ? Completo : Borrador).safeParse({
     descripcion: String(datos.get('descripcion') ?? ''),
-    items: filas.map((f) => ({ descripcion: f.descripcion, cantidad: aDecimal(f.cantidad), precioUnitario: aEntero(f.precio) })),
+    items: filas.map((f) => ({
+      descripcion: f.descripcion,
+      cantidad: aDecimal(f.cantidad),
+      unidad: f.unidad,
+      precioUnitario: aEntero(f.precio),
+    })),
     descuento: aEntero(String(datos.get('descuento') ?? '0')),
     garantia: String(datos.get('garantia') ?? ''),
     validezDias: Number(datos.get('validezDias')),

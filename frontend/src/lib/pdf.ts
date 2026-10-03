@@ -1,8 +1,10 @@
 import 'server-only';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { clp, cant } from './formato';
+import { simboloUnidad } from './opciones';
 import type { Finalizado } from './presupuestos';
 import { calcularTotales, totalLinea } from './totales';
 
@@ -29,13 +31,24 @@ function motor(): Pdfmake {
   return instancia;
 }
 
+// Solo logos de la carpeta de demostración: la ruta nunca sale de public/demo.
+async function logoSvg(url: string | null): Promise<string | null> {
+  if (!url || !/^\/demo\/[\w.-]+\.svg$/.test(url)) return null;
+  try {
+    return await readFile(path.join(process.cwd(), 'public', url), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 const fecha = (d: Date) => d.toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
 
 export async function generarPdf(p: Finalizado): Promise<Buffer> {
   const { subtotal, descuento, total } = calcularTotales(p.items, p.descuento);
   const creado = new Date(p.creadoEn);
   const vence = new Date(creado.getTime() + p.validezDias * 86_400_000);
-  const profesional = process.env.DEV_PRO_NAME ?? 'Profesional de prueba';
+  const { profesional } = p;
+  const logo = await logoSvg(profesional.logoUrl);
 
   const filaTotal = (etiqueta: string, valor: string, negrita = false): Content => ({
     columns: [
@@ -51,9 +64,17 @@ export async function generarPdf(p: Finalizado): Promise<Buffer> {
     info: { title: `Presupuesto ${p.numero}` },
     content: [
       {
+        columnGap: 10,
         columns: [
-          { text: profesional, fontSize: 14, bold: true, width: '*' },
-          { text: `Presupuesto ${p.numero}\nFecha: ${fecha(creado)}`, alignment: 'right', bold: true },
+          ...(logo ? [{ svg: logo, width: 44 } as Content] : []),
+          {
+            width: '*',
+            stack: [
+              { text: profesional.nombre, fontSize: 14, bold: true },
+              { text: `${profesional.telefono} · ${profesional.correo}`, color: '#555555' },
+            ],
+          },
+          { text: `Presupuesto ${p.numero}\nFecha: ${fecha(creado)}`, alignment: 'right', bold: true, width: 'auto' },
         ],
       },
       { text: `Cliente: ${p.cliente.nombre}`, margin: [0, 18, 0, 4] },
@@ -61,17 +82,19 @@ export async function generarPdf(p: Finalizado): Promise<Buffer> {
       {
         table: {
           headerRows: 1,
-          widths: ['*', 40, 70, 80],
+          widths: ['*', 36, 46, 66, 76],
           body: [
             [
               { text: 'Descripción', bold: true },
               { text: 'Cant.', bold: true, alignment: 'right' },
+              { text: 'Unidad', bold: true, alignment: 'center' },
               { text: 'Precio', bold: true, alignment: 'right' },
               { text: 'Total', bold: true, alignment: 'right' },
             ],
             ...p.items.map((i) => [
               i.descripcion,
               { text: cant(i.cantidad), alignment: 'right' as const },
+              { text: simboloUnidad(i.unidad), alignment: 'center' as const },
               { text: clp(i.precioUnitario), alignment: 'right' as const },
               { text: clp(totalLinea(i.cantidad, i.precioUnitario)), alignment: 'right' as const },
             ]),
