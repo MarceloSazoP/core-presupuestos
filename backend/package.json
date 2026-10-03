@@ -16,6 +16,7 @@
     "test": "tsx --env-file=.env --import ./test/setup.ts --test-concurrency=1 --test \"test/**/*.test.ts\""
   },
   "dependencies": {
+    "argon2": "^0.45.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.7.0",
     "pg": "^8.23.1",

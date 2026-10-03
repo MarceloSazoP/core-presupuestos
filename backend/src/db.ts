@@ -1,5 +1,10 @@
-import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
+import { Pool, types, type PoolClient, type QueryResult, type QueryResultRow } from 'pg';
 import { config } from './config';
+
+// Montos y cantidades caben en un número de JS (el contrato limita todo muy por debajo de 2^53); fechas como texto YYYY-MM-DD.
+types.setTypeParser(types.builtins.INT8, Number);
+types.setTypeParser(types.builtins.NUMERIC, Number);
+types.setTypeParser(types.builtins.DATE, (v) => v);
 
 export const pool = new Pool({ connectionString: config.DATABASE_URL });
 

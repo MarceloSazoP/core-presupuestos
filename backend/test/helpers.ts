@@ -19,7 +19,7 @@ export async function resetDb() {
 }
 
 // Levanta la app en un puerto efímero con un "enviador" falso que guarda los códigos en vez de mandarlos.
-export async function startApp(opts: { ipStartLimit?: number } = {}) {
+export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: number } = {}) {
   const sent: Sent[] = [];
   const server: Server = createApp({
     sendCode: async (channel, destination, code) => void sent.push({ channel, destination, code }),

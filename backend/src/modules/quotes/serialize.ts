@@ -1,0 +1,45 @@
+import { query } from '../../db';
+
+export type QuoteRow = {
+  id: string; user_id: string; customer_id: string; short_id: string; number: string | null;
+  doc_status: 'DRAFT' | 'PENDING' | 'FINALIZED'; commercial_status: string;
+  service_description: string | null; address: string | null; latitude: number | null; longitude: number | null;
+  subtotal: number; discount: number; total: number;
+  warranty_kind: string; warranty_text: string | null; validity_days: number | null; observations: string | null;
+  include_signature: boolean; include_qr: boolean; next_contact_date: string | null;
+  finalized_at: Date | null; sent_at: Date | null; accepted_at: Date | null; created_at: Date; updated_at: Date;
+};
+
+// Serializador explícito del `Quote` del Contrato de API §2 (nunca SELECT * hacia el cliente).
+// `public_url` se llena en la Fase 3, cuando exista el enlace público.
+export async function quoteDetail(q: QuoteRow) {
+  const [customer, survey, measurements, photos, voice, items] = await Promise.all([
+    query('SELECT id, name, phone, email, address, created_at, updated_at FROM customers WHERE id = $1 AND user_id = $2', [q.customer_id, q.user_id]),
+    query<{ notes: string | null; field_observations: string | null }>('SELECT notes, field_observations FROM quote_surveys WHERE quote_id = $1', [q.id]),
+    query('SELECT id, label, value FROM survey_measurements WHERE quote_id = $1 ORDER BY position', [q.id]),
+    query('SELECT file_id, caption, created_at FROM survey_photos WHERE quote_id = $1 ORDER BY position, created_at', [q.id]),
+    query('SELECT file_id, duration_seconds, created_at FROM survey_voice_notes WHERE quote_id = $1 ORDER BY created_at', [q.id]),
+    query('SELECT id, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
+  ]);
+  return {
+    id: q.id, code_id: q.short_id, number: q.number, doc_status: q.doc_status, commercial_status: q.commercial_status,
+    customer: customer.rows[0],
+    service_description: q.service_description ?? '', address: q.address, latitude: q.latitude, longitude: q.longitude,
+    survey: {
+      notes: survey.rows[0]?.notes ?? null,
+      field_observations: survey.rows[0]?.field_observations ?? null,
+      measurements: measurements.rows,
+      photos: photos.rows.map((p) => ({ id: p.file_id, url: `/files/${p.file_id}`, caption: p.caption, created_at: p.created_at })),
+      voice_notes: voice.rows.map((v) => ({ id: v.file_id, url: `/files/${v.file_id}`, duration_seconds: v.duration_seconds, created_at: v.created_at })),
+    },
+    items: items.rows,
+    subtotal: q.subtotal, discount: q.discount, total: q.total,
+    warranty: { kind: q.warranty_kind, text: q.warranty_text },
+    validity_days: q.validity_days, observations: q.observations,
+    include_signature: q.include_signature, include_qr: q.include_qr,
+    next_contact_date: q.next_contact_date,
+    finalized_at: q.finalized_at, sent_at: q.sent_at, accepted_at: q.accepted_at,
+    public_url: null,
+    created_at: q.created_at, updated_at: q.updated_at,
+  };
+}
