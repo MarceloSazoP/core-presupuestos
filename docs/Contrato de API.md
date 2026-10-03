@@ -1,7 +1,9 @@
 # CorePresupuesto — Contrato de API
 
-**Versión:** 0.2 (decisiones cerradas, pendiente de revisión final)
+**Versión:** 0.3 (acceso por código; pendiente de revisión)
 **Fecha:** 2026-10-03
+
+> **Cambio v0.3:** el enlace privado de edición (§9) se reemplaza por el **código del presupuesto**. La app móvil crea el presupuesto, el servidor genera su código y quien lo escribe en la caja "Consultar presupuesto" de la web obtiene una sesión limitada a ese presupuesto para completarlo, editarlo, finalizarlo, enviarlo o verlo. Detalle en §9 y en el Contrato de BD v0.3.
 **Depende de:** `Contrato de Base de Datos.md` (estados, transiciones, permisos, límites).
 **Base:** `/api/v1` · JSON UTF-8 · fechas en ISO 8601 UTC (`timestamptz`) y `YYYY-MM-DD` para `date` · dinero en **CLP enteros**.
 
@@ -14,7 +16,7 @@ Web y Mobile consumen esta misma API. Las reglas de negocio (totales, estados, v
 ### Autenticación
 
 `Authorization: Bearer <token>` en todo lo que no sea `/auth/*` ni `/public/*`.
-Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (un solo presupuesto, ver §9).
+Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (un solo presupuesto, se obtiene con su código, ver §9).
 
 ### Errores
 
@@ -27,7 +29,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (u
 |------|--------|--------|
 | 400 | `INVALID_JSON` | Cuerpo mal formado |
 | 401 | `UNAUTHENTICATED` | Token ausente, inválido, vencido o revocado |
-| 403 | `INSUFFICIENT_SCOPE` | Sesión válida pero sin permiso para esa operación (p. ej. `QUOTE_EDIT` intentando finalizar) |
+| 403 | `INSUFFICIENT_SCOPE` | Sesión válida pero sin permiso para esa operación (p. ej. `QUOTE_CODE` intentando borrar el presupuesto) |
 | 404 | `NOT_FOUND` | No existe **o pertenece a otro usuario** |
 | 409 | `INVALID_STATE` | Operación no permitida en el estado actual (editar un `FINALIZED`, enviar sin finalizar) |
 | 409 | `ID_CONFLICT` | El `id` enviado pertenece a otro usuario |
@@ -54,7 +56,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (u
 |------|--------|
 | `POST /auth/start` | 3 por teléfono/hora y 10 por IP/hora |
 | `POST /auth/verify` | 5 intentos por desafío |
-| `POST /access/edit/exchange` | 10 por IP/hora |
+| `POST /access/code/exchange` | 10 por IP/hora y, por código, 5 fallos seguidos bloquean ese código 15 min (responde 429) |
 | `GET /public/*` | 60 por IP/minuto |
 | `POST /quotes/{id}/send-email` | 10 por usuario/hora |
 
@@ -78,7 +80,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (u
 
 **Quote** (detalle)
 ```json
-{ "id": "uuid", "number": null, "doc_status": "DRAFT", "commercial_status": "NONE",
+{ "id": "uuid", "code_id": "7K4M2Q", "number": null, "doc_status": "DRAFT", "commercial_status": "NONE",
   "customer": { "…Customer…" },
   "service_description": "", "address": null, "latitude": null, "longitude": null,
   "survey": {
@@ -98,7 +100,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_EDIT` (u
   "created_at": "…", "updated_at": "…" }
 ```
 
-`warranty.kind` ∈ `NONE | D7 | D15 | D30 | M3 | M6 | Y1 | CUSTOM`. `public_url` solo existe si está `FINALIZED`.
+`code_id` es la primera mitad del código (no secreta; el secreto no se puede volver a leer). `warranty.kind` ∈ `NONE | D7 | D15 | D30 | M3 | M6 | Y1 | CUSTOM`. `public_url` solo existe si está `FINALIZED`.
 
 **FollowUp**
 ```json
@@ -188,7 +190,7 @@ Todo se escribe solo si `doc_status ∈ {DRAFT, PENDING}`; en `FINALIZED` respon
 
 ### Etapa 1 — crear y editar cabecera
 
-**`POST /quotes`** → **201** `Quote` en `DRAFT`.
+**`POST /quotes`** → **201** `Quote` en `DRAFT`, con el campo extra `"access_code": "7K4M2Q-X9D2P4HTRB"` (**solo en esta respuesta**; ver §9). Si el `id` ya existía (reintento), responde **200** sin `access_code`: la app lo guardó o genera uno nuevo con `POST /quotes/{id}/access-code`.
 ```json
 { "id": "uuid?", "customer_id": "uuid",
   "service_description": "Mantención calefont", "address": "Av. X 1234",
@@ -296,17 +298,34 @@ Las acciones "Llamar", "Abrir WhatsApp" y "Descargar PDF" las resuelve el client
 
 ---
 
-## 9. Acceso del profesional por enlace privado
+## 9. Acceso por código del presupuesto
 
-Para recuperar un presupuesto editable sin una sesión `USER` (Definición §35).
+Es la forma de recuperar un presupuesto **sin una sesión `USER`** (Definición §35, "ID + código seguro"). El código tiene la forma `7K4M2Q-X9D2P4HTRB`: un ID corto de 6 caracteres y un secreto de 10 (alfabeto Crockford base32: sin `I`, `L`, `O`, `U`). El servidor lo genera al crear el presupuesto; la app móvil lo muestra y lo guarda en el almacenamiento seguro del teléfono.
 
 | Método y ruta | Quién | Descripción |
 |---------------|-------|-------------|
-| `POST /quotes/{id}/edit-link` | `USER` | Crea o **rota** el enlace; revoca el anterior. Responde una sola vez `{ "url": "…", "token": "…" }`. Solo `DRAFT`/`PENDING`. |
-| `DELETE /quotes/{id}/edit-link` | `USER` | **204**, revoca el enlace. |
-| `POST /access/edit/exchange` | anónimo | `{ "token": "…" }` → `{ "token": "<sesión QUOTE_EDIT>", "quote_id": "uuid", "expires_at": "…" }` (30 min). 404 si está revocado o el presupuesto ya no es editable. |
+| `POST /quotes/{id}/access-code` | `USER` | Crea o **rota** el código (revoca el anterior). Responde una sola vez `{ "code": "7K4M2Q-X9D2P4HTRB" }`. En cualquier estado del presupuesto. |
+| `DELETE /quotes/{id}/access-code` | `USER` | **204**, revoca el código. |
+| `POST /access/code/exchange` | anónimo | `{ "code": "7K4M2Q-X9D2P4HTRB" }` → `{ "token": "<sesión QUOTE_CODE>", "quote_id": "uuid", "doc_status": "PENDING", "expires_at": "…" }` (30 min). |
 
-Una sesión `QUOTE_EDIT` puede, **solo sobre su presupuesto**: `GET /quotes/{id}`, `PATCH`, `PUT survey|measurements|items`, subir y borrar fotos y notas de voz, `POST save`, `GET /files/*` de ese presupuesto. Todo lo demás (finalizar, enviar, estado comercial, borrar, gestionar enlaces, clientes, perfil) responde **403 `INSUFFICIENT_SCOPE`**.
+**Normalización:** el servidor ignora espacios y guiones, pasa a mayúsculas y lee `I`/`L` como `1` y `O` como `0` (así se tolera un error al teclear). **Errores:** código inexistente, con secreto equivocado o revocado ⇒ el mismo **404 `NOT_FOUND`** ("No existe un presupuesto con ese código"), sin distinguir; 429 si se superan los límites de §1. La respuesta tarda lo mismo exista o no el ID (Contrato BD §6).
+
+### Qué puede hacer una sesión `QUOTE_CODE` (solo sobre su presupuesto)
+
+| Estado del presupuesto | Permitido |
+|------------------------|-----------|
+| `DRAFT` / `PENDING` | `GET /quotes/{id}`; `PATCH`; `PUT survey|measurements|items`; subir y borrar fotos y notas de voz; `GET /files/*` de ese presupuesto; `POST save`; `POST finalize`. |
+| `FINALIZED` | `GET /quotes/{id}` (solo lectura); `GET pdf`, `share`, `qr.png`; `POST send-email`; `POST mark-sent`. |
+
+Todo lo demás responde **403 `INSUFFICIENT_SCOPE`**: borrar el presupuesto, estado comercial y seguimiento, gestionar el código, clientes, perfil, dashboard y cualquier otro presupuesto.
+
+### Cómo lo usa la web
+
+La caja "Consultar presupuesto" llama a `/access/code/exchange`, guarda el token en una cookie `httpOnly` y la pantalla decide con `doc_status`: pendiente ⇒ completar o editar (`Guardar` o `Terminar y enviar`); finalizado ⇒ solo ver, descargar el PDF y reenviar por correo o WhatsApp.
+
+### Advertencia de seguridad (decisión abierta, §15 n.º 6)
+
+Quien tiene el código tiene los permisos del profesional sobre ese presupuesto, incluido **finalizar y enviar**. Al cliente se le entrega el enlace público o el QR (§10), no el código. La landing invita a los clientes a escribir un código para ver su presupuesto: con un presupuesto `FINALIZED` eso solo les permite ver, descargar y reenviar (sujeto al límite de `send-email`), pero con uno `PENDING` permitiría editar. Por eso el código de un presupuesto sin finalizar no debe compartirse con el cliente.
 
 ---
 
@@ -409,17 +428,18 @@ El código es lo que se guarda y se envía; el símbolo es lo que se muestra en 
 
 ## 13. Matriz de permisos
 
-| Operación | `USER` | `QUOTE_EDIT` | Público |
+| Operación | `USER` | `QUOTE_CODE` | Público |
 |-----------|:------:|:------------:|:-------:|
 | Perfil, clientes, dashboard | ✔ | ✘ | ✘ |
 | Crear presupuesto | ✔ | ✘ | ✘ |
 | Leer / editar presupuesto editable | ✔ (propio) | ✔ (el suyo) | ✘ |
 | Subir / borrar fotos y voz | ✔ | ✔ | ✘ |
 | Guardar | ✔ | ✔ | ✘ |
-| Finalizar, enviar, estado comercial, seguimiento | ✔ | ✘ | ✘ |
+| Finalizar y enviar (`send-email`, `mark-sent`) | ✔ | ✔ (el suyo) | ✘ |
+| Estado comercial y seguimiento | ✔ | ✘ | ✘ |
 | Borrar presupuesto | ✔ (`DRAFT`/`PENDING`) | ✘ | ✘ |
-| Crear/revocar enlace de edición | ✔ | ✘ | ✘ |
-| Ver snapshot y PDF | ✔ | ✘ | ✔ (por token) |
+| Crear, rotar o revocar el código | ✔ | ✘ | ✘ |
+| Ver snapshot y PDF | ✔ | ✔ (el suyo, finalizado) | ✔ (por token) |
 
 ---
 
@@ -429,7 +449,7 @@ El código es lo que se guarda y se envía; el símbolo es lo que se muestra en 
 - **Estados:** `finalize` rechaza presupuestos incompletos; un `FINALIZED` rechaza todas las escrituras; `NONE → SENT` solo vía envío confirmado; `finalize` sin envío deja `FINALIZED + NONE`.
 - **Totales:** `line_total`, `subtotal` y `total` con cantidades decimales y descuento.
 - **Acceso público:** el token no permite editar; revocado ⇒ 404; la respuesta no contiene campos internos.
-- **Enlace de edición:** el scope `QUOTE_EDIT` se limita a su presupuesto y a las operaciones de §9.
+- **Código:** `/access/code/exchange` responde el mismo 404 para ID inexistente, secreto equivocado y código revocado; 5 fallos bloquean el código; rotar invalida el anterior; el scope `QUOTE_CODE` se limita a su presupuesto y a la tabla de §9 según el estado (un `FINALIZED` rechaza toda escritura; borrar, estado comercial y clientes ⇒ 403).
 - **Autenticación:** código vencido, intento 6, respuesta idéntica para cuenta nueva y existente.
 - **Idempotencia:** reintentar `POST` con el mismo `id` no duplica.
 
@@ -446,3 +466,4 @@ Las de numeración, corrección tras finalizar, enlace privado, datos del client
 | 3 | Librería de PDF y QR | Se elige en *Arquitectura técnica*, no afecta este contrato. |
 | 4 | Proveedor de SMS y de correo | Se elige en *Arquitectura técnica*. El contrato solo exige un envío de código y de correo con PDF adjunto. |
 | 5 | Rate limits | Valores iniciales de §1, ajustables. |
+| 6 | Alcance del código (**abierta**) | Hoy el código permite finalizar y enviar, porque el flujo del usuario es completar y cerrar desde la web. Alternativa más estricta: que el código solo permita editar y la acción de cerrar exija sesión `USER`. Se decide antes de implementar `finalize` para sesiones `QUOTE_CODE`. |

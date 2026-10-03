@@ -115,7 +115,7 @@ Sin clase base genérica de CRUD ni capa `services` que solo reenvíe: la ruta v
 
 ### Reglas de implementación
 
-1. **Un único punto de entrada por presupuesto:** `loadQuote(session, id)` filtra por `user_id` y, si la sesión es `QUOTE_EDIT`, exige `id = session.quote_id`. Toda ruta de `/quotes/{id}/…` empieza por ahí. Devuelve 404 si no existe o es ajeno (Contrato BD §6).
+1. **Un único punto de entrada por presupuesto:** `loadQuote(session, id)` filtra por `user_id` y, si la sesión es `QUOTE_CODE`, exige `id = session.quote_id`. Toda ruta de `/quotes/{id}/…` empieza por ahí. Devuelve 404 si no existe o es ajeno (Contrato BD §6).
 2. **Toda función de consulta recibe `userId`.** Nunca se consulta por `id` solo.
 3. **Escrituras multi-tabla en `withTx`.** Obligatorio en `finalize`, creación de presupuesto con cliente en línea y reemplazo de ítems o medidas.
 4. **Totales** los calcula una función única en `modules/quotes`; los clientes nunca los envían (Contrato API §6).
@@ -277,7 +277,7 @@ Reglas de la cola:
 - Al verificar el código, una Server Action llama a `auth/verify` y guarda el token en una cookie **`httpOnly`, `Secure`, `SameSite=Lax`**, con la misma vigencia que la sesión.
 - `src/lib/dal.ts` (con `server-only`) expone `getSession()` y `api(path, init)`, que agrega el `Bearer`. **La autorización real se comprueba ahí**, en cada acceso a datos. `proxy.ts` solo hace una redirección optimista al login cuando falta la cookie (así lo recomienda la guía de Next 16).
 - El token nunca se escribe en `localStorage`, en URLs ni en componentes de cliente.
-- La cookie guarda `{ token, scope }` (el `scope` distingue una sesión `USER` de una `QUOTE_EDIT`); la interfaz oculta lo que el scope no permite, aunque la API lo seguiría rechazando.
+- La cookie guarda `{ token, scope }` (el `scope` distingue una sesión `USER` de una `QUOTE_CODE`); la interfaz oculta lo que el scope no permite, aunque la API lo seguiría rechazando.
 
 ### Páginas
 
@@ -288,9 +288,9 @@ Reglas de la cola:
 | `/customers`, `/customers/[id]` | Clientes e historial |
 | `/quotes/new`, `/quotes/[id]` | Wizard de tres etapas; cada "Siguiente" guarda en la API, así que **no hay estado de wizard en el cliente** |
 | `/q/[token]` | **Vista pública** del cliente: componente de servidor que llama a `GET /public/quotes/{token}`, con `noindex` y `Cache-Control: no-store`. El PDF enlaza directo a la API. |
-| `/e/[token]` | Enlace de edición: intercambia el token, fija la cookie `QUOTE_EDIT` y redirige a `/quotes/[id]` |
+| `/` (caja "Consultar presupuesto") | Recibe el código del presupuesto, lo intercambia en `POST /access/code/exchange`, fija la cookie `QUOTE_CODE` y abre el presupuesto según su estado: pendiente ⇒ completar o editar; finalizado ⇒ ver, descargar PDF, reenviar. No hay ruta `/e/[token]`. |
 
-- Los enlaces de edición abren solo en la web. En el móvil, el profesional entra con SMS o correo.
+- El código del presupuesto se usa en la web. En el móvil, el profesional entra con SMS o correo y ve el código de cada presupuesto en su detalle (guardado en el almacenamiento seguro del teléfono; si lo perdió, genera uno nuevo).
 - Estilos con Tailwind 4 (ya instalado), sin biblioteca de componentes.
 - Formularios con Server Actions y `useActionState`; los errores 422 de la API se muestran por campo (`details[].field`).
 - Subidas de archivos desde la web pasan por un Route Handler que reenvía el flujo a la API (límites por verificar, ver §2).
@@ -387,7 +387,7 @@ Cada fase termina con sus pruebas pasando y un commit pequeño por cambio cohere
 | **0. Entorno** | Node 24, retirar el código provisional (`backend/src/*` actual, `schema.sql`, `shared/`, servicios y pantallas de ejemplo de web y mobile), dependencias del backend, `.env.example`, bases de desarrollo y de pruebas, runner de migraciones y `0001` desde el contrato. |
 | **1. Backend base** | `config`, `db`, errores, sesión y autenticación completa, `me`, clientes. Pruebas de aislamiento desde el día uno. |
 | **2. Presupuestos** | Cabecera, levantamiento, medidas, ítems, `save`, archivos (subida y descarga), borrado. |
-| **3. Emisión y seguimiento** | `finalize` (snapshot, PDF, QR, enlace público), vista pública, `send-email`, `mark-sent`, estado comercial, seguimiento, enlace de edición, dashboard e indicadores. |
-| **4. Web** | Login, dashboard, clientes, wizard, vista pública `/q`, enlace de edición `/e`. |
+| **3. Emisión y seguimiento** | `finalize` (snapshot, PDF, QR, enlace público), vista pública, `send-email`, `mark-sent`, estado comercial, seguimiento, código del presupuesto (`access-code` e intercambio, con Argon2id), dashboard e indicadores. |
+| **4. Web** | Login, dashboard, clientes, wizard, vista pública `/q`, acceso por código desde la caja de consulta. |
 | **5. Mobile** | Login, wizard con SQLite y cola, cámara, voz, GPS, compartir y WhatsApp, seguimiento y recordatorios. |
 | **6. Endurecimiento** | Límites de tasa, logs, respaldos probados, APK `preview`, revisión de seguridad. |

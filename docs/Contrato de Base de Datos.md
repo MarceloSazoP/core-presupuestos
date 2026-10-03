@@ -1,7 +1,9 @@
 # CorePresupuesto — Contrato de Base de Datos
 
-**Versión:** 0.2 (decisiones cerradas, pendiente de revisión final)
+**Versión:** 0.3 (acceso por código; pendiente de revisión)
 **Fecha:** 2026-10-03
+
+> **Cambio v0.3:** el acceso del profesional deja de ser un "enlace privado de edición" y pasa a ser un **código del presupuesto** (`ID corto + secreto`, §6). Lo crea el servidor al crear el presupuesto, lo muestra la app móvil y se escribe en la caja "Consultar presupuesto" de la web. Reemplaza `quote_access.kind = 'EDIT'` y `sessions.scope = 'QUOTE_EDIT'`. La migración `0001` no se edita: el cambio entra como `0003` (§11).
 **Motor:** PostgreSQL 14+ · **Base:** `core-prespuestos` (local) · credenciales solo por `DATABASE_URL`
 **Fuentes:** `CLAUDE.md`, `Definición Funcional del Producto — v1.0`, `Alcance Exacto del MVP`, `Reemplazo de las secciones 11 a 17 (Wizard)`.
 
@@ -19,7 +21,8 @@ Este contrato **reemplaza la sección 25 (Modelo de datos MVP) de `Alcance Exact
 | D4 | Estado documental y comercial en **columnas separadas**, con `CHECK` que impiden combinaciones inválidas. | `CLAUDE.md` §12. |
 | D5 | Al finalizar se guarda un **snapshot inmutable** (`quote_documents`) del que salen PDF y vista pública. | "Fija una versión comercial"; editar perfil o cliente después no altera lo enviado. |
 | D6 | Aislamiento por usuario con `user_id` en las tablas raíz y **FK compuesta** `quotes(customer_id, user_id) → customers(id, user_id)`. | Un presupuesto no puede apuntar a un cliente de otro usuario ni por error. |
-| D7 | Tokens de sesión y de edición se guardan **hasheados** (SHA-256 de 256 bits aleatorios). El token del enlace público se guarda en claro. | El enlace público es de solo lectura y debe poder reenviarse; los de edición se muestran una sola vez. |
+| D7 | Tokens de sesión se guardan **hasheados** (SHA-256 de 256 bits aleatorios). El **secreto del código** se guarda con **Argon2id** (es corto y lo teclea una persona, así que necesita un hash lento). El token del enlace público se guarda en claro. | El enlace público es de solo lectura y debe poder reenviarse; el secreto del código se muestra una sola vez. |
+| D9 | Cada presupuesto tiene un **ID corto** (`quotes.short_id`, 6 caracteres, no secreto, indexable) que forma la primera mitad del código. | Argon2id lleva sal y no se puede buscar por hash: el ID corto localiza la fila y el secreto se verifica contra ella. |
 | D8 | `updated_at` lo mantiene la aplicación (sin triggers). | Menos piezas. |
 
 ---
@@ -36,7 +39,7 @@ users ──┬── customers ──┐
         │     ├── survey_voice_notes   (1:N) ── files
         │     ├── quote_items          (1:N)
         │     ├── quote_documents      (1:1)  snapshot + PDF (solo FINALIZED) ── files
-        │     ├── quote_access         (1:N)  PUBLIC / EDIT
+        │     ├── quote_access         (1:N)  PUBLIC / CODE
         │     └── follow_ups           (1:N)
         ├── files (logo, firma, y archivos de cada presupuesto)
         ├── sessions
@@ -82,6 +85,8 @@ CREATE TABLE quotes (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id             uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   customer_id         uuid NOT NULL,
+  short_id            text NOT NULL UNIQUE                    -- primera mitad del código (v0.3, D9)
+                      CHECK (short_id ~ '^[0-9A-HJKMNP-TV-Z]{6}$'),   -- alfabeto Crockford base32 (sin I, L, O, U)
   number              text,                                   -- 'CP-2026-0001', asignado al finalizar
   doc_status          text NOT NULL DEFAULT 'DRAFT'
                       CHECK (doc_status IN ('DRAFT','PENDING','FINALIZED')),
@@ -213,13 +218,15 @@ CREATE TABLE quote_documents (          -- existe solo si doc_status = 'FINALIZE
 CREATE TABLE quote_access (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   quote_id   uuid NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
-  kind       text NOT NULL CHECK (kind IN ('PUBLIC','EDIT')),
+  kind       text NOT NULL CHECK (kind IN ('PUBLIC','CODE')),
   token      text UNIQUE,               -- solo PUBLIC (192 bits, base64url)
-  token_hash text UNIQUE,               -- solo EDIT (SHA-256 hex de 256 bits)
+  code_hash  text,                      -- solo CODE: Argon2id (cadena PHC) del secreto de 10 caracteres
+  failed_attempts int NOT NULL DEFAULT 0,   -- solo CODE: intentos fallidos seguidos
+  locked_until    timestamptz,              -- solo CODE: bloqueo temporal tras 5 fallos
   revoked_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK ((kind = 'PUBLIC') = (token IS NOT NULL)),
-  CHECK ((kind = 'EDIT')   = (token_hash IS NOT NULL))
+  CHECK ((kind = 'CODE')   = (code_hash IS NOT NULL))
 );
 CREATE UNIQUE INDEX quote_access_active_idx ON quote_access (quote_id, kind) WHERE revoked_at IS NULL;
 
@@ -255,13 +262,13 @@ CREATE TABLE sessions (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   token_hash   text NOT NULL UNIQUE,
-  scope        text NOT NULL DEFAULT 'USER' CHECK (scope IN ('USER','QUOTE_EDIT')),
-  quote_id     uuid REFERENCES quotes(id) ON DELETE CASCADE,   -- solo QUOTE_EDIT
+  scope        text NOT NULL DEFAULT 'USER' CHECK (scope IN ('USER','QUOTE_CODE')),
+  quote_id     uuid REFERENCES quotes(id) ON DELETE CASCADE,   -- solo QUOTE_CODE
   expires_at   timestamptz NOT NULL,
   revoked_at   timestamptz,
   last_used_at timestamptz,
   created_at   timestamptz NOT NULL DEFAULT now(),
-  CHECK ((scope = 'QUOTE_EDIT') = (quote_id IS NOT NULL))
+  CHECK ((scope = 'QUOTE_CODE') = (quote_id IS NOT NULL))
 );
 
 CREATE TABLE audit_events (             -- auditoría mínima, solo se agrega
@@ -377,14 +384,19 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 | Actor | Credencial | Alcance |
 |-------|-----------|---------|
 | Profesional | Sesión `USER` | Todo lo suyo (`user_id = sesión`). |
-| Profesional por enlace de edición | Sesión `QUOTE_EDIT` | Un solo presupuesto, mientras sea editable. |
+| Quien tiene el código del presupuesto (el profesional, o quien él lo comparta) | Sesión `QUOTE_CODE` | Un solo presupuesto: completarlo o editarlo mientras no esté finalizado, finalizarlo, enviarlo, y verlo y descargar su PDF. Nada más (API §9). |
 | Cliente | Token `PUBLIC` en la URL | Solo lectura del snapshot y su PDF. |
 
 ### Reglas
 
 1. **Aislamiento:** toda consulta incluye `user_id` de la sesión. Un recurso ajeno responde **404**, no 403, para no revelar su existencia.
 2. El **ID del presupuesto nunca basta** para leer ni editar (CLAUDE.md §16, Definición §35).
-3. Enlace de edición: 256 bits aleatorios, guardado como hash, mostrado una sola vez, rotable y revocable. Se intercambia por una sesión `QUOTE_EDIT` de 30 min limitada a ese presupuesto.
+3. **Código del presupuesto** `AAAAAA-BBBBBBBBBB` (alfabeto Crockford base32):
+   - `AAAAAA` es `quotes.short_id` (6 caracteres, no secreto) y `BBBBBBBBBB` es el secreto (10 caracteres = 50 bits generados con `crypto.randomInt`).
+   - El secreto se guarda con **Argon2id** (`quote_access.code_hash`), se muestra **una sola vez** (al crear o rotar) y es rotable y revocable. Si se pierde, el profesional entra con su cuenta y genera uno nuevo.
+   - Se intercambia por una sesión `QUOTE_CODE` de 30 min limitada a ese presupuesto.
+   - Defensa contra adivinación: 5 fallos seguidos sobre un mismo ID corto bloquean ese código 15 min (`locked_until`), más el límite por IP (API §1). La verificación corre aunque el ID no exista (contra un hash señuelo) para no revelar por tiempo qué códigos existen.
+   - Quien tiene el código **tiene los permisos del profesional sobre ese presupuesto** (incluido finalizar y enviar). Por eso al cliente se le entrega el enlace público o el QR, no el código.
 4. Enlace público: 192 bits aleatorios, revocable. Se crea al finalizar y deja de funcionar si se revoca.
 5. El token público **no permite editar**; el QR apunta a esa misma URL.
 6. Códigos de verificación: 6 dígitos generados con `crypto.randomInt`, hasheados, vigencia 10 min, máximo 5 intentos.
@@ -393,7 +405,7 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 
 ### Eventos de auditoría (`audit_events.event`)
 
-`AUTH_CODE_SENT`, `LOGIN`, `LOGOUT`, `QUOTE_CREATED`, `QUOTE_FINALIZED`, `QUOTE_SENT` (metadata: canal), `COMMERCIAL_STATUS_CHANGED` (metadata: de/a), `QUOTE_DELETED`, `EDIT_LINK_CREATED`, `EDIT_LINK_USED`, `EDIT_LINK_REVOKED`, `PUBLIC_LINK_REVOKED`.
+`AUTH_CODE_SENT`, `LOGIN`, `LOGOUT`, `QUOTE_CREATED`, `QUOTE_FINALIZED`, `QUOTE_SENT` (metadata: canal), `COMMERCIAL_STATUS_CHANGED` (metadata: de/a), `QUOTE_DELETED`, `ACCESS_CODE_CREATED` (incluye la rotación), `ACCESS_CODE_USED`, `ACCESS_CODE_FAILED` (metadata: ID corto), `ACCESS_CODE_REVOKED`, `PUBLIC_LINK_REVOKED`.
 
 ---
 
@@ -445,9 +457,49 @@ Cerradas con las recomendaciones del asistente por delegación del usuario; se p
 |---|------|----------|
 | 1 | Numeración | `CP-AAAA-NNNN` por usuario y año (Definición §11). El ejemplo `CP-8F42K` de la vista online (§22) era ilustrativo. |
 | 2 | Corregir tras finalizar | `FINALIZED` es inmutable y el MVP **no** incluye "duplicar presupuesto" (no está en la doc). Para corregir se crea un presupuesto nuevo. Reabrir la decisión si en las pruebas aparece como dolor real. |
-| 3 | Acceso del profesional | Solo **enlace privado de edición**. "ID + código" queda fuera del MVP; Definición §35 permite cualquiera de los dos. Quien pierda el dispositivo recupera el acceso entrando con SMS o correo. |
+| 3 | Acceso del profesional | **Cambiada en v0.3:** el MVP usa **"ID + código seguro"** (Definición §35, CLAUDE.md §16) en lugar del enlace privado de edición, porque así lo definió el usuario: la app móvil crea el presupuesto y su código, y el profesional lo completa, edita o ve desde la web escribiéndolo. Se descarta el enlace privado para no mantener dos mecanismos. Quien pierda el código entra con SMS o correo y genera uno nuevo. |
 | 4 | Datos del cliente en vista pública y PDF | Solo nombre del cliente y dirección del servicio; sin teléfono ni correo, porque el enlace puede reenviarse. |
 | 5 | Tasa de aceptación | `aceptados / (aceptados + rechazados)` decididos en el mes. Un presupuesto sin respuesta no cuenta como rechazo. |
 | 6 | Eliminación de cuenta | Fuera del MVP. Se define junto con la política de privacidad antes de publicar en tiendas. |
 | 7 | Límites de §8 y retención de §7 | Se adoptan como valores iniciales del MVP; son ajustables sin cambiar el esquema. |
 | 8 | Pendientes del dashboard | Incluye `DRAFT` y `PENDING`. Un borrador abandonado sigue visible hasta que el usuario lo guarde, finalice o borre. |
+
+---
+
+## 11. Migración `0003` (cambio v0.3: acceso por código)
+
+Aún **no se crea el archivo**: se escribe cuando se apruebe este contrato. La diferencia respecto de `0001` es esta. No hay datos reales, así que la migración se niega a correr si ya existen presupuestos (en vez de inventar IDs cortos para filas viejas).
+
+```sql
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM quotes) THEN
+    RAISE EXCEPTION '0003 supone una base sin presupuestos; rellena quotes.short_id a mano antes de seguir';
+  END IF;
+END $$;
+
+ALTER TABLE quotes
+  ADD COLUMN short_id text NOT NULL UNIQUE CHECK (short_id ~ '^[0-9A-HJKMNP-TV-Z]{6}$');
+
+-- Sesiones y accesos de edición previos dejan de existir (el enlace de edición se retira).
+DELETE FROM sessions WHERE scope = 'QUOTE_EDIT';
+DELETE FROM quote_access WHERE kind = 'EDIT';
+
+ALTER TABLE sessions DROP CONSTRAINT sessions_scope_check, DROP CONSTRAINT sessions_check;
+ALTER TABLE sessions
+  ADD CONSTRAINT sessions_scope_check CHECK (scope IN ('USER','QUOTE_CODE')),
+  ADD CONSTRAINT sessions_quote_scope_check CHECK ((scope = 'QUOTE_CODE') = (quote_id IS NOT NULL));
+
+ALTER TABLE quote_access DROP CONSTRAINT quote_access_kind_check, DROP CONSTRAINT quote_access_check, DROP CONSTRAINT quote_access_check1;
+ALTER TABLE quote_access
+  DROP COLUMN token_hash,
+  ADD COLUMN code_hash text,
+  ADD COLUMN failed_attempts int NOT NULL DEFAULT 0,
+  ADD COLUMN locked_until timestamptz,
+  ADD CONSTRAINT quote_access_kind_check CHECK (kind IN ('PUBLIC','CODE')),
+  ADD CONSTRAINT quote_access_public_check CHECK ((kind = 'PUBLIC') = (token IS NOT NULL)),
+  ADD CONSTRAINT quote_access_code_check CHECK ((kind = 'CODE') = (code_hash IS NOT NULL));
+```
+
+> Los nombres de las restricciones (`sessions_check`, `quote_access_check1`…) son los que Postgres asigna por defecto; se verifican con `\d` antes de escribir el archivo.
+
+**Pruebas que acompañan a la migración:** `short_id` rechaza caracteres fuera del alfabeto y duplicados; `kind = 'CODE'` exige `code_hash`; `kind = 'PUBLIC'` exige `token`; una sesión `QUOTE_CODE` exige `quote_id`.
