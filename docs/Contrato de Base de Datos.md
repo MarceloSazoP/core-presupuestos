@@ -243,7 +243,7 @@ CREATE TABLE auth_challenges (          -- código SMS/correo, existe antes que 
   destination  text NOT NULL,           -- a dónde se envió realmente (ver API: auth/start)
   signup_name  text,                    -- solo si el usuario no existía
   signup_email text,
-  code_hash    text NOT NULL,           -- SHA-256 del código de 6 dígitos
+  code_hash    text NOT NULL,           -- HMAC-SHA256 del código de 6 dígitos con pepper del servidor
   attempts     int  NOT NULL DEFAULT 0,
   expires_at   timestamptz NOT NULL,
   consumed_at  timestamptz,
