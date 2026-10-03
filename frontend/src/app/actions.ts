@@ -20,7 +20,7 @@ import {
 } from '@/lib/presupuestos';
 import { abrirSesion, cerrarSesion, sesionActual } from '@/lib/sesion';
 import { calcularTotales } from '@/lib/totales';
-import { enlaceWhatsApp } from '@/lib/whatsapp';
+import { enlaceWhatsApp, mensajePresupuesto } from '@/lib/whatsapp';
 
 const DIEZ_MINUTOS = 10 * 60_000;
 
@@ -167,9 +167,13 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
     }
   }
 
-  const mensaje =
-    `Hola ${finalizado.cliente.nombre}, te envié el presupuesto ${finalizado.numero} por ${clp(total)} ` +
-    `(${finalizado.descripcion}). El PDF va adjunto en tu correo.`;
+  const mensaje = mensajePresupuesto({
+    nombre: finalizado.cliente.nombre,
+    numero: finalizado.numero,
+    total: clp(total),
+    descripcion: finalizado.descripcion,
+    porCorreo: correo.ok,
+  });
 
   return {
     terminado: {
