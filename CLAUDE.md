@@ -1630,3 +1630,54 @@ La arquitectura debe permitir crecer posteriormente, pero el MVP no debe impleme
 
 
 
+
+
+
+# 29. Skills y fuentes obligatorias para el código móvil y web
+
+El código de `mobile/` y de `frontend/` **no se escribe de memoria**. Antes de tocar cada área se lee la fuente indicada abajo. Si una fuente no se puede leer, se avisa; no se reemplaza por conocimiento propio.
+
+Prioridad cuando hay conflicto:
+
+1. `CLAUDE.md` y `docs/` (contratos y Arquitectura técnica).
+2. Documentación versionada del SDK o framework instalado (nombres de APIs y módulos).
+3. Skills.
+4. Conocimiento propio, solo para lo que nada de lo anterior cubra.
+
+Las skills viven en `C:\Users\Administrador\.agents\skills\<nombre>\`. Claude Code no las carga desde ahí: se leen con `Read` (`SKILL.md` primero, y los archivos de `rules/`, `references/` o `RECIPES.md` que correspondan). Las copias que expone la herramienta `Skill` (`anthropic-skills:*`) pueden estar incompletas; por ejemplo `vercel-react-native-skills` llega allí solo con `SKILL.md`. **La versión completa es la de esa carpeta.**
+
+Al aplicar una skill, decir en una línea cuál se usó y qué regla.
+
+## 29.1 Mobile (`mobile/`, React Native + Expo SDK 57)
+
+| Cuándo | Qué leer antes de escribir código |
+|--------|-----------------------------------|
+| Cualquier pantalla, lista, imagen, navegación o estado | `vercel-react-native-skills`: `SKILL.md` y las reglas relevantes de `rules/` (`AGENTS.md` es la guía completa) |
+| Animación, gesto, sheet, transición de pantalla, feedback al presionar, háptico | `animate-expo`: `SKILL.md` y `RECIPES.md` |
+| Diseñar pantallas o flujos | `mobile-app-ui-design` (`SKILL.md`, `INDEX.md`); para estilos, paletas y tipografía, `ui-ux-pro-max` |
+| Principios de movimiento físico, gestos interrumpibles y jerarquía visual | `apple-design`. Está escrita para la web: se toman los principios y la implementación en React Native sale de `animate-expo` |
+| Cualquier API de Expo, EAS o React Native | `https://docs.expo.dev/versions/v57.0.0/` (ver `mobile/AGENTS.md`); paquetes con `npx expo install` |
+
+Decisiones ya tomadas que las skills no deben pisar: `StyleSheet` de React Native sin NativeWind, los módulos y el modelo offline de `docs/Arquitectura técnica.md` §5, y que ítems, finalizar y enviar requieren conexión. Si una skill nombra una API que la documentación del SDK 57 marca como inestable o inexistente (por ejemplo `NativeTabs`), manda la documentación.
+
+Antes de dar algo por terminado: `npx tsc --noEmit` y `npx expo lint`. El movimiento se valida en un build de release, no en Expo Go.
+
+## 29.2 Web (`frontend/`, Next.js 16)
+
+- Antes de escribir código de Next: leer `frontend/node_modules/next/dist/docs/` (ver `frontend/AGENTS.md`).
+- `vercel-react-best-practices` para rendimiento de React y Next.
+- `mobile-native` para las páginas que se abren en el teléfono (`/q/[token]`, `/e/[token]` y el login): viewport, inputs de 16 px, `hover` solo con `(hover: hover)`, safe areas y `theme-color`.
+- `apple-design` y `animate` para movimiento y gestos en la web.
+
+## 29.3 Backend
+
+No usa estas skills. Se guía por `docs/Contrato de Base de Datos.md`, `docs/Contrato de API.md` y `docs/Arquitectura técnica.md`.
+
+## 29.4 Instaladas, pero no corresponden a este proyecto
+
+- **Android nativo** (Kotlin, Compose, Hilt, Room, Gradle): `claude-android-ninja`, `claude-android-skill` y el plugin `android-skills`. La app es Expo; generan patrones nativos que no aplican. No invocarlas ni seguir sus patrones aunque la conversación mencione "Android" (APK, AAB, permisos), salvo que el usuario lo pida expresamente.
+- `ios-simulator-skill`: solo funciona en macOS (`xcrun simctl`); este equipo es Windows.
+- `write-swift`: no se escribe Swift.
+- `android-reverse-engineering` y su comando `/decompile`: analiza APK de terceros. Solo con autorización expresa para un APK concreto.
+- `impeccable`: no activar sus hooks ni dejar que ejecute `npx impeccable update` sin que el usuario lo pida. Consulta `impeccable.style` una vez al día; se desactiva con `IMPECCABLE_NO_UPDATE_CHECK=1`.
+- `imagegen-frontend-mobile`, `imagegen-frontend-web` e `image-to-code`: generación de imágenes de concepto, fuera del alcance.
