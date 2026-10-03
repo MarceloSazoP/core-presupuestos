@@ -6,8 +6,10 @@ import { requireSession } from '../../http/session';
 import { parse } from '../../http/validate';
 import { audit } from '../../lib/audit';
 import { removeMany } from '../../lib/files';
+import type { SendMail } from '../../lib/mail';
 import { formatCode, hashSecret, newSecret, newShortId } from '../../lib/code';
 import { allow, editable, loadQuote, session } from './guard';
+import { addEmissionRoutes } from './emission';
 import { addMediaRoutes } from './media';
 import { CreateQuote, Items, ListQuotes, Measurements, PatchQuote, Survey } from './schemas';
 import { quoteDetail, type QuoteRow } from './serialize';
@@ -18,10 +20,11 @@ const TODAY = `(now() AT TIME ZONE 'America/Santiago')::date`;
 const customerNotFound = () => new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'customer_id', message: 'Cliente no encontrado' }]);
 const dup = (e: unknown) => (e as { code?: string }).code === '23505';
 
-export const quoteRoutes = () => {
+export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) => {
   const r = Router();
   r.use(requireSession);
   addMediaRoutes(r);
+  addEmissionRoutes(r, deps);
 
   // ── Listado ────────────────────────────────────────────────────────────────
   r.get('/', allow('USER'), async (req, res) => {

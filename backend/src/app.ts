@@ -3,15 +3,17 @@ import { config } from './config';
 import { query } from './db';
 import { AppError, errorHandler } from './errors';
 import { sendCode as defaultSendCode, type SendCode } from './lib/deliver';
+import { sendMail as defaultSendMail, type SendMail } from './lib/mail';
 import { accessRoutes } from './modules/access/routes';
 import { authRoutes } from './modules/auth/routes';
 import { customerRoutes } from './modules/customers/routes';
 import { fileRoutes } from './modules/files/routes';
 import { meRoutes } from './modules/me/routes';
+import { publicRoutes } from './modules/public/routes';
 import { quoteRoutes } from './modules/quotes/routes';
 
 // `deps` existe para las pruebas: se inyecta el envío de códigos y el límite por IP.
-export function createApp(deps: { sendCode?: SendCode; ipStartLimit?: number; ipExchangeLimit?: number } = {}) {
+export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY); // 0 = sin proxy; configurar según el hosting para que el límite use la IP real
@@ -37,9 +39,10 @@ export function createApp(deps: { sendCode?: SendCode; ipStartLimit?: number; ip
   api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit));
   api.use('/me', meRoutes());
   api.use('/customers', customerRoutes());
-  api.use('/quotes', quoteRoutes());
+  api.use('/quotes', quoteRoutes({ sendMail: deps.sendMail ?? defaultSendMail, mailLimit: deps.mailLimit }));
   api.use('/files', fileRoutes());
   api.use('/access', accessRoutes(deps.ipExchangeLimit));
+  api.use('/public', publicRoutes(deps.publicLimit));
   app.use('/api/v1', api);
 
   app.use((_req: Request, _res: Response, next) => next(new AppError(404, 'NOT_FOUND', 'No encontrado')));

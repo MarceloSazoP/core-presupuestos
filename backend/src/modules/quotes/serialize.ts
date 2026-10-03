@@ -1,3 +1,4 @@
+import { config } from '../../config';
 import { query } from '../../db';
 
 export type QuoteRow = {
@@ -11,15 +12,16 @@ export type QuoteRow = {
 };
 
 // Serializador explícito del `Quote` del Contrato de API §2 (nunca SELECT * hacia el cliente).
-// `public_url` se llena en la Fase 3, cuando exista el enlace público.
+// `public_url` existe solo mientras el presupuesto tiene un enlace público activo (desde que se finaliza).
 export async function quoteDetail(q: QuoteRow) {
-  const [customer, survey, measurements, photos, voice, items] = await Promise.all([
+  const [customer, survey, measurements, photos, voice, items, access] = await Promise.all([
     query('SELECT id, name, phone, email, address, created_at, updated_at FROM customers WHERE id = $1 AND user_id = $2', [q.customer_id, q.user_id]),
     query<{ notes: string | null; field_observations: string | null }>('SELECT notes, field_observations FROM quote_surveys WHERE quote_id = $1', [q.id]),
     query('SELECT id, label, value FROM survey_measurements WHERE quote_id = $1 ORDER BY position', [q.id]),
     query('SELECT file_id, caption, created_at FROM survey_photos WHERE quote_id = $1 ORDER BY position, created_at', [q.id]),
     query('SELECT file_id, duration_seconds, created_at FROM survey_voice_notes WHERE quote_id = $1 ORDER BY created_at', [q.id]),
     query('SELECT id, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
+    query<{ token: string }>(`SELECT token FROM quote_access WHERE quote_id = $1 AND kind = 'PUBLIC' AND revoked_at IS NULL`, [q.id]),
   ]);
   return {
     id: q.id, code_id: q.short_id, number: q.number, doc_status: q.doc_status, commercial_status: q.commercial_status,
@@ -39,7 +41,7 @@ export async function quoteDetail(q: QuoteRow) {
     include_signature: q.include_signature, include_qr: q.include_qr,
     next_contact_date: q.next_contact_date,
     finalized_at: q.finalized_at, sent_at: q.sent_at, accepted_at: q.accepted_at,
-    public_url: null,
+    public_url: access.rows[0] ? `${config.WEB_BASE_URL}/q/${access.rows[0].token}` : null,
     created_at: q.created_at, updated_at: q.updated_at,
   };
 }

@@ -26,7 +26,11 @@ async function setSlot(c: PoolClient, userId: string, column: 'logo_file_id' | '
   const old = (await c.query<{ id: string | null }>(`SELECT ${column} AS id FROM users WHERE id = $1 FOR UPDATE`, [userId])).rows[0]!.id;
   await c.query(`UPDATE users SET ${column} = $2, updated_at = now() WHERE id = $1`, [userId, newId]);
   if (!old) return null;
-  return (await c.query<{ storage_key: string }>('DELETE FROM files WHERE id = $1 AND user_id = $2 RETURNING storage_key', [old, userId])).rows[0]?.storage_key ?? null;
+  // Un presupuesto ya finalizado conserva su logo y su firma (el snapshot es inmutable): si alguno los usa, el archivo se queda.
+  return (await c.query<{ storage_key: string }>(
+    `DELETE FROM files f WHERE f.id = $1 AND f.user_id = $2
+       AND NOT EXISTS (SELECT 1 FROM quote_documents d WHERE d.snapshot->'professional'->>'logo_file_id' = f.id::text OR d.snapshot->'professional'->>'signature_file_id' = f.id::text)
+     RETURNING f.storage_key`, [old, userId])).rows[0]?.storage_key ?? null;
 }
 
 export const meRoutes = () => {

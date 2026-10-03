@@ -10,3 +10,7 @@ export const UNIT_CODES = [
 ] as const;
 
 export const isUnit = (code: string) => (UNIT_CODES as readonly string[]).includes(code);
+
+// Símbolo que se muestra en el PDF y la vista pública: el código, salvo estos tres.
+const SYMBOLS: Record<string, string> = { m2: 'm²', m3: 'm³', dia: 'día' };
+export const unitSymbol = (code: string) => SYMBOLS[code] ?? code;

@@ -1,0 +1,26 @@
+// Snapshot inmutable de `quote_documents.snapshot` (Contrato BD §5): lo único que leen el PDF y la vista pública.
+// Fotos, notas, medidas y observaciones de terreno nunca entran aquí (Definición §14: son internas).
+export type Snapshot = {
+  number: string;
+  finalized_at: string; // ISO 8601 UTC
+  valid_until: string; // YYYY-MM-DD, America/Santiago
+  professional: { name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null };
+  customer: { name: string };
+  service_description: string;
+  service_address: string | null;
+  items: { description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  warranty: { kind: string; text: string };
+  validity_days: number;
+  observations: string | null;
+  include_signature: boolean;
+  include_qr: boolean;
+};
+
+const WARRANTY_TEXT: Record<string, string> = {
+  NONE: 'Sin garantía', D7: '7 días', D15: '15 días', D30: '30 días', M3: '3 meses', M6: '6 meses', Y1: '1 año',
+};
+
+export const warrantyText = (kind: string, custom: string | null) => (kind === 'CUSTOM' ? (custom ?? '') : (WARRANTY_TEXT[kind] ?? kind));

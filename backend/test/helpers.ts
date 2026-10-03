@@ -3,7 +3,9 @@ import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createApp } from '../src/app';
 import { pool } from '../src/db';
+import { AppError } from '../src/errors';
 import type { Channel } from '../src/lib/deliver';
+import type { QuoteMail } from '../src/lib/mail';
 
 export type Sent = { channel: Channel; destination: string; code: string };
 
@@ -19,10 +21,16 @@ export async function resetDb() {
 }
 
 // Levanta la app en un puerto efímero con un "enviador" falso que guarda los códigos en vez de mandarlos.
-export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: number } = {}) {
+export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number } = {}) {
   const sent: Sent[] = [];
+  const mails: QuoteMail[] = [];
+  const mailState = { fail: false };
   const server: Server = createApp({
     sendCode: async (channel, destination, code) => void sent.push({ channel, destination, code }),
+    sendMail: async (m) => {
+      if (mailState.fail) throw new AppError(502, 'DELIVERY_FAILED', 'No se pudo enviar el correo.');
+      mails.push(m);
+    },
     ...opts,
   }).listen(0);
   await new Promise((r) => server.once('listening', r));
@@ -58,5 +66,5 @@ export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: 
     return { token: v.json.token as string, user: v.json.user as { id: string } };
   }
 
-  return { base, api, upload, sent, login, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { base, api, upload, sent, mails, mailState, login, close: () => new Promise<void>((r) => server.close(() => r())) };
 }
