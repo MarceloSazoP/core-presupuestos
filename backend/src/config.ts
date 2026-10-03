@@ -24,13 +24,22 @@ const schema = z
     TWILIO_FROM: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
+    // Alternativa a Resend: SMTP (p. ej. Gmail con contraseña de aplicación). Pensado para desarrollo y pruebas.
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().default(587),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV !== 'production') return;
     if (c.OTP_LOG_CODES) ctx.addIssue({ code: 'custom', path: ['OTP_LOG_CODES'], message: 'no puede estar activo en producción' });
-    for (const k of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM', 'RESEND_API_KEY', 'EMAIL_FROM'] as const) {
+    for (const k of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM'] as const) {
       if (!c[k]) ctx.addIssue({ code: 'custom', path: [k], message: 'obligatoria en producción' });
     }
+    // El correo puede ir por Resend o por SMTP, pero alguno debe estar completo.
+    const resend = !!c.RESEND_API_KEY && !!c.EMAIL_FROM;
+    const smtp = !!c.SMTP_HOST && !!c.SMTP_USER && !!c.SMTP_PASSWORD;
+    if (!resend && !smtp) ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'en producción hace falta Resend (RESEND_API_KEY y EMAIL_FROM) o SMTP' });
   });
 
 const parsed = schema.safeParse(process.env);

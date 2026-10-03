@@ -83,6 +83,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 ```json
 { "id": "uuid", "code_id": "7K4M2Q", "number": null, "doc_status": "DRAFT", "commercial_status": "NONE",
   "customer": { "…Customer…" },
+  "professional": { "name": "Pedro Soto", "phone": "+56912345678", "email": "pedro@mail.cl", "has_logo": false },
   "service_description": "", "address": null, "latitude": null, "longitude": null,
   "survey": {
     "notes": null, "field_observations": null,
@@ -101,7 +102,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
   "created_at": "…", "updated_at": "…" }
 ```
 
-`code_id` es la primera mitad del código (no secreta; el secreto no se puede volver a leer). `warranty.kind` ∈ `NONE | D7 | D15 | D30 | M3 | M6 | Y1 | CUSTOM`. `public_url` solo existe si está `FINALIZED`.
+`professional` es quien emite el presupuesto (la web, que entra con el código y no tiene acceso a `/me`, lo necesita para su encabezado); su logo se descarga con `GET /quotes/{id}/logo` (el actual mientras se edita y el fijado en el snapshot una vez finalizado; 404 si no hay). `code_id` es la primera mitad del código (no secreta; el secreto no se puede volver a leer). `warranty.kind` ∈ `NONE | D7 | D15 | D30 | M3 | M6 | Y1 | CUSTOM`. `public_url` solo existe si está `FINALIZED`.
 
 **FollowUp**
 ```json
@@ -315,8 +316,8 @@ Es la forma de recuperar un presupuesto **sin una sesión `USER`** (Definición 
 
 | Estado del presupuesto | Permitido |
 |------------------------|-----------|
-| `DRAFT` / `PENDING` | `GET /quotes/{id}`; `PATCH`; `PUT survey|measurements|items`; subir y borrar fotos y notas de voz; `GET /files/*` de ese presupuesto; `POST save`; `POST finalize`. |
-| `FINALIZED` | `GET /quotes/{id}` (solo lectura); `GET pdf`, `share`, `qr.png`; `POST send-email`; `POST mark-sent`. |
+| `DRAFT` / `PENDING` | `GET /quotes/{id}`; `PATCH`; `PUT survey|measurements|items`; subir y borrar fotos y notas de voz; `GET /files/*` de ese presupuesto; `GET logo`; `POST save`; `POST finalize`. |
+| `FINALIZED` | `GET /quotes/{id}` (solo lectura); `GET pdf`, `share`, `qr.png`, `logo`; `POST send-email`; `POST mark-sent`. |
 
 Todo lo demás responde **403 `INSUFFICIENT_SCOPE`**: borrar el presupuesto, estado comercial y seguimiento, gestionar el código, clientes, perfil, dashboard y cualquier otro presupuesto.
 

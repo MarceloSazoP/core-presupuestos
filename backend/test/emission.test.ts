@@ -223,6 +223,24 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.deepEqual(filesOnDisk().filter((f) => f.endsWith('.pdf')), []);
   });
 
+  it('el presupuesto trae al profesional y su logo: el actual mientras se edita y el fijado al finalizar', async () => {
+    const q = await completo();
+    const d0 = (await app.api('GET', `/quotes/${q.id}`, { token: a.token })).json;
+    assert.deepEqual(d0.professional, { name: 'Ana', phone: '+56911111111', email: 'a@test.cl', has_logo: false });
+    const logo = (token: string, id = q.id) => fetch(`${app.base}/quotes/${id}/logo`, { headers: { Authorization: `Bearer ${token}` } });
+    assert.equal((await logo(a.token)).status, 404, 'sin logo');
+    await app.upload('PUT', '/me/logo', { token: a.token, file: PNG() });
+    assert.equal((await app.api('GET', `/quotes/${q.id}`, { token: a.token })).json.professional.has_logo, true);
+    const t = (await app.api('POST', '/access/code/exchange', { body: { code: q.access_code } })).json.token;
+    for (const token of [a.token, t]) assert.equal((await logo(token)).headers.get('content-type'), 'image/png');
+    assert.equal((await logo(b.token)).status, 404, 'B no ve el logo de A');
+    await finalizar(q.id);
+    await app.upload('PUT', '/me/logo', { token: a.token, file: Buffer.concat([PNG(), Buffer.alloc(8)]) }); // cambia el logo después
+    const fijado = await logo(a.token);
+    assert.equal(fijado.status, 200);
+    assert.equal(Buffer.from(await fijado.arrayBuffer()).length, PNG().length, 'el finalizado conserva el logo original');
+  });
+
   it('con el QR incluido el PDF lo lleva, y con la firma también (mayor que sin ellos)', async () => {
     const sin = await completo();
     await finalizar(sin.id);

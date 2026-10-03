@@ -14,7 +14,7 @@ export type QuoteRow = {
 // Serializador explícito del `Quote` del Contrato de API §2 (nunca SELECT * hacia el cliente).
 // `public_url` existe solo mientras el presupuesto tiene un enlace público activo (desde que se finaliza).
 export async function quoteDetail(q: QuoteRow) {
-  const [customer, survey, measurements, photos, voice, items, access] = await Promise.all([
+  const [customer, survey, measurements, photos, voice, items, access, pro] = await Promise.all([
     query('SELECT id, name, phone, email, address, created_at, updated_at FROM customers WHERE id = $1 AND user_id = $2', [q.customer_id, q.user_id]),
     query<{ notes: string | null; field_observations: string | null }>('SELECT notes, field_observations FROM quote_surveys WHERE quote_id = $1', [q.id]),
     query('SELECT id, label, value FROM survey_measurements WHERE quote_id = $1 ORDER BY position', [q.id]),
@@ -22,10 +22,13 @@ export async function quoteDetail(q: QuoteRow) {
     query('SELECT file_id, duration_seconds, created_at FROM survey_voice_notes WHERE quote_id = $1 ORDER BY created_at', [q.id]),
     query('SELECT id, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
     query<{ token: string }>(`SELECT token FROM quote_access WHERE quote_id = $1 AND kind = 'PUBLIC' AND revoked_at IS NULL`, [q.id]),
+    query<{ name: string; phone: string; email: string; logo_file_id: string | null }>('SELECT name, phone, email, logo_file_id FROM users WHERE id = $1', [q.user_id]),
   ]);
   return {
     id: q.id, code_id: q.short_id, number: q.number, doc_status: q.doc_status, commercial_status: q.commercial_status,
     customer: customer.rows[0],
+    // Quien emite el presupuesto: lo necesita la web (que entra con el código, sin acceso a /me) para su encabezado.
+    professional: { name: pro.rows[0]!.name, phone: pro.rows[0]!.phone, email: pro.rows[0]!.email, has_logo: pro.rows[0]!.logo_file_id !== null },
     service_description: q.service_description ?? '', address: q.address, latitude: q.latitude, longitude: q.longitude,
     survey: {
       notes: survey.rows[0]?.notes ?? null,

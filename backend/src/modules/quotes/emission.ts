@@ -128,6 +128,18 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     res.json(await quoteDetail(await loadQuote(req, q0.id)));
   });
 
+  // Logo de quien emite: el actual mientras se edita, y el que quedó fijado en el snapshot una vez finalizado.
+  r.get('/:id/logo', allow('USER', 'QUOTE_CODE'), async (req, res) => {
+    const q = await loadQuote(req, req.params.id);
+    const { rows } = await query<{ storage_key: string; mime_type: string }>(
+      `SELECT f.storage_key, f.mime_type FROM files f
+        WHERE f.id = CASE WHEN $2 THEN (SELECT (snapshot->'professional'->>'logo_file_id')::uuid FROM quote_documents WHERE quote_id = $1)
+                          ELSE (SELECT logo_file_id FROM users WHERE id = $3) END`,
+      [q.id, q.doc_status === 'FINALIZED', q.user_id]);
+    if (!rows[0]) throw new AppError(404, 'NOT_FOUND', 'No encontrado');
+    res.type(rows[0].mime_type).sendFile(pathOf(rows[0].storage_key));
+  });
+
   // ── Salidas de un presupuesto finalizado ─────────────────────────────────────────────────────
   r.get('/:id/pdf', allow('USER', 'QUOTE_CODE'), async (req, res) => {
     const q = await loadQuote(req, req.params.id);
