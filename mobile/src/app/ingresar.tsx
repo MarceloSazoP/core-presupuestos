@@ -19,7 +19,7 @@ export default function Ingresar() {
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
-  const [canal, setCanal] = useState<Canal>('SMS');
+  const [canal, setCanal] = useState<Canal>('EMAIL'); // el SMS necesita Twilio (pendiente): el correo ya funciona
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
@@ -102,7 +102,7 @@ export default function Ingresar() {
             <Texto suave>{correo.trim().toLowerCase()}</Texto>
           </View>
           <Texto variante="subtitulo">¿Dónde te enviamos el código?</Texto>
-          {(['SMS', 'EMAIL'] as const).map((c) => {
+          {(['EMAIL', 'SMS'] as const).map((c) => {
             const elegido = canal === c;
             return (
               <Pressable key={c} accessibilityRole="radio" accessibilityState={{ selected: elegido }} onPress={() => setCanal(c)} style={[e.opcion, { borderColor: elegido ? t.acento : t.borde, backgroundColor: t.tarjeta }]}>

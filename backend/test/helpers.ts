@@ -21,7 +21,7 @@ export async function resetDb() {
 }
 
 // Levanta la app en un puerto efímero con un "enviador" falso que guarda los códigos en vez de mandarlos.
-export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number } = {}) {
+export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number; corsOrigins?: string[] } = {}) {
   const sent: Sent[] = [];
   const mails: QuoteMail[] = [];
   const mailState = { fail: false };

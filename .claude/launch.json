@@ -22,6 +22,17 @@
         "dev"
       ],
       "port": 3013
+    },
+    {
+      "name": "movil",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "mobile",
+        "run",
+        "web"
+      ],
+      "port": 8081
     }
   ]
 }

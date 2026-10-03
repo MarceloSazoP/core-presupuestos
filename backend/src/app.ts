@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import { config } from './config';
 import { query } from './db';
 import { AppError, errorHandler } from './errors';
+import { cors } from './lib/cors';
 import { sendCode as defaultSendCode, type SendCode } from './lib/deliver';
 import { sendMail as defaultSendMail, type SendMail } from './lib/mail';
 import { accessRoutes } from './modules/access/routes';
@@ -14,10 +15,11 @@ import { publicRoutes } from './modules/public/routes';
 import { quoteRoutes } from './modules/quotes/routes';
 
 // `deps` existe para las pruebas: se inyecta el envío de códigos y el límite por IP.
-export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number } = {}) {
+export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number; corsOrigins?: string[] } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY); // 0 = sin proxy; configurar según el hosting para que el límite use la IP real
+  app.use(cors(deps.corsOrigins ?? config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)));
   app.use(express.json({ limit: '100kb' }));
   app.use((_req, res, next) => {
     res.set({ 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store' });

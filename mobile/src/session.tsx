@@ -1,7 +1,7 @@
-import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { api, configurarApi } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { borrar, guardar, leer } from '@/lib/almacen';
 
 // La sesión vive en el almacenamiento seguro del teléfono (Keychain en iOS): el token y los datos del perfil, para
 // poder abrir la app sin conexión. Si la API responde 401, la sesión venció o fue revocada y se cierra.
@@ -29,12 +29,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     token.current = null;
     setUsuario(null);
     setEstado('fuera');
-    await Promise.all([SecureStore.deleteItemAsync(K_TOKEN), SecureStore.deleteItemAsync(K_USUARIO)]);
+    await Promise.all([borrar(K_TOKEN), borrar(K_USUARIO)]);
     if (t) await api('/auth/logout', { method: 'POST', token: t }).catch(() => {}); // revoca la sesión en el servidor si hay red
   }, []);
 
   const iniciar = useCallback(async (t: string, u: Usuario) => {
-    await Promise.all([SecureStore.setItemAsync(K_TOKEN, t), SecureStore.setItemAsync(K_USUARIO, JSON.stringify(u))]);
+    await Promise.all([guardar(K_TOKEN, t), guardar(K_USUARIO, JSON.stringify(u))]);
     token.current = t;
     setUsuario(u);
     setEstado('dentro');
@@ -43,7 +43,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     configurarApi({ token: () => token.current, alVencer: () => void salir() });
     void (async () => {
-      const [t, u] = await Promise.all([SecureStore.getItemAsync(K_TOKEN), SecureStore.getItemAsync(K_USUARIO)]);
+      const [t, u] = await Promise.all([leer(K_TOKEN), leer(K_USUARIO)]);
       if (!t || !u) return setEstado('fuera');
       token.current = t;
       setUsuario(JSON.parse(u) as Usuario);
