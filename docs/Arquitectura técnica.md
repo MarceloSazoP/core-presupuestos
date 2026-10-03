@@ -1,6 +1,6 @@
 # CorePresupuesto — Arquitectura Técnica
 
-**Versión:** 0.1 (borrador para revisión)
+**Versión:** 0.2 (borrador para revisión; incorpora las reglas de las skills de mobile y web)
 **Fecha:** 2026-10-03
 **Depende de:** `CLAUDE.md`, `Contrato de Base de Datos.md` v0.2, `Contrato de API.md` v0.2.
 **Alcance:** cómo se construye lo que los contratos ya definen. No cambia ni agrega comportamiento de producto.
@@ -59,6 +59,10 @@ Versiones consultadas el 2026-10-03.
 | A16 | Tipos compartidos | **Sin paquete `shared/`**. Cada cliente declara los tipos del contrato de API §2 en `src/api/types.ts` | Un paquete compartido exige configurar workspaces con Next y Metro; son ~60 líneas de tipos y no son lógica de negocio. |
 | A17 | Web | **Next.js 16 como BFF** (§6) | Llamar a la API desde el navegador con el token en `localStorage`: expuesto a XSS. |
 | A18 | Mobile estilos | **`StyleSheet` de React Native** + `constants/theme.ts` de la plantilla | NativeWind: dependencia nueva sin necesidad. |
+| A19 | Mobile listas | **`@shopify/flash-list`** para toda lista (clientes, presupuestos, miniaturas de fotos), incluso las cortas | `ScrollView` con `map` y `FlatList`: la skill `vercel-react-native-skills` manda virtualizar siempre. Está en la documentación del SDK 57 y funciona en Expo Go. |
+| A20 | Mobile imágenes | **`expo-image`** (ya instalado) para todas las imágenes, incluidas las miniaturas locales | `Image` de React Native: sin caché ni reciclado en listas. |
+| A21 | Mobile navegación | **Pila nativa de Expo Router** (estable) y pestañas con **`Tabs`** (JS, estable). Pasar a `NativeTabs` cuando sea estable | `NativeTabs` hoy es inestable (`expo-router/unstable-native-tabs`; estable en el SDK 58) y tiene límites: máximo 5 pestañas en Android y comportamiento irregular con listas. Las skills lo prefieren, pero según la documentación del SDK manda la estabilidad. La migración es cambiar un archivo de layout. |
+| A22 | Mobile háptica | **`expo-haptics`**: un háptico por acción confirmada, siempre acompañado de un cambio visual | Háptico por fotograma o como único aviso. En Android se usa `performAndroidHapticsAsync`: la documentación desaconseja el `Vibrator` que usan los otros métodos. |
 
 ### Verificación hecha (no son suposiciones)
 
@@ -77,6 +81,8 @@ Versiones consultadas el 2026-10-03.
 - Adjuntos y formato exacto de la API de Resend.
 - Que `https://wa.me/<número>?text=…` abra WhatsApp con el mensaje en iOS y Android.
 - Límite de cuerpo de las subidas desde la web a través de Next (`proxyClientMaxBodySize` y el tope de Server Actions).
+- Que `contentInsetAdjustmentBehavior`, `boxShadow` y `borderCurve` se comporten igual en Android; son reglas de la skill pensadas sobre todo para iOS.
+- Que Tailwind 4 realmente condicione `hover:` a `(hover: hover)`, como afirma la skill `mobile-native`. Se comprueba en el primer componente con estado `hover`.
 - PostgreSQL 14 sale de soporte en noviembre de 2026 (calendario de postgresql.org); producción debería partir en una versión vigente. El contrato solo exige PostgreSQL ≥ 13 por `gen_random_uuid()`.
 
 ---
@@ -186,6 +192,9 @@ Se entrega un `.env.example` sin valores reales.
 
 | Función | Módulo | Notas |
 |---------|--------|-------|
+| Listas | `@shopify/flash-list` | Ver A19. |
+| Imágenes | `expo-image` | Ver A20. |
+| Háptica | `expo-haptics` | Ver A22. |
 | Fotos | `expo-camera`, `expo-image-picker` | Cámara en vivo y galería (también para logo y firma). |
 | Reducción de fotos | `expo-image-manipulator` | Siempre se reconvierte a **JPEG, lado mayor 2048 px, calidad 0,8** antes de guardar: así nunca llega HEIC al servidor y se respeta el límite de 10 MB. |
 | Voz | `expo-audio` | Preset `HIGH_QUALITY` (`.m4a` en ambas plataformas). Corte a los 5 min. |
@@ -198,6 +207,15 @@ Se entrega un `.env.example` sin valores reales.
 | Compartir | `expo-sharing` y `Linking` | PDF y WhatsApp. |
 
 La documentación del SDK 57 indica soporte en Expo Go para `expo-sqlite`, `expo-camera`, `expo-image-picker`, `expo-image-manipulator`, `expo-secure-store` y las notificaciones **locales**. No lo verifiqué para `expo-audio`, `expo-file-system`, `expo-location`, `expo-network` ni `expo-sharing`: si alguno exige compilación nativa, se usa `eas build --profile development`. Las notificaciones **push** remotas no se usan.
+
+### Reglas de interfaz (de `vercel-react-native-skills` y `animate-expo`)
+
+1. **`Pressable`**, nunca `TouchableOpacity` ni `TouchableHighlight`. Objetivo táctil mínimo de 44×44 pt (48 dp en Android); si lo visual es menor, se agrega `hitSlop`.
+2. **Zonas seguras:** `contentInsetAdjustmentBehavior="automatic"` en el `ScrollView` raíz, en vez de `SafeAreaView` o relleno manual.
+3. **Estilos:** `StyleSheet` con `gap` para el espacio entre elementos, `borderCurve: 'continuous'` junto a `borderRadius` y `boxShadow` en sintaxis CSS (no `elevation` ni los `shadow*` antiguos).
+4. **Movimiento:** solo si pasa el filtro de `animate-expo`. Las pestañas no se deslizan, las transiciones de pantalla las pone la pila nativa y no se reescriben, y el feedback al presionar dura 100–150 ms. Todo lo que se anima usa Reanimated, nunca `setState` desde un gesto, y respeta "reducir movimiento" desde el primer día.
+5. **Teclado en el asistente:** se empieza con `KeyboardAvoidingView`. `react-native-keyboard-controller` solo se agrega si no basta, y habría que comprobar antes si funciona en Expo Go o exige compilación nativa.
+6. **Evaluación:** el movimiento y los gestos se juzgan en un build de release (APK `preview`), no en Expo Go ni en el simulador.
 
 ### Estructura
 
@@ -276,6 +294,19 @@ Reglas de la cola:
 - Estilos con Tailwind 4 (ya instalado), sin biblioteca de componentes.
 - Formularios con Server Actions y `useActionState`; los errores 422 de la API se muestran por campo (`details[].field`).
 - Subidas de archivos desde la web pasan por un Route Handler que reenvía el flujo a la API (límites por verificar, ver §2).
+
+### Web en el teléfono (base de `mobile-native`)
+
+El enlace público llega por WhatsApp y se abre en el teléfono, así que `/q/[token]`, `/e/[token]` y `/login` cumplen esta base desde el primer componente:
+
+- **Viewport** con el export `viewport` de Next: `viewportFit: 'cover'` (existe en el código de Next 16, aunque su documentación no lo menciona) y `themeColor` por esquema de color con `media: '(prefers-color-scheme: …)'`. **Nunca** `userScalable: false` ni `maximumScale: 1`, aunque el ejemplo de la documentación de Next los muestre: desactivar el zoom es un fallo de accesibilidad.
+- **Zonas seguras:** `padding` con `env(safe-area-inset-*)` en encabezados y barras inferiores.
+- **Altura:** `100dvh` en el contenedor de la app y `100svh` en portadas; nunca `100vh` para algo fijado abajo.
+- **Inputs:** `font-size: 16px` como mínimo para que iOS no haga zoom. El código de verificación lleva `inputMode="numeric"` y `autoComplete="one-time-code"`; el teléfono, `type="tel"`; el correo, `type="email"`.
+- **Toque:** `-webkit-tap-highlight-color: transparent`, `touch-action: manipulation` en botones y enlaces, estado `:active` propio y `user-select: none` solo en controles, nunca en el `body`.
+- **`:hover`** solo dentro de `@media (hover: hover) and (pointer: fine)`.
+- **Desplazamiento:** `overscroll-behavior: none` en `html` y `body`, y `contain` en contenedores internos con scroll.
+- **Validación:** esto no se puede comprobar en el emulador de Chrome; se prueba en un teléfono real abriendo el servidor por la IP de la red local.
 
 ### Dinero y fechas
 
