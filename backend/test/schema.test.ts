@@ -7,6 +7,10 @@ import { pool } from '../src/db';
 const FINALIZED = `doc_status='FINALIZED', number='CP-2026-0001', finalized_at=now(),
                    service_description='x', validity_days=15`;
 
+// ID corto aleatorio con el alfabeto Crockford base32 del contrato (sin I, L, O, U).
+const ALFABETO = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const shortId = () => Array.from({ length: 6 }, () => ALFABETO[Math.floor(Math.random() * ALFABETO.length)]).join("");
+
 let c: PoolClient;
 let userA: string;
 let userB: string;
@@ -49,7 +53,7 @@ describe('esquema: restricciones del Contrato de BD', () => {
   });
 
   const newQuote = (extra = '') =>
-    id(`INSERT INTO quotes (user_id, customer_id) VALUES ($1, $2) RETURNING id`, [userA, customerA]).then(
+    id(`INSERT INTO quotes (user_id, customer_id, short_id) VALUES ($1, $2, $3) RETURNING id`, [userA, customerA, shortId()]).then(
       async (q) => {
         if (extra) await c.query(`UPDATE quotes SET ${extra} WHERE id = $1`, [q]);
         return q;
@@ -57,7 +61,7 @@ describe('esquema: restricciones del Contrato de BD', () => {
     );
 
   it('un presupuesto no puede apuntar al cliente de otro usuario', async () => {
-    await expectCode('23503', 'INSERT INTO quotes (user_id, customer_id) VALUES ($1, $2)', [userB, customerA]);
+    await expectCode('23503', 'INSERT INTO quotes (user_id, customer_id, short_id) VALUES ($1, $2, $3)', [userB, customerA, shortId()]);
   });
 
   it('FINALIZED exige número, fecha y datos mínimos; con ellos es válido', async () => {
@@ -127,12 +131,33 @@ describe('esquema: restricciones del Contrato de BD', () => {
     await expectCode('23514', conUnidad, [q, 4, '']);
   });
 
-  it('sesiones QUOTE_EDIT exigen presupuesto y las USER no lo admiten', async () => {
+  it('sesiones QUOTE_CODE exigen presupuesto y las USER no lo admiten', async () => {
     const q = await newQuote();
     const ins = `INSERT INTO sessions (user_id, token_hash, scope, quote_id, expires_at)
                  VALUES ($1, $2, $3, $4, now() + interval '1 day')`;
-    await expectCode('23514', ins, [userA, 'h1', 'QUOTE_EDIT', null]);
+    await expectCode('23514', ins, [userA, 'h1', 'QUOTE_CODE', null]);
     await expectCode('23514', ins, [userA, 'h2', 'USER', q]);
-    await c.query(ins, [userA, 'h3', 'QUOTE_EDIT', q]);
+    await expectCode('23514', ins, [userA, 'h4', 'QUOTE_EDIT', q]); // el scope viejo ya no existe
+    await c.query(ins, [userA, 'h3', 'QUOTE_CODE', q]);
+  });
+
+  it('short_id: solo alfabeto Crockford de 6 caracteres y sin repetirse', async () => {
+    const ins = 'INSERT INTO quotes (user_id, customer_id, short_id) VALUES ($1, $2, $3)';
+    await c.query(ins, [userA, customerA, '7K4M2Q']);
+    await expectCode('23505', ins, [userA, customerA, '7K4M2Q']);
+    for (const malo of ['7K4M2', '7K4M2QQ', '7k4m2q', '7K4M2I', '7K4M2L', '7K4M2O', '7K4M2U', '']) {
+      await expectCode('23514', ins, [userA, customerA, malo]);
+    }
+  });
+
+  it('quote_access: CODE exige code_hash, PUBLIC exige token y EDIT ya no existe', async () => {
+    const q = await newQuote();
+    const ins = 'INSERT INTO quote_access (quote_id, kind, token, code_hash) VALUES ($1, $2, $3, $4)';
+    await expectCode('23514', ins, [q, 'CODE', null, null]);
+    await expectCode('23514', ins, [q, 'PUBLIC', null, null]);
+    await expectCode('23514', ins, [q, 'CODE', 'tok', '$argon2id$x']);
+    await expectCode('23514', ins, [q, 'EDIT', null, '$argon2id$x']);
+    await c.query(ins, [q, 'CODE', null, '$argon2id$x']);
+    await expectCode('23505', ins, [q, 'CODE', null, '$argon2id$y']); // un solo código activo por presupuesto
   });
 });
