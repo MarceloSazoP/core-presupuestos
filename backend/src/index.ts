@@ -3,10 +3,17 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import pool from './config/database';
 
+// Routes
+import authRoutes from './routes/auth';
+import usersRoutes from './routes/users';
+import customersRoutes from './routes/customers';
+import quotesRoutes from './routes/quotes';
+
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const API_BASE = '/api/v1';
 
 // Middleware
 app.use(cors());
@@ -36,10 +43,15 @@ app.get('/health/db', async (req: Request, res: Response) => {
   }
 });
 
-// Routes placeholder
-app.get('/api/v1', (req: Request, res: Response) => {
+// Routes
+app.get(API_BASE, (req: Request, res: Response) => {
   res.json({ message: 'CorePresupuesto API v1' });
 });
+
+app.use(`${API_BASE}/auth`, authRoutes);
+app.use(`${API_BASE}/users`, usersRoutes);
+app.use(`${API_BASE}/customers`, customersRoutes);
+app.use(`${API_BASE}/quotes`, quotesRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -62,7 +74,7 @@ app.use(
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api/v1`);
+  console.log(`📡 API: http://localhost:${PORT}${API_BASE}`);
   console.log(`❤️  Health: http://localhost:${PORT}/health`);
   console.log(`🗄️  DB Health: http://localhost:${PORT}/health/db`);
 });
