@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { Cierre, Envio } from '@/components/cierre';
 import { Levantamiento } from '@/components/levantamiento';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
@@ -115,9 +116,10 @@ export default function Detalle() {
         )}
       </View>
 
-      {cerrado ? null : <Levantamiento q={q} recargar={recargar} />}
+      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento q={q} recargar={recargar} />}
+      {cerrado ? null : <Cierre q={q} recargar={recargar} />}
 
-      {q.items.length ? (
+      {cerrado && q.items.length ? (
         <View style={e.bloque}>
           <Texto variante="subtitulo">Ítems</Texto>
           {q.items.map((i) => (
