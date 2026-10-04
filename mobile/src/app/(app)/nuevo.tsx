@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { Boton, Campo, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar, guardarBorrador } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -86,15 +86,23 @@ export default function Nuevo() {
         </View>
       </View>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ flex: 1 }} contentContainerStyle={e.contenido}>
-      <Campo etiqueta="Cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoFocus autoCapitalize="words" autoComplete="off" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
-      <Campo ref={refTelefono} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" placeholder="9 1234 5678" />
-      <Campo ref={refCorreo} etiqueta="Correo (opcional)" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" onSubmitEditing={() => refDireccion.current?.focus()} ayuda="Con correo, el PDF se envía solo al terminar." />
-      <Campo ref={refDireccion} etiqueta="Dirección del trabajo (opcional)" value={direccion} onChangeText={setDireccion} autoComplete="street-address" textContentType="fullStreetAddress" returnKeyType="next" onSubmitEditing={() => refServicio.current?.focus()} />
-      <Campo ref={refServicio} etiqueta="Servicio (opcional)" value={servicio} onChangeText={setServicio} multiline placeholder="Por ejemplo: instalar 4 enchufes en el living" />
+      <Seccion titulo="Cliente">
+        <Tarjeta>
+          <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoFocus autoCapitalize="words" autoComplete="off" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
+          <Campo ref={refTelefono} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" placeholder="9 1234 5678" />
+          <Campo ref={refCorreo} etiqueta="Correo (opcional)" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" onSubmitEditing={() => refDireccion.current?.focus()} ayuda="Con correo, el PDF se envía solo al terminar." />
+        </Tarjeta>
+      </Seccion>
+      <Seccion titulo="El trabajo" descripcion="Opcional: puedes completarlo después.">
+        <Tarjeta>
+          <Campo ref={refDireccion} etiqueta="Dirección del trabajo" value={direccion} onChangeText={setDireccion} autoComplete="street-address" textContentType="fullStreetAddress" returnKeyType="next" onSubmitEditing={() => refServicio.current?.focus()} />
+          <Campo ref={refServicio} etiqueta="Servicio" value={servicio} onChangeText={setServicio} multiline placeholder="Por ejemplo: instalar 4 enchufes en el living" />
+        </Tarjeta>
+      </Seccion>
       <View style={e.acciones}>
         {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
-        <Boton titulo="Crear presupuesto" onPress={crear} cargando={cargando} />
-        <Boton titulo="Cancelar" variante="secundario" onPress={cancelar} disabled={cargando} />
+        <Boton titulo="Crear presupuesto" icono="mas" onPress={crear} cargando={cargando} />
+        <Boton titulo="Cancelar" variante="texto" onPress={cancelar} disabled={cargando} />
       </View>
     </ScrollView>
     </View>
@@ -114,6 +122,6 @@ const e = StyleSheet.create({
   agarre: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, opacity: 0.5 },
   barra: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  contenido: { padding: espacio.xl, gap: espacio.l },
+  contenido: { padding: espacio.l, paddingBottom: espacio.xxl, gap: espacio.xl },
   acciones: { gap: espacio.m, paddingTop: espacio.s },
 });

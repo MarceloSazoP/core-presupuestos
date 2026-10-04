@@ -3,14 +3,15 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Onboarding (CLAUDE.md §17): datos → confirmar y elegir SMS o correo → recibir y validar el código → entrar.
 type Paso = 'datos' | 'canal' | 'codigo';
 type Canal = 'SMS' | 'EMAIL';
+const PASOS: Paso[] = ['datos', 'canal', 'codigo'];
 
 export default function Ingresar() {
   const t = useTema();
@@ -81,22 +82,33 @@ export default function Ingresar() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <View style={e.encabezado}>
-        <Texto variante="titulo">CorePresupuesto</Texto>
+        <View style={[e.marca, { backgroundColor: t.acento }]}>
+          <Icono nombre="documento" tamano={26} color={t.sobreAcento} />
+        </View>
+        <Texto variante="titulo">CORE Presupuestos</Texto>
         <Texto suave>No olvides nada de lo que viste en terreno.</Texto>
       </View>
 
+      {/* Tres pasos de verdad (datos → canal → código): el número dice dónde vas. */}
+      <View accessibilityLabel={`Paso ${PASOS.indexOf(paso) + 1} de 3`} style={e.pasos}>
+        {PASOS.map((p, i) => (
+          <View key={p} style={[e.paso, { backgroundColor: i <= PASOS.indexOf(paso) ? t.acento : t.borde }]} />
+        ))}
+      </View>
+
       {paso === 'datos' ? (
-        <View style={e.bloque}>
+        <Tarjeta style={e.bloque}>
+          <Texto variante="subtitulo">Tus datos</Texto>
           <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoComplete="name" textContentType="name" autoCapitalize="words" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
           <Campo ref={refTelefono} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="9 1234 5678" ayuda="Es tu identidad en la app." />
           <Campo ref={refCorreo} etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
           <Boton titulo="Continuar" onPress={continuar} />
-        </View>
+        </Tarjeta>
       ) : null}
 
       {paso === 'canal' ? (
-        <View style={e.bloque}>
-          <View style={[e.resumen, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+        <Tarjeta style={e.bloque}>
+          <View style={[e.resumen, { backgroundColor: t.campo, borderColor: t.borde }]}>
             <Texto fuerte>{nombre.trim()}</Texto>
             <Texto suave>{telefonoE164}</Texto>
             <Texto suave>{correo.trim().toLowerCase()}</Texto>
@@ -105,7 +117,7 @@ export default function Ingresar() {
           {(['EMAIL', 'SMS'] as const).map((c) => {
             const elegido = canal === c;
             return (
-              <Pressable key={c} accessibilityRole="radio" accessibilityState={{ selected: elegido }} onPress={() => setCanal(c)} style={[e.opcion, { borderColor: elegido ? t.acento : t.borde, backgroundColor: t.tarjeta }]}>
+              <Pressable key={c} accessibilityRole="radio" accessibilityState={{ selected: elegido }} onPress={() => setCanal(c)} style={[e.opcion, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? `${t.acento}14` : t.campo }]}>
                 <View style={[e.radio, { borderColor: elegido ? t.acento : t.suave }]}>{elegido ? <View style={[e.radioDentro, { backgroundColor: t.acento }]} /> : null}</View>
                 <View style={e.opcionTexto}>
                   <Texto fuerte>{c === 'SMS' ? 'SMS' : 'Correo'}</Texto>
@@ -117,11 +129,11 @@ export default function Ingresar() {
           {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
           <Boton titulo="Enviar código" onPress={enviarCodigo} cargando={cargando} />
           <Boton titulo="Corregir mis datos" variante="texto" onPress={() => setPaso('datos')} />
-        </View>
+        </Tarjeta>
       ) : null}
 
       {paso === 'codigo' && desafio ? (
-        <View style={e.bloque}>
+        <Tarjeta style={e.bloque}>
           <Texto>
             Enviamos un código de 6 dígitos a <Texto fuerte>{desafio.destino}</Texto>. Vale 10 minutos.
           </Texto>
@@ -144,18 +156,21 @@ export default function Ingresar() {
           {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
           <Boton titulo="Entrar" onPress={() => void verificar(codigo)} cargando={cargando} disabled={codigo.length !== 6} />
           <Boton titulo="Reenviar o cambiar el canal" variante="texto" onPress={() => { setAviso(null); setPaso('canal'); }} />
-        </View>
+        </Tarjeta>
       ) : null}
     </ScrollView>
   );
 }
 
 const e = StyleSheet.create({
-  contenido: { padding: espacio.xl, gap: espacio.xxl },
-  encabezado: { gap: espacio.xs, paddingTop: espacio.xl },
-  bloque: { gap: espacio.l },
-  resumen: { borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
-  opcion: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', gap: espacio.m, borderWidth: 1.5, borderRadius: 12, borderCurve: 'continuous', padding: espacio.l },
+  contenido: { padding: espacio.l, gap: espacio.xl },
+  encabezado: { gap: espacio.xs, paddingTop: espacio.xl, paddingHorizontal: espacio.s },
+  marca: { width: 52, height: 52, borderRadius: radio.m, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', marginBottom: espacio.m },
+  pasos: { flexDirection: 'row', gap: espacio.s, paddingHorizontal: espacio.s },
+  paso: { flex: 1, height: 4, borderRadius: 2 },
+  bloque: { gap: espacio.l, padding: espacio.xl },
+  resumen: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
+  opcion: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', gap: espacio.m, borderWidth: 1.5, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l },
   opcionTexto: { flex: 1 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDentro: { width: 10, height: 10, borderRadius: 5 },

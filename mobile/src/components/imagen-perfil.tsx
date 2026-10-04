@@ -96,7 +96,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
       {activo ? (
         <>
           <Texto variante="chico" suave>{ayuda}</Texto>
-          <View style={[e.vista, { backgroundColor: tiene ? '#FFFFFF' : t.tarjeta, borderColor: t.borde }]}>
+          <View style={[e.vista, { backgroundColor: tiene ? '#FFFFFF' : t.campo, borderColor: t.borde }]}>
             {tiene ? (
               <Image source={fuenteDeArchivo(`/me/${ruta}?v=${id ?? 'sin-id'}`)} contentFit="contain" accessibilityLabel={titulo} style={e.imagen} />
             ) : (

@@ -1,10 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { ImagenPerfil } from '@/components/imagen-perfil';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { Boton, Campo, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
@@ -65,30 +65,31 @@ export default function Configurar() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <View style={e.seccion}>
-        <Texto variante="subtitulo">Tus datos en los presupuestos</Texto>
-        <Texto variante="chico" suave>Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.</Texto>
+      <Seccion titulo="Tus datos en los presupuestos" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
+        <Tarjeta>
         <Campo etiqueta="Nombre o negocio" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoComplete="name" />
         <Campo etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" placeholder={usuario?.phone ?? '9 1234 5678'} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         <Campo etiqueta="Correo de contacto" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder={usuario?.email ?? ''} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />
-      </View>
+        </Tarjeta>
+      </Seccion>
 
-      <ImagenPerfil ruta="logo" titulo="Logo" nombre="el logo" ayuda="Sale arriba en tus presupuestos, en su propia fila: sirve un logo horizontal. PNG o JPEG; se ajusta solo a un tamaño liviano." vacio="Todavía no subes un logo" />
+      <Tarjeta>
+        <ImagenPerfil ruta="logo" titulo="Logo" nombre="el logo" ayuda="Sale arriba en tus presupuestos, en su propia fila: sirve un logo horizontal. PNG o JPEG; se ajusta solo a un tamaño liviano." vacio="Todavía no subes un logo" />
+      </Tarjeta>
 
-      <ImagenPerfil ruta="signature" titulo="Firma" nombre="la firma" ayuda="Se imprime sobre la línea de firma del PDF en todos tus presupuestos. Mejor sobre fondo blanco o transparente. Bajo la línea siempre salen tu nombre, teléfono y correo." vacio="Todavía no subes tu firma" />
+      <Tarjeta>
+        <ImagenPerfil ruta="signature" titulo="Firma" nombre="la firma" ayuda="Se imprime sobre la línea de firma del PDF en todos tus presupuestos. Mejor sobre fondo blanco o transparente. Bajo la línea siempre salen tu nombre, teléfono y correo." vacio="Todavía no subes tu firma" />
+      </Tarjeta>
 
-      <View style={e.seccion}>
-        <Texto variante="subtitulo">Tu cuenta</Texto>
-        <Texto variante="chico" suave>Ingresas con {usuario?.phone} y {usuario?.email}. Esos datos no se cambian aquí.</Texto>
+      <Seccion titulo="Tu cuenta" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
         <Boton titulo="Cerrar sesión" variante="secundario" onPress={confirmarSalida} />
-      </View>
+      </Seccion>
     </ScrollView>
   );
 }
 
 const e = StyleSheet.create({
-  contenido: { padding: espacio.xl, gap: espacio.xxl },
-  seccion: { gap: espacio.m },
+  contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.xl },
 });
