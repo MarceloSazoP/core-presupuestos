@@ -31,6 +31,8 @@ export default async function PresupuestoPage() {
         <Editor
           inicial={{
             descripcion: p.descripcion,
+            version: p.version,
+            numeroAnterior: p.numeroAnterior,
             direccion: p.direccion,
             items: p.items,
             descuento: p.descuento,
@@ -57,7 +59,8 @@ export default async function PresupuestoPage() {
     <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
       <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
       <header className="flex flex-col items-start gap-2">
-        <span className="estado estado-cerrado">Cerrado · {p.numero}</span>
+        <span className="estado estado-cerrado">Cerrado · {p.numero}{p.version > 1 ? ` · Versión ${p.version}` : ""}</span>
+        {p.numeroAnterior && <p className="text-sm text-muted">Reemplaza al presupuesto {p.numeroAnterior}</p>}
         <h1 className="text-2xl font-semibold leading-tight">{p.descripcion}</h1>
         <p className="text-muted">Para {p.cliente.nombre}</p>
       </header>

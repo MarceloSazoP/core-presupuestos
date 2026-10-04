@@ -11,6 +11,8 @@ export const metadata: Metadata = { title: "Presupuesto · CorePresupuesto", rob
 // enlace que llega por WhatsApp o correo.
 type Publico = {
   number: string;
+  version?: number;
+  previous_number?: string | null;
   finalized_at: string;
   valid_until: string;
   professional: { name: string; phone: string; email: string; has_logo: boolean };
@@ -64,7 +66,11 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             </div>
           </div>
           <div className="sm:text-right">
-            <h1 className="text-lg font-bold uppercase tracking-wide">Presupuesto {q.number}</h1>
+            <h1 className="text-lg font-bold uppercase tracking-wide">
+              Presupuesto {q.number}
+              {(q.version ?? 1) > 1 && <span> · Versión {q.version}</span>}
+            </h1>
+            {q.previous_number && <p className="text-sm text-muted">Reemplaza al presupuesto {q.previous_number}</p>}
             <p className="text-sm text-muted">{fecha(q.finalized_at)}</p>
           </div>
         </header>

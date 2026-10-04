@@ -18,7 +18,7 @@ export function HojaDemo() {
       <div className="relative -rotate-[1.5deg] rounded-md bg-white p-6 text-tinta ring-1 ring-tinta/15">
         <div className="flex items-start justify-between gap-4 border-b border-tinta/15 pb-4">
           <div>
-            <p className="text-lg font-bold leading-tight">Instalaciones Pérez</p>
+            <p className="text-lg font-bold leading-tight">Instalaciones R. Sazo</p>
             <p className="text-sm text-muted">+56 9 1234 5678</p>
           </div>
           <div className="text-right text-sm">

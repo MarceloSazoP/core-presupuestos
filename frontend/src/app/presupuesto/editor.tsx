@@ -12,6 +12,8 @@ import { Multimedia } from "./multimedia";
 
 type Inicial = {
   descripcion: string;
+  version: number;
+  numeroAnterior: string | null;
   direccion: string | null;
   items: { tipo: "item" | "tarea"; descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
@@ -129,7 +131,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-3">
         <h2 className="text-2xl font-bold uppercase tracking-wide">Presupuesto</h2>
-        <span className="estado estado-pendiente">Borrador</span>
+        <span className="estado estado-pendiente">Borrador{inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}</span>
+        {inicial.numeroAnterior && <p className="basis-full text-sm font-normal normal-case text-muted">Reemplaza al presupuesto {inicial.numeroAnterior}</p>}
       </div>
 
       <div className="grid gap-6 @3xl:grid-cols-2">

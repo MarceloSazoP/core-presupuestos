@@ -14,6 +14,8 @@ export const textoGarantia = (kind: string, personalizada: string | null) =>
 export type QuoteApi = {
   id: string;
   number: string | null;
+  version: number;
+  previous_number: string | null;
   doc_status: 'DRAFT' | 'PENDING' | 'FINALIZED';
   commercial_status: string;
   customer: { name: string; phone: string; email: string | null };
@@ -37,6 +39,8 @@ export type QuoteApi = {
 export type Presupuesto = {
   id: string;
   numero: string | null;
+  version: number; // 2.ª, 3.ª versión de un presupuesto rechazado
+  numeroAnterior: string | null; // el rechazado al que reemplaza
   estado: 'PENDING' | 'FINALIZED'; // DRAFT y PENDING se editan igual
   enviado: boolean;
   publicUrl: string | null;
@@ -61,6 +65,8 @@ const VALIDEZ_POR_DEFECTO = 15;
 export const aPresupuesto = (q: QuoteApi): Presupuesto => ({
   id: q.id,
   numero: q.number,
+  version: q.version,
+  numeroAnterior: q.previous_number,
   estado: q.doc_status === 'FINALIZED' ? 'FINALIZED' : 'PENDING',
   enviado: q.sent_at !== null,
   publicUrl: q.public_url,
