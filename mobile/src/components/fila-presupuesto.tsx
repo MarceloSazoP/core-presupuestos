@@ -6,7 +6,7 @@ import { Pressable as Toque } from 'react-native-gesture-handler';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, type SharedValue } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
-import { Icono, Pastilla, Texto } from '@/components/ui';
+import { Icono, Pastilla, Texto, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
 import { clp } from '@/lib/formato';
@@ -102,7 +102,7 @@ export function FilaPresupuesto({
       onLongPress={puedeEliminar ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); confirmar(); } : undefined}
     >
       {/* La tarjeta se encoge apenas al tocarla (transición CSS de Reanimated: 120 ms, sin estado por cuadro). */}
-      <Animated.View style={[e.fila, { backgroundColor: t.tarjeta, borderColor: t.borde, transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
+      <Animated.View style={[e.fila, TRANSICION_PRESION, { backgroundColor: t.tarjeta, borderColor: t.borde, transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
         <View style={e.arriba}>
           <Texto fuerte numberOfLines={1} style={e.flex}>{titulo}</Texto>
           <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
@@ -172,7 +172,6 @@ const e = StyleSheet.create({
   // Sin sombra: la fila que se desliza recorta lo que sale de sus bordes, y todas las tarjetas de la lista deben verse iguales.
   fila: {
     borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: espacio.s, minHeight: MIN_TOQUE,
-    transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
   },
   arriba: { flexDirection: 'row', alignItems: 'baseline', gap: espacio.m },
   flex: { flex: 1 },

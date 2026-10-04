@@ -1,7 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type StyleProp, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
-import Animated, { useReducedMotion } from 'react-native-reanimated';
+import Animated, { cubicBezier, useReducedMotion } from 'react-native-reanimated';
 import { espacio, letra, MIN_TOQUE, radio, useTema, type Color } from '@/theme';
 
 // Piezas de interfaz. Tamaños de letra: 4; pesos: 2 (400 y 600). Todo objetivo táctil mide ≥ 48 pt.
@@ -52,6 +52,12 @@ export function Icono({ nombre, tamano = 20, color }: { nombre: NombreIcono; tam
   return <SymbolView name={ICONOS[nombre]} size={tamano} tintColor={color} fallback={<View style={{ width: tamano, height: tamano }} />} />;
 }
 
+// Curva de salida fuerte para la presión. En iOS y Android, Reanimated solo acepta como texto las curvas predefinidas («ease-out»…): una
+// curva propia va con cubicBezier(); el texto 'cubic-bezier(...)' funciona en la web pero en el teléfono lanza un error.
+export const CURVA_PRESION = cubicBezier(0.23, 1, 0.32, 1);
+// Fuera de StyleSheet.create: sus tipos (los de React Native) solo esperan texto en la curva.
+export const TRANSICION_PRESION = { transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: CURVA_PRESION } as const;
+
 // Presionar se siente: la pieza se encoge un 3 % en 120 ms (transición CSS de Reanimated, sin estado por cuadro) y vuelve al soltar.
 // Con «Reducir movimiento» no se escala. `style` es el del contenedor (ocupa su lugar en la fila); `estilo` el de lo que se ve.
 export function Presionable({ style, estilo, children, onPressIn, onPressOut, ...props }: Omit<PressableProps, 'children' | 'style'> & { style?: StyleProp<ViewStyle>; estilo?: StyleProp<ViewStyle>; children: ReactNode }) {
@@ -71,7 +77,7 @@ export function Presionable({ style, estilo, children, onPressIn, onPressOut, ..
         onPressOut?.(ev);
       }}
     >
-      <Animated.View style={[e.presion, { transform: [{ scale: presionado && !reducido ? 0.97 : 1 }] }, estilo]}>{children}</Animated.View>
+      <Animated.View style={[TRANSICION_PRESION, { transform: [{ scale: presionado && !reducido ? 0.97 : 1 }] }, estilo]}>{children}</Animated.View>
     </Pressable>
   );
 }
@@ -224,7 +230,6 @@ export function Nota({ titulo, children }: { titulo: string; children: ReactNode
 }
 
 const e = StyleSheet.create({
-  presion: { transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)' },
   boton: { minHeight: MIN_TOQUE, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
   primario: { minHeight: 52 },
   texto: { paddingHorizontal: espacio.m },
