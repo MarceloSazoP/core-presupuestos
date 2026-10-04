@@ -124,6 +124,23 @@ export async function corregirClienteAction(telefono: string, correo: string): P
   return {};
 }
 
+// Editar las notas de la visita (Contrato API §6, Etapa 2). Solo mientras el presupuesto se puede editar. Vacío = sin notas.
+export async function guardarNotasAction(notas: string): Promise<{ error?: string }> {
+  const s = await sesionActual();
+  if (!s) return { error: 'La sesión venció. Vuelve al inicio y escribe el código de nuevo.' };
+  const texto = notas.trim();
+  if (texto.length > 10000) return { error: 'Las notas son muy largas (máximo 10.000 caracteres).' };
+  try {
+    await api(`/quotes/${s.quoteId}/survey`, { token: s.token, method: 'PUT', body: { notes: texto || null } });
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    if (e.status === 409) return { error: 'El presupuesto ya está cerrado y no se puede modificar.' };
+    return { error: mensajesDeError(e.details, e.message).join(' ') };
+  }
+  revalidatePath('/presupuesto');
+  return {};
+}
+
 // Quitar una foto o una nota de voz del levantamiento (Contrato API §6). Solo mientras el presupuesto se puede editar.
 export async function eliminarArchivoAction(tipo: 'foto' | 'audio', id: string): Promise<{ error?: string }> {
   const s = await sesionActual();

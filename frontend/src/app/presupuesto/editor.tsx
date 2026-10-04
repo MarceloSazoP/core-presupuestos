@@ -8,6 +8,7 @@ import { completarPresupuestoAction, salirAction, type EstadoEdicion } from "../
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
+import { NotasVisita } from "./notas-visita";
 import { GrillaItems, type Fila } from "./grilla-items";
 import { Multimedia } from "./multimedia";
 
@@ -161,7 +162,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           <h3 id="levantamiento" className="etiqueta uppercase tracking-wide text-muted">
             Notas de la visita <span className="font-normal normal-case">(internas, no salen en el PDF)</span>
           </h3>
-          {inicial.levantamiento.notas ? <p>{inicial.levantamiento.notas}</p> : <p className="text-muted">Sin notas.</p>}
+          <NotasVisita notas={inicial.levantamiento.notas} />
           {inicial.levantamiento.medidas.length > 0 && (
             <p className="text-sm text-muted">{inicial.levantamiento.medidas.map((m) => `${m.etiqueta}: ${m.valor}`).join(" · ")}</p>
           )}
