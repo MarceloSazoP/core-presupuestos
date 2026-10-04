@@ -8,7 +8,9 @@ import type { ResumenPresupuesto } from '@/api/types';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
 import { Boton, Texto } from '@/components/ui';
 import { cancelarRecordatorio, reconciliar } from '@/lib/notificaciones';
+import { Pestanas } from '@/components/pestanas';
 import { Sincronizacion } from '@/components/sincronizacion';
+import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
 import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -20,6 +22,7 @@ export default function Presupuestos() {
   const [error, setError] = useState<string | null>(null);
   const [refrescando, setRefrescando] = useState(false);
 
+  const [pestana, setPestana] = useState<Pestana>('pendientes');
   const { pendientes } = useCola();
   const colaVacia = pendientes === 0;
 
@@ -52,13 +55,23 @@ export default function Presupuestos() {
     void cancelarRecordatorio(q.id);
   }, []);
 
+  // La última pestaña vista se recuerda.
+  useEffect(() => void leerKv('pestana').then((p) => PESTANAS.some((x) => x.id === p) && setPestana(p as Pestana)), []);
+  const elegirPestana = (p: Pestana) => {
+    setPestana(p);
+    void guardarKv('pestana', p);
+  };
+  const cuentas = contar(lista ?? []);
+  const visibles = (lista ?? []).filter((q) => pestanaDe(q) === pestana);
+
   useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
 
   return (
     <View style={{ flex: 1, backgroundColor: t.fondo }}>
+      <Pestanas activa={pestana} cuentas={cuentas} alElegir={elegirPestana} />
       <FlashList
-        data={lista ?? []}
+        data={visibles}
         keyExtractor={(q) => q.id}
         renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} />}
         contentInsetAdjustmentBehavior="automatic"
@@ -79,10 +92,15 @@ export default function Presupuestos() {
         ListEmptyComponent={
           lista === null ? (
             <ActivityIndicator style={e.cargando} color={t.suave} />
-          ) : (
+          ) : lista.length === 0 ? (
             <View style={e.vacio}>
               <Texto variante="subtitulo">Aún no tienes presupuestos</Texto>
               <Texto suave>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Texto>
+            </View>
+          ) : (
+            <View style={e.vacio}>
+              <Texto variante="subtitulo">Nada en {PESTANAS.find((p) => p.id === pestana)!.texto.toLowerCase()}</Texto>
+              <Texto suave>{PESTANAS.find((p) => p.id === pestana)!.vacio}</Texto>
             </View>
           )
         }

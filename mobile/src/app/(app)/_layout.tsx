@@ -31,7 +31,7 @@ export default function AppLayout() {
         name="index"
         options={{
           title: 'Presupuestos',
-          headerLargeTitle: true,
+          // Título normal (no grande): las pestañas de la lista quedan fijas debajo, y el título grande se encoge al desplazar.
           headerRight: () => (
             <Pressable accessibilityRole="button" accessibilityLabel="Cerrar sesión" onPress={confirmarSalida} hitSlop={8} style={{ minHeight: MIN_TOQUE, justifyContent: 'center' }}>
               <Texto color="acento">Salir</Texto>
