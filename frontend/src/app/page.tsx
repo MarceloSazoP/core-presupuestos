@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ConsultaForm } from "./consulta-form";
 import { HojaDemo } from "./hoja-demo";
+import { VinculoQr } from "./vinculo-qr";
 
 export const metadata: Metadata = {
   title: "CorePresupuesto · Del terreno al presupuesto, sin olvidar nada",
@@ -75,9 +76,13 @@ export default function Landing() {
             <section
               id="consulta"
               aria-labelledby="consultar"
-              className="ficha scroll-mt-6 p-5 lg:absolute lg:-bottom-6 lg:-left-20 lg:z-10 lg:w-[22rem]"
+              className="ficha scroll-mt-6 p-5 lg:absolute lg:-bottom-6 lg:-left-48 lg:z-10 lg:w-[22rem]"
             >
               <ConsultaForm />
+              <p aria-hidden="true" className="my-4 flex items-center gap-3 text-sm font-medium text-muted">
+                <span className="h-px flex-1 bg-borde" />o<span className="h-px flex-1 bg-borde" />
+              </p>
+              <VinculoQr />
             </section>
             <HojaDemo />
           </div>

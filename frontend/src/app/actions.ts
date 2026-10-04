@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import QRCode from 'qrcode';
 import { api, ApiError } from '@/lib/api';
 import { clp } from '@/lib/formato';
 import { codigoGarantia, mensajesDeError, type QuoteApi } from '@/lib/mapeo';
@@ -31,6 +32,34 @@ export async function consultarAction(_previo: EstadoConsulta, datos: FormData):
     throw e;
   }
   redirect('/presupuesto');
+}
+
+// QR por visita (Contrato API §9): el QR lleva solo un código de vínculo de un solo uso y 2 minutos. La página conserva el secreto de espera;
+// la sesión que entrega la API va directo a la cookie httpOnly y nunca pasa por el JavaScript del navegador.
+export type Vinculo = { id: string; secret: string; qr: string; expiraEn: string };
+
+export async function crearVinculoAction(): Promise<Vinculo | { error: string }> {
+  try {
+    const r = await api<{ id: string; code: string; secret: string; expires_at: string }>('/access/pair', { method: 'POST', body: {} });
+    const qr = await QRCode.toDataURL(`corepresupuesto://web/${r.code}`, { margin: 1, width: 320, errorCorrectionLevel: 'M', color: { dark: '#1a1a1a', light: '#ffffff' } });
+    return { id: r.id, secret: r.secret, qr, expiraEn: r.expires_at };
+  } catch (e) {
+    if (e instanceof ApiError || e instanceof TypeError) return { error: 'No pudimos generar el QR.' };
+    throw e;
+  }
+}
+
+export async function esperarVinculoAction(id: string, secret: string): Promise<'esperando' | 'listo' | 'vencido'> {
+  try {
+    const r = await api<{ status: 'WAITING' | 'CLAIMED'; token?: string; quote_id?: string; expires_at?: string }>('/access/pair/poll', { method: 'POST', body: { id, secret } });
+    if (r.status !== 'CLAIMED') return 'esperando';
+    await abrirSesion(r.quote_id!, r.token!, r.expires_at!);
+    return 'listo';
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return 'vencido';
+    if (e instanceof ApiError || e instanceof TypeError) return 'esperando'; // un tropiezo de red o el límite: se vuelve a preguntar
+    throw e;
+  }
 }
 
 export async function salirAction(): Promise<void> {
