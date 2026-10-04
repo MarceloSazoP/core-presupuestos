@@ -31,6 +31,7 @@ export default async function PresupuestoPage() {
         <Editor
           inicial={{
             descripcion: p.descripcion,
+            direccion: p.direccion,
             items: p.items,
             descuento: p.descuento,
             garantia: p.garantia,

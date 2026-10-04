@@ -12,6 +12,7 @@ import { Multimedia } from "./multimedia";
 
 type Inicial = {
   descripcion: string;
+  direccion: string | null;
   items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
   garantia: string;
@@ -44,6 +45,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   );
   const [descuento, setDescuento] = useState(inicial.descuento > 0 ? String(inicial.descuento) : "");
   const [servicio, setServicio] = useState(inicial.descripcion);
+  const [direccion, setDireccion] = useState(inicial.direccion ?? "");
   const [garantia, setGarantia] = useState(inicial.garantia);
   const [validez, setValidez] = useState(String(inicial.validezDias));
   const [observaciones, setObservaciones] = useState(inicial.observaciones ?? "");
@@ -161,6 +163,23 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           placeholder="Qué trabajo se va a hacer (aparece en el PDF)"
           value={servicio}
           onChange={(e) => setServicio(e.target.value)}
+          className="campo"
+        />
+      </section>
+
+      <section className="flex flex-col gap-1">
+        <label htmlFor="direccion" className="etiqueta uppercase tracking-wide text-muted">
+          Dirección del trabajo <span className="font-normal normal-case">(opcional, aparece en el PDF)</span>
+        </label>
+        <input
+          id="direccion"
+          name="direccion"
+          type="text"
+          maxLength={300}
+          autoComplete="off"
+          placeholder="Calle, número y comuna"
+          value={direccion}
+          onChange={(e) => setDireccion(e.target.value)}
           className="campo"
         />
       </section>

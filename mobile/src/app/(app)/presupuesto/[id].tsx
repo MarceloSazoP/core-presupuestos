@@ -105,6 +105,7 @@ export default function Detalle() {
         <Texto variante="titulo">{q.customer.name}</Texto>
         <Texto suave>{q.customer.phone}</Texto>
         {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
+        {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
       </View>
 
       {nuevo === '1' ? (

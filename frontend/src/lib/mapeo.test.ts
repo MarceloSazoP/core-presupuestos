@@ -7,7 +7,7 @@ const api = (extra: Partial<QuoteApi> = {}): QuoteApi => ({
   id: 'q1', number: null, doc_status: 'DRAFT', commercial_status: 'NONE',
   customer: { name: 'Juan', phone: '+56933333333', email: null },
   professional: { name: 'Ana', phone: '+56911111111', email: 'ana@x.cl', has_logo: false },
-  service_description: '', survey: { notes: null, measurements: [], photos: [], voice_notes: [] }, items: [], discount: 0, total: 0,
+  service_description: '', address: null, survey: { notes: null, measurements: [], photos: [], voice_notes: [] }, items: [], discount: 0, total: 0,
   warranty: { kind: 'NONE', text: null }, validity_days: null, observations: null, sent_at: null, public_url: null, ...extra,
 });
 
@@ -28,6 +28,7 @@ test('el presupuesto de la API se adapta a la pantalla: borrador y pendiente se 
   assert.equal(aPresupuesto(api()).validezDias, 15);
   const m = aPresupuesto(api({ survey: { notes: 'n', measurements: [{ label: 'Largo', value: '3 m' }], photos: [{ id: 'f1' }], voice_notes: [{ id: 'v1', duration_seconds: 12 }] }, items: [{ description: 'x', quantity: 2, unit: 'm2', unit_price: 100 }] }));
   assert.deepEqual(m.levantamiento.medidas, [{ etiqueta: 'Largo', valor: '3 m' }]);
+  assert.equal(m.direccion, null);
   assert.deepEqual(m.levantamiento.fotos, ['f1']);
   assert.deepEqual(m.levantamiento.audios, [{ id: 'v1', segundos: 12 }]);
   assert.deepEqual(m.items, [{ descripcion: 'x', cantidad: 2, unidad: 'm2', precioUnitario: 100 }]);

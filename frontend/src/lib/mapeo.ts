@@ -19,6 +19,7 @@ export type QuoteApi = {
   customer: { name: string; phone: string; email: string | null };
   professional: { name: string; phone: string; email: string; has_logo: boolean };
   service_description: string;
+  address: string | null;
   survey: { notes: string | null; measurements: { label: string; value: string }[]; photos: { id: string }[]; voice_notes: { id: string; duration_seconds: number }[] };
   items: { description: string; quantity: number; unit: string; unit_price: number }[];
   discount: number;
@@ -39,6 +40,7 @@ export type Presupuesto = {
   profesional: { nombre: string; telefono: string; correo: string; tieneLogo: boolean };
   cliente: { nombre: string; telefono: string; correo: string | null };
   descripcion: string;
+  direccion: string | null;
   levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[]; fotos: string[]; audios: { id: string; segundos: number }[] };
   items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
@@ -58,6 +60,7 @@ export const aPresupuesto = (q: QuoteApi): Presupuesto => ({
   profesional: { nombre: q.professional.name, telefono: q.professional.phone, correo: q.professional.email, tieneLogo: q.professional.has_logo },
   cliente: { nombre: q.customer.name, telefono: q.customer.phone, correo: q.customer.email },
   descripcion: q.service_description,
+  direccion: q.address,
   levantamiento: {
     notas: q.survey.notes,
     medidas: q.survey.measurements.map((m) => ({ etiqueta: m.label, valor: m.value })),

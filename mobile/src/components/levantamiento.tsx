@@ -37,10 +37,41 @@ export function Levantamiento({ q, cambiar }: Props) {
   return (
     <View style={e.seccion}>
       <Texto variante="subtitulo">Visita en terreno</Texto>
+      <Trabajo q={q} cambiar={cambiar} />
       <Notas q={q} cambiar={cambiar} />
       <Medidas q={q} cambiar={cambiar} />
       <Fotos q={q} cambiar={cambiar} />
       <Voz q={q} cambiar={cambiar} />
+    </View>
+  );
+}
+
+// ── Trabajo: descripción y dirección ──────────────────────────────────────────────────────────
+// Se pueden completar o corregir en cualquier momento mientras el presupuesto está pendiente. Salen en el PDF. Sin conexión
+// se guardan en el teléfono y viajan por la cola; PATCH sobre la misma ruta reemplaza al pendiente.
+function Trabajo({ q, cambiar }: Props) {
+  const [servicio, setServicio] = useState(q.service_description);
+  const [direccion, setDireccion] = useState(q.address ?? '');
+  const guardado = useRef({ servicio: q.service_description, direccion: q.address ?? '' });
+  const [error, setError] = useState<string | null>(null);
+
+  async function guardar() {
+    if (servicio === guardado.current.servicio && direccion === guardado.current.direccion) return;
+    const cuerpo = { service_description: servicio.trim() || null, address: direccion.trim() || null };
+    try {
+      cambiar((p) => ({ ...p, service_description: servicio.trim(), address: cuerpo.address }));
+      await encolar({ quote_id: q.id, method: 'PATCH', path: `/quotes/${q.id}`, body: cuerpo });
+      guardado.current = { servicio, direccion };
+      setError(null);
+    } catch (err) {
+      setError(mensajeDe(err));
+    }
+  }
+
+  return (
+    <View style={e.bloque}>
+      <Campo etiqueta="¿Qué trabajo es?" value={servicio} onChangeText={setServicio} onBlur={guardar} multiline maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Sale en el PDF. Es obligatorio para terminar el presupuesto." error={error} />
+      <Campo etiqueta="Dirección del trabajo (opcional)" value={direccion} onChangeText={setDireccion} onBlur={guardar} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
     </View>
   );
 }
