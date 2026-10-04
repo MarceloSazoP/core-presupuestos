@@ -1,16 +1,16 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Pressable as Toque } from 'react-native-gesture-handler';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated, { Extrapolation, interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, type SharedValue } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
-import { Pastilla, Texto } from '@/components/ui';
+import { Icono, Pastilla, Texto } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
 import { clp } from '@/lib/formato';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
 
 // Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
 function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'acento' | 'seguimiento' | 'error' } {
@@ -50,6 +50,8 @@ export function FilaPresupuesto({
   onCambiarEstado?: (q: ResumenPresupuesto, estado: EstadoElegible) => void;
 }) {
   const t = useTema();
+  const reducido = useReducedMotion();
+  const [presionado, setPresionado] = useState(false);
   const swipe = useRef<SwipeableMethods>(null);
   const abierto = useRef(false); // el botón rojo está a la vista
   const ultimoArrastre = useRef(0); // cuándo empezó o terminó el último deslizado
@@ -95,21 +97,28 @@ export function FilaPresupuesto({
         else cambiar(a.nativeEvent.actionName as EstadoElegible);
       }}
       onPress={abrir}
+      onPressIn={() => setPresionado(true)}
+      onPressOut={() => setPresionado(false)}
       onLongPress={puedeEliminar ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); confirmar(); } : undefined}
-      style={({ pressed }) => [e.fila, { backgroundColor: t.tarjeta, borderColor: t.borde, opacity: pressed ? 0.7 : 1 }]}
     >
-      <View style={e.filaTexto}>
-        <Texto fuerte numberOfLines={1}>{titulo}</Texto>
-        {identificador ? <Texto variante="chico" suave style={e.id}>{identificador}</Texto> : null}
+      {/* La tarjeta se encoge apenas al tocarla (transición CSS de Reanimated: 120 ms, sin estado por cuadro). */}
+      <Animated.View style={[e.fila, { backgroundColor: t.tarjeta, borderColor: t.borde, transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
+        <View style={e.arriba}>
+          <Texto fuerte numberOfLines={1} style={e.flex}>{titulo}</Texto>
+          <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
+        </View>
         <Texto variante="chico" suave numberOfLines={2}>{q.service_description || 'Sin descripción todavía'}</Texto>
-        <Pastilla texto={estado.texto} tono={estado.tono} />
+        <View style={e.abajo}>
+          <Pastilla texto={estado.texto} tono={estado.tono} />
+          {identificador ? <Text numberOfLines={1} style={[e.id, { color: t.suave }]}>{identificador}</Text> : null}
+        </View>
         {q.next_contact_date ? (
-          <View style={[e.contacto, { borderColor: t.seguimiento, backgroundColor: `${t.seguimiento}1F` }]}>
+          <View style={[e.contacto, { backgroundColor: `${t.seguimiento}1F` }]}>
+            <Icono nombre="reloj" tamano={14} color={t.seguimiento} />
             <Texto variante="chico" fuerte color="seguimiento">Contactar el {diaCorto(q.next_contact_date)}</Texto>
           </View>
         ) : null}
-      </View>
-      <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
+      </Animated.View>
     </Toque>
   );
   if (!puedeEliminar) {
@@ -160,13 +169,20 @@ export function FilaPresupuesto({
 }
 
 const e = StyleSheet.create({
-  fila: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.l, minHeight: MIN_TOQUE },
-  filaTexto: { flex: 1, gap: espacio.xs },
+  // Sin sombra: la fila que se desliza recorta lo que sale de sus bordes, y todas las tarjetas de la lista deben verse iguales.
+  fila: {
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: espacio.s, minHeight: MIN_TOQUE,
+    transitionProperty: 'transform', transitionDuration: 120, transitionTimingFunction: 'cubic-bezier(0.23, 1, 0.32, 1)',
+  },
+  arriba: { flexDirection: 'row', alignItems: 'baseline', gap: espacio.m },
+  flex: { flex: 1 },
+  abajo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, marginTop: 2 },
   monto: { fontVariant: ['tabular-nums'] },
-  id: { fontVariant: ['tabular-nums'], letterSpacing: 1 },
-  contacto: { alignSelf: 'flex-start', borderWidth: 1.5, borderRadius: 8, borderCurve: 'continuous', paddingHorizontal: espacio.m, paddingVertical: espacio.xs },
-  contenedor: { borderRadius: 16, borderCurve: 'continuous', overflow: 'hidden' }, // recorta lo que sale por las esquinas redondeadas
-  accion: { width: 96, borderRadius: 16, borderCurve: 'continuous' },
+  // El código corto se dicta letra por letra: va en monoespaciada.
+  id: { flexShrink: 1, fontFamily: Platform.select(MONO), fontSize: letra.chico - 1, letterSpacing: 0.5 },
+  contacto: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: radio.s, borderCurve: 'continuous', paddingHorizontal: espacio.m, paddingVertical: 6 },
+  contenedor: { borderRadius: radio.l, borderCurve: 'continuous', overflow: 'hidden' }, // recorta lo que sale por las esquinas redondeadas
+  accion: { width: 96, borderRadius: radio.l, borderCurve: 'continuous' },
   accionToque: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // Las mini pestañas se pegan al borde de abajo de la tarjeta (marginTop negativo) con las esquinas de abajo redondeadas.
   mini: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs, marginTop: -1, paddingLeft: espacio.l },

@@ -19,7 +19,7 @@ export default function AppLayout() {
   return (
     <>
       {Platform.OS !== 'web' ? <AbrirAlTocarAviso /> : null}
-      <Stack>
+      <Stack screenOptions={{ headerShadowVisible: false }}>
       <Stack.Screen
         name="index"
         options={{

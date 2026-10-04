@@ -3,12 +3,12 @@ import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Texto } from '@/components/ui';
 import { PESTANAS, type Pestana } from '@/lib/pestanas';
-import { espacio, MIN_TOQUE, useTema, type Tema } from '@/theme';
+import { espacio, MIN_TOQUE, radio, useTema, type Color } from '@/theme';
 
 // Cada pestaña es un bloque con el color de su estado (el mismo de las etiquetas de la lista): la elegida va llena y las
 // demás con un tinte suave del mismo color. El número arriba, el nombre abajo. La barra siempre está a la vista aunque la
 // lista sea larga; con cinco pestañas se desliza de lado y la elegida se acerca sola.
-const COLOR: Record<Pestana, keyof Tema> = { pendientes: 'aviso', enviados: 'ok', seguimiento: 'seguimiento', aceptados: 'acento', rechazados: 'error' };
+const COLOR: Record<Pestana, Color> = { pendientes: 'aviso', enviados: 'ok', seguimiento: 'seguimiento', aceptados: 'acento', rechazados: 'error' };
 
 export function Pestanas({ activa, cuentas, alElegir }: { activa: Pestana; cuentas: Record<Pestana, number>; alElegir: (p: Pestana) => void }) {
   const t = useTema();
@@ -41,9 +41,9 @@ export function Pestanas({ activa, cuentas, alElegir }: { activa: Pestana; cuent
                 if (!elegida) void Haptics.selectionAsync();
                 alElegir(p.id);
               }}
-              style={[e.pestana, { backgroundColor: elegida ? color : `${color}26`, borderColor: color }]}
+              style={[e.pestana, { backgroundColor: elegida ? color : `${color}1A`, borderColor: elegida ? color : `${color}59` }]}
             >
-              <Texto fuerte color={elegida ? 'sobreAcento' : 'texto'} style={e.numero}>{cuentas[p.id]}</Texto>
+              <Texto variante="subtitulo" color={elegida ? 'sobreAcento' : 'texto'} style={e.numero}>{cuentas[p.id]}</Texto>
               <Texto variante="chico" color={elegida ? 'sobreAcento' : 'texto'} fuerte={elegida} numberOfLines={1}>{p.texto}</Texto>
             </Pressable>
           );
@@ -55,6 +55,6 @@ export function Pestanas({ activa, cuentas, alElegir }: { activa: Pestana; cuent
 
 const e = StyleSheet.create({
   barra: { gap: espacio.s, paddingHorizontal: espacio.l, paddingVertical: espacio.m },
-  pestana: { minWidth: 92, minHeight: MIN_TOQUE + espacio.s, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: 12, borderCurve: 'continuous', paddingVertical: espacio.xs, paddingHorizontal: espacio.m },
+  pestana: { minWidth: 96, minHeight: MIN_TOQUE + espacio.m, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: radio.m, borderCurve: 'continuous', paddingVertical: espacio.s, paddingHorizontal: espacio.m },
   numero: { fontVariant: ['tabular-nums'] },
 });

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
-import { Boton, Texto } from '@/components/ui';
+import { Boton, Icono, Texto } from '@/components/ui';
 import type { EstadoElegible } from '@/lib/estados';
 import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { Pestanas } from '@/components/pestanas';
@@ -16,7 +16,7 @@ import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
 import { useRefrescar } from '@/lib/refrescar';
 import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 export default function Presupuestos() {
   const t = useTema();
@@ -116,20 +116,26 @@ export default function Presupuestos() {
             <ActivityIndicator style={e.cargando} color={t.suave} />
           ) : lista.length === 0 ? (
             <View style={e.vacio}>
-              <Texto variante="subtitulo">Aún no tienes presupuestos</Texto>
-              <Texto suave>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Texto>
+              <View style={[e.vacioIcono, { backgroundColor: `${t.acento}1A` }]}>
+                <Icono nombre="documento" tamano={30} color={t.acento} />
+              </View>
+              <Texto variante="subtitulo" style={e.centrado}>Aún no tienes presupuestos</Texto>
+              <Texto suave style={e.centrado}>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Texto>
             </View>
           ) : (
             <View style={e.vacio}>
-              <Texto variante="subtitulo">Nada en {PESTANAS.find((p) => p.id === pestana)!.texto.toLowerCase()}</Texto>
-              <Texto suave>{PESTANAS.find((p) => p.id === pestana)!.vacio}</Texto>
+              <View style={[e.vacioIcono, { backgroundColor: `${t.suave}1A` }]}>
+                <Icono nombre="documento" tamano={30} color={t.suave} />
+              </View>
+              <Texto variante="subtitulo" style={e.centrado}>Nada en {PESTANAS.find((p) => p.id === pestana)!.texto.toLowerCase()}</Texto>
+              <Texto suave style={e.centrado}>{PESTANAS.find((p) => p.id === pestana)!.vacio}</Texto>
             </View>
           )
         }
       />
       {/* Acción principal en la zona del pulgar (tercio inferior) */}
       <View pointerEvents="box-none" style={[e.cta, { paddingBottom: insets.bottom + espacio.m }]}>
-        <Boton titulo="+ Nuevo presupuesto" onPress={() => router.push('/nuevo')} style={e.ctaBoton} />
+        <Boton titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
       </View>
     </View>
   );
@@ -140,7 +146,8 @@ const Separador = () => <View style={{ height: espacio.m }} />;
 const e = StyleSheet.create({
   aviso: { gap: espacio.s, paddingBottom: espacio.m },
   cargando: { marginTop: espacio.xxl },
-  vacio: { gap: espacio.s, paddingTop: espacio.xxl },
+  vacio: { alignItems: 'center', gap: espacio.s, paddingTop: espacio.xxl * 2, paddingHorizontal: espacio.xl },
+  vacioIcono: { width: 64, height: 64, borderRadius: radio.l, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', marginBottom: espacio.s },
+  centrado: { textAlign: 'center' },
   cta: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: espacio.l },
-  ctaBoton: { boxShadow: '0 6px 20px rgba(29, 78, 216, 0.35)' },
 });

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BarraTeclado } from '@/components/ui';
+import { useTema } from '@/theme';
 import { SesionProvider, useSesion } from '@/session';
 
 SplashScreen.preventAutoHideAsync();
@@ -30,9 +31,13 @@ function Navegador() {
 
 export default function Raiz() {
   const esquema = useColorScheme();
+  const t = useTema();
+  const base = esquema === 'dark' ? DarkTheme : DefaultTheme;
+  // Los colores de la navegación nativa (cabecera, fondo de pantalla, acento) son los de la app.
+  const tema = { ...base, colors: { ...base.colors, background: t.fondo, card: t.fondo, primary: t.acento, text: t.texto, border: t.borde } };
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={esquema === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={tema}>
         <SesionProvider>
           <Navegador />
           <BarraTeclado />

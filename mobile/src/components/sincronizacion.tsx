@@ -1,7 +1,7 @@
 import { Alert, Pressable, StyleSheet } from 'react-native';
-import { Texto } from '@/components/ui';
+import { Icono, Texto } from '@/components/ui';
 import { descartarFallidas, fallidas, reintentarFallidas, useCola, vaciar } from '@/sync/cola';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Indicador de cambios sin enviar (Arquitectura §5, regla 6): no bloquea la captura. Un toque reintenta; si hay
 // operaciones que el servidor rechazó, muestra el motivo y deja reintentar o descartar (nunca se pierden en silencio).
@@ -22,12 +22,14 @@ export function Sincronizacion() {
 
   const texto = conError ? `${conError} ${conError === 1 ? 'cambio requiere' : 'cambios requieren'} atención` : `${pendientes} ${pendientes === 1 ? 'cambio' : 'cambios'} sin enviar · toca para reintentar`;
   return (
-    <Pressable accessibilityRole="button" onPress={() => void tocar()} style={[e.barra, { backgroundColor: t.tarjeta, borderColor: conError ? t.error : t.aviso }]}>
-      <Texto variante="chico" color={conError ? 'error' : 'aviso'} fuerte>{texto}</Texto>
+    <Pressable accessibilityRole="button" onPress={() => void tocar()} style={({ pressed }) => [e.barra, { backgroundColor: `${conError ? t.error : t.aviso}1A`, borderColor: `${conError ? t.error : t.aviso}66`, opacity: pressed ? 0.7 : 1 }]}>
+      <Icono nombre={conError ? 'alerta' : 'sincronizar'} tamano={16} color={conError ? t.error : t.aviso} />
+      <Texto variante="chico" color={conError ? 'error' : 'aviso'} fuerte style={e.texto}>{texto}</Texto>
     </Pressable>
   );
 }
 
 const e = StyleSheet.create({
-  barra: { minHeight: MIN_TOQUE, justifyContent: 'center', borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: espacio.l },
+  barra: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', gap: espacio.s, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.l },
+  texto: { flex: 1 },
 });
