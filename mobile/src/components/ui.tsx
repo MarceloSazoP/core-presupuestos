@@ -1,4 +1,5 @@
 import { SymbolView } from 'expo-symbols';
+import * as Haptics from 'expo-haptics';
 import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type StyleProp, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
 import Animated, { cubicBezier, useReducedMotion } from 'react-native-reanimated';
@@ -45,6 +46,7 @@ const ICONOS = {
   ajustes: { ios: 'gearshape', android: 'settings', web: 'settings' },
   alerta: { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
   reloj: { ios: 'clock', android: 'schedule', web: 'schedule' },
+  despliegue: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
 } as const;
 export type NombreIcono = keyof typeof ICONOS;
 
@@ -179,6 +181,33 @@ export function Pastilla({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' 
   );
 }
 
+// Control segmentado como el de iOS: una pista gris y la opción elegida como una pastilla blanca que flota encima. Para cambiar de
+// vista dentro de una misma pantalla (Visita | Presupuesto).
+export function Segmentos<T extends string>({ opciones, valor, alElegir, etiqueta }: { opciones: readonly { id: T; texto: string }[]; valor: T; alElegir: (v: T) => void; etiqueta: string }) {
+  const t = useTema();
+  return (
+    <View accessibilityRole="tablist" accessibilityLabel={etiqueta} style={[e.pista, { backgroundColor: t.oscuro ? t.campo : '#E8EAEF' }]}>
+      {opciones.map((o) => {
+        const elegido = o.id === valor;
+        return (
+          <Pressable
+            key={o.id}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: elegido }}
+            onPress={() => {
+              if (!elegido) void Haptics.selectionAsync();
+              alElegir(o.id);
+            }}
+            style={[e.segmento, elegido && [{ backgroundColor: t.oscuro ? t.borde : '#FFFFFF' }, !t.oscuro && e.sombraSegmento]]}
+          >
+            <Text style={[e.textoSegmento, { color: elegido ? t.texto : t.suave, fontWeight: elegido ? '600' : '500' }]}>{o.texto}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 // Superficie blanca (papel) sobre la página gris. En claro, una sombra muy suave teñida del texto; en oscuro, solo el borde.
 export function Tarjeta({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const t = useTema();
@@ -230,6 +259,10 @@ export function Nota({ titulo, children }: { titulo: string; children: ReactNode
 }
 
 const e = StyleSheet.create({
+  pista: { flexDirection: 'row', borderRadius: 12, borderCurve: 'continuous', padding: 3 },
+  segmento: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, borderCurve: 'continuous', paddingHorizontal: espacio.s },
+  sombraSegmento: { boxShadow: '0 1px 3px rgba(24, 27, 32, 0.14), 0 0 1px rgba(24, 27, 32, 0.08)' },
+  textoSegmento: { fontSize: letra.cuerpo - 1 },
   boton: { minHeight: MIN_TOQUE, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
   primario: { minHeight: 52 },
   texto: { paddingHorizontal: espacio.m },

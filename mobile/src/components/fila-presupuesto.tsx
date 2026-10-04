@@ -6,8 +6,9 @@ import { Pressable as Toque } from 'react-native-gesture-handler';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, type SharedValue } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
-import { Icono, Pastilla, Texto, TRANSICION_PRESION } from '@/components/ui';
+import { Icono, Texto, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
+import { elegirEstado } from '@/lib/elegir-estado';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
 import { clp } from '@/lib/formato';
 import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
@@ -107,13 +108,25 @@ export function FilaPresupuesto({
           <Texto fuerte numberOfLines={1} style={e.flex}>{titulo}</Texto>
           <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
         </View>
-        <Texto variante="chico" suave numberOfLines={2}>{q.service_description || 'Sin descripción todavía'}</Texto>
+        <Texto variante="chico" suave numberOfLines={1}>{q.service_description || 'Sin descripción todavía'}</Texto>
         <View style={e.abajo}>
-          <Pastilla texto={estado.texto} tono={estado.tono} />
+          {/* El estado es una palabra con su punto de color. Si se puede cambiar, es un botón que abre la hoja nativa «Pasar a». */}
+          {posibles.length > 0 ? (
+            <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar)} style={e.estadoToque}>
+              <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
+              <Text style={[e.estadoTexto, { color: t[estado.tono] }]}>{estado.texto}</Text>
+              <Icono nombre="despliegue" tamano={12} color={t[estado.tono]} />
+            </Toque>
+          ) : (
+            <View style={e.estadoToque}>
+              <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
+              <Text style={[e.estadoTexto, { color: t[estado.tono] }]}>{estado.texto}</Text>
+            </View>
+          )}
           {identificador ? <Text numberOfLines={1} style={[e.id, { color: t.suave }]}>{identificador}</Text> : null}
         </View>
         {q.next_contact_date ? (
-          <View style={[e.contacto, { backgroundColor: `${t.seguimiento}1F` }]}>
+          <View style={e.contacto}>
             <Icono nombre="reloj" tamano={14} color={t.seguimiento} />
             <Texto variante="chico" fuerte color="seguimiento">Contactar el {diaCorto(q.next_contact_date)}</Texto>
           </View>
@@ -121,30 +134,7 @@ export function FilaPresupuesto({
       </Animated.View>
     </Toque>
   );
-  if (!puedeEliminar) {
-    if (posibles.length === 0) return fila;
-    // Mini pestañas que cuelgan de la tarjeta: «Pasar a» y un bloque de color por cada estado posible.
-    return (
-      <View>
-        {fila}
-        <View style={e.mini}>
-          <Texto variante="chico" suave style={e.miniEtiqueta}>Pasar a</Texto>
-          {posibles.map((s) => (
-            <Pressable
-              key={s.id}
-              accessibilityRole="button"
-              accessibilityLabel={`Pasar a ${s.texto}`}
-              hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
-              onPress={() => cambiar(s.id)}
-              style={({ pressed }) => [e.miniPestana, { backgroundColor: t[s.tono], opacity: pressed ? 0.7 : 1 }]}
-            >
-              <Texto variante="chico" fuerte color="sobreAcento" numberOfLines={1}>{s.texto}</Texto>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-    );
-  }
+  if (!puedeEliminar) return fila;
   return (
     <ReanimatedSwipeable
       ref={swipe}
@@ -170,21 +160,18 @@ export function FilaPresupuesto({
 
 const e = StyleSheet.create({
   // Sin sombra: la fila que se desliza recorta lo que sale de sus bordes, y todas las tarjetas de la lista deben verse iguales.
-  fila: {
-    borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: espacio.s, minHeight: MIN_TOQUE,
-  },
+  fila: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', paddingVertical: 14, paddingHorizontal: espacio.l, gap: 6, minHeight: MIN_TOQUE },
   arriba: { flexDirection: 'row', alignItems: 'baseline', gap: espacio.m },
   flex: { flex: 1 },
-  abajo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, marginTop: 2 },
+  abajo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s, marginTop: 2 },
+  estadoToque: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  estadoTexto: { fontSize: letra.chico, fontWeight: '600' },
+  punto: { width: 8, height: 8, borderRadius: 4 },
   monto: { fontVariant: ['tabular-nums'] },
-  // El código corto se dicta letra por letra: va en monoespaciada.
-  id: { flexShrink: 1, fontFamily: Platform.select(MONO), fontSize: letra.chico - 1, letterSpacing: 0.5 },
-  contacto: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: radio.s, borderCurve: 'continuous', paddingHorizontal: espacio.m, paddingVertical: 6 },
+  // El código corto se dicta letra por letra: va en monoespaciada, en gris tenue.
+  id: { flexShrink: 1, fontFamily: Platform.select(MONO), fontSize: letra.chico - 2, letterSpacing: 0.5, opacity: 0.8 },
+  contacto: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   contenedor: { borderRadius: radio.l, borderCurve: 'continuous', overflow: 'hidden' }, // recorta lo que sale por las esquinas redondeadas
   accion: { width: 96, borderRadius: radio.l, borderCurve: 'continuous' },
   accionToque: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  // Las mini pestañas se pegan al borde de abajo de la tarjeta (marginTop negativo) con las esquinas de abajo redondeadas.
-  mini: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs, marginTop: -1, paddingLeft: espacio.l },
-  miniEtiqueta: { marginRight: espacio.xs },
-  miniPestana: { minHeight: 32, justifyContent: 'center', paddingHorizontal: espacio.m, borderBottomLeftRadius: 10, borderBottomRightRadius: 10, borderCurve: 'continuous' },
 });
