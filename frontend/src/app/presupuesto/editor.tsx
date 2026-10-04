@@ -274,11 +274,11 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </h3>
         {esAngosto ? <ListaItemsMovil filas={filas} onChange={setFilas} /> : <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
         <CamposItems filas={filas} />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <button type="button" onClick={() => agregar("item")} className="boton-secundario">
+        <div className="-ml-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+          <button type="button" onClick={() => agregar("item")} className="boton-suave">
             + Agregar ítem
           </button>
-          <button type="button" onClick={() => agregar("tarea")} className="boton-secundario" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
+          <button type="button" onClick={() => agregar("tarea")} className="boton-suave" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
             + Agregar tarea
           </button>
           <p className="ayuda">Enter pasa a la celda siguiente y, al final, crea otra fila.</p>

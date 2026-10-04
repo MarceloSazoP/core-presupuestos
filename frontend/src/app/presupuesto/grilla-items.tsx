@@ -30,6 +30,7 @@ const tema = themeQuartz.withParams({
   borderColor: "var(--borde)",
   accentColor: "var(--acento-texto)",
   wrapperBorderRadius: 12,
+  headerColumnResizeHandleWidth: 0, // columnas fijas: sin las barras entre los títulos
 });
 
 // Mismos límites que valida el servidor (Zod en actions.ts): aquí solo evitan escribir basura.
@@ -258,6 +259,7 @@ export function GrillaItems({
         defaultColDef={{
           editable: true,
           sortable: false,
+          resizable: false,
           suppressMovable: true,
         }}
         getRowId={(p) => String(p.data.clave)}

@@ -8,6 +8,7 @@
   --muted: oklch(0.46 0.016 262);
   --card: oklch(0.965 0.007 262);
   --borde: oklch(0.87 0.011 262);
+  --campo-fondo: var(--background);
   --borde-campo: oklch(0.62 0.014 262); /* borde de campos: ≥ 3:1 contra su fondo (WCAG 1.4.11); --borde es para divisiones */
   --acento: oklch(0.5 0.19 262);
   --acento-texto: oklch(0.5 0.19 262);
@@ -26,6 +27,7 @@
     --card: oklch(0.19 0.009 262);
     --borde: oklch(0.31 0.012 262);
     --borde-campo: oklch(0.5 0.014 262);
+    --campo-fondo: oklch(0.215 0.009 262); /* un punto más claro que la tarjeta: los campos no se ven como huecos */
     --acento-texto: oklch(0.76 0.12 262);
     --error: oklch(0.74 0.15 27);
     --ok: oklch(0.76 0.14 150);
@@ -43,6 +45,7 @@
   --card: oklch(0.19 0.009 262);
   --borde: oklch(0.31 0.012 262);
   --borde-campo: oklch(0.5 0.014 262);
+  --campo-fondo: oklch(0.215 0.009 262);
   --acento-texto: oklch(0.76 0.12 262);
   --error: oklch(0.74 0.15 27);
   --ok: oklch(0.76 0.14 150);
@@ -134,6 +137,7 @@ button {
   --card: oklch(1 0 0);
   --borde: oklch(0.82 0.015 262);
   --borde-campo: oklch(0.62 0.014 262);
+  --campo-fondo: var(--background);
   --acento: oklch(0.5 0.19 262);
   --acento-texto: oklch(0.5 0.19 262);
   --amarillo: oklch(0.88 0.17 95);
@@ -187,8 +191,9 @@ button {
 
   /* Campos: reposo, hover, foco, deshabilitado, error */
   .campo {
-    @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground placeholder:text-muted;
+    @apply min-h-11 w-full rounded-lg border px-3 py-2 text-foreground placeholder:text-muted;
     border-color: var(--borde-campo);
+    background: var(--campo-fondo);
     transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
   }
   .campo:focus-visible {
@@ -210,6 +215,7 @@ button {
   .boton,
   .boton-secundario,
   .boton-texto,
+  .boton-suave,
   .boton-icono {
     @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-base font-medium;
     transition: background-color 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease),
@@ -218,6 +224,7 @@ button {
   .boton:focus-visible,
   .boton-secundario:focus-visible,
   .boton-texto:focus-visible,
+  .boton-suave:focus-visible,
   .boton-icono:focus-visible,
   a:focus-visible {
     outline: 2px solid var(--acento-texto);
@@ -226,6 +233,7 @@ button {
   .boton:disabled,
   .boton-secundario:disabled,
   .boton-texto:disabled,
+  .boton-suave:disabled,
   .boton-icono:disabled {
     @apply cursor-not-allowed opacity-60;
   }
@@ -235,13 +243,16 @@ button {
   }
   .boton-secundario {
     border: 1px solid var(--borde);
-    background: var(--background);
+    background: var(--campo-fondo);
     color: var(--foreground);
   }
   .boton-texto {
     color: var(--muted);
     text-decoration: underline;
     text-underline-offset: 4px;
+  }
+  .boton-suave {
+    color: var(--acento-texto);
   }
   .boton-icono {
     @apply min-w-11 px-2 text-muted;
@@ -256,6 +267,9 @@ button {
     }
     .boton-secundario:hover:not(:disabled) {
       border-color: color-mix(in oklab, var(--borde) 55%, var(--foreground));
+    }
+    .boton-suave:hover:not(:disabled) {
+      background: color-mix(in oklab, var(--acento-texto) 12%, transparent);
     }
     .boton-texto:hover:not(:disabled),
     .boton-icono:hover:not(:disabled) {
