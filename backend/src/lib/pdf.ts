@@ -99,6 +99,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
         stack: [
           totalRow('Subtotal', clp(s.subtotal)),
           ...(s.discount > 0 ? [totalRow('Descuento', `-${clp(s.discount)}`)] : []),
+          ...(s.include_vat ? [totalRow(`IVA (${s.vat_rate ?? 19}%)`, clp(s.vat ?? 0))] : []),
           totalRow('TOTAL', clp(s.total), true),
         ],
       },

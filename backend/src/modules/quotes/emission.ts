@@ -13,6 +13,7 @@ import { audit } from '../../lib/audit';
 import type { SendMail } from '../../lib/mail';
 import { buildPdf, type Image } from '../../lib/pdf';
 import { warrantyText, type Snapshot } from '../../lib/snapshot';
+import { VAT_RATE } from './totals';
 import { ensureTmp, keyFor, pathOf, put, remove, tmpDir } from '../../lib/storage';
 import { allow, editable, loadQuote, session } from './guard';
 import { quoteDetail, type QuoteRow } from './serialize';
@@ -94,7 +95,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
           customer: { name: customer.rows[0]!.name },
           service_description: q.service_description!.trim(), service_address: q.address,
           items: items.rows.map((i) => ({ description: i.description, quantity: i.quantity, unit: i.unit, unit_price: i.unit_price, line_total: i.line_total })),
-          subtotal: q.subtotal, discount: q.discount, total: q.total,
+          subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, vat_rate: VAT_RATE, total: q.total,
           warranty: { kind: q.warranty_kind, text: warrantyText(q.warranty_kind, q.warranty_text) },
           validity_days: q.validity_days!, observations: q.observations, include_signature: q.include_signature, include_qr: q.include_qr,
         };

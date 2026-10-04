@@ -5,7 +5,7 @@ export type QuoteRow = {
   id: string; user_id: string; customer_id: string; short_id: string; number: string | null;
   doc_status: 'DRAFT' | 'PENDING' | 'FINALIZED'; commercial_status: string;
   service_description: string | null; address: string | null; latitude: number | null; longitude: number | null;
-  subtotal: number; discount: number; total: number;
+  subtotal: number; discount: number; include_vat: boolean; vat: number; total: number;
   warranty_kind: string; warranty_text: string | null; validity_days: number | null; observations: string | null;
   include_signature: boolean; include_qr: boolean; next_contact_date: string | null;
   finalized_at: Date | null; sent_at: Date | null; accepted_at: Date | null; created_at: Date; updated_at: Date;
@@ -38,7 +38,7 @@ export async function quoteDetail(q: QuoteRow) {
       voice_notes: voice.rows.map((v) => ({ id: v.file_id, url: `/files/${v.file_id}`, duration_seconds: v.duration_seconds, created_at: v.created_at })),
     },
     items: items.rows,
-    subtotal: q.subtotal, discount: q.discount, total: q.total,
+    subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, total: q.total,
     warranty: { kind: q.warranty_kind, text: q.warranty_text },
     validity_days: q.validity_days, observations: q.observations,
     include_signature: q.include_signature, include_qr: q.include_qr,

@@ -39,6 +39,7 @@ export const PatchQuote = z
     latitude: lat.nullable(),
     longitude: lng.nullable(),
     discount: z.number().int().min(0).max(999_999_999_999),
+    include_vat: z.boolean(),
     warranty: Warranty,
     validity_days: z.number().int().min(1).max(365).nullable(),
     observations: text(5000).nullable(),

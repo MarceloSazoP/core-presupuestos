@@ -110,13 +110,23 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
       set('warranty_kind', b.warranty.kind);
       set('warranty_text', b.warranty.kind === 'CUSTOM' ? b.warranty.text : null);
     }
-    if (b.discount !== undefined) {
-      params.push(b.discount);
-      sets.push(`discount = $${params.length}`, `total = subtotal - $${params.length}`);
-    }
-    if (sets.length) {
+    // El descuento y el IVA cambian el total: se recalcula con la función única de totales, bajo el mismo bloqueo que los ítems.
+    const recalcula = b.discount !== undefined || b.include_vat !== undefined;
+    if (sets.length || recalcula) {
       try {
-        await query(`UPDATE quotes SET ${sets.join(', ')}, updated_at = now() WHERE id = $1 AND user_id = $2`, params);
+        await withTx(async (c) => {
+          if (recalcula) {
+            const { rows } = await c.query<{ subtotal: number; discount: number; include_vat: boolean }>('SELECT subtotal, discount, include_vat FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
+            const discount = b.discount ?? rows[0]!.discount;
+            const includeVat = b.include_vat ?? rows[0]!.include_vat;
+            const t = sumTotals([rows[0]!.subtotal], discount, includeVat);
+            set('discount', discount);
+            set('include_vat', includeVat);
+            set('vat', t.vat);
+            set('total', t.total);
+          }
+          await c.query(`UPDATE quotes SET ${sets.join(', ')}, updated_at = now() WHERE id = $1 AND user_id = $2`, params);
+        });
       } catch (e) {
         if ((e as { code?: string }).code === '23503') throw customerNotFound(); // FK compuesta: cliente de otro usuario
         throw e;
@@ -169,7 +179,7 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     const lines = items.map((i) => lineTotal(i.quantity, i.unit_price));
     try {
       await withTx(async (c) => {
-        const { rows } = await c.query<{ discount: number }>('SELECT discount FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
+        const { rows } = await c.query<{ discount: number; include_vat: boolean }>('SELECT discount, include_vat FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
         await c.query('DELETE FROM quote_items WHERE quote_id = $1', [q.id]);
         for (const [i, it] of items.entries()) {
           await c.query(
@@ -177,8 +187,8 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
              VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8)`,
             [it.id ?? null, q.id, i, it.description, it.quantity, it.unit, it.unit_price, lines[i]]);
         }
-        const { subtotal, total } = sumTotals(lines, rows[0]!.discount);
-        await c.query('UPDATE quotes SET subtotal = $2, total = $3, updated_at = now() WHERE id = $1', [q.id, subtotal, total]);
+        const { subtotal, vat, total } = sumTotals(lines, rows[0]!.discount, rows[0]!.include_vat);
+        await c.query('UPDATE quotes SET subtotal = $2, vat = $3, total = $4, updated_at = now() WHERE id = $1', [q.id, subtotal, vat, total]);
       });
     } catch (e) {
       if (dup(e)) throw new AppError(409, 'ID_CONFLICT', 'Un id de ítem ya existe');

@@ -566,7 +566,7 @@ ALTER TABLE quotes
 ALTER TABLE quotes DROP CONSTRAINT quotes_check2;   -- el nombre se verifica con \d antes de escribir el archivo
 ALTER TABLE quotes
   ADD CONSTRAINT quotes_total_check CHECK (total = subtotal - discount + vat),
-  ADD CONSTRAINT quotes_vat_check CHECK (include_vat OR vat = 0);
+  ADD CONSTRAINT quotes_vat_needs_flag_check CHECK (include_vat OR vat = 0);
 ```
 
 - Los snapshots ya creados no traen `include_vat`: se leen como `false`.

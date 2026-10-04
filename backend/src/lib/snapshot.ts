@@ -11,6 +11,9 @@ export type Snapshot = {
   items: { description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
   subtotal: number;
   discount: number;
+  include_vat?: boolean; // los snapshots anteriores al IVA no lo traen: se leen como false
+  vat?: number;
+  vat_rate?: number; // la tasa vigente al finalizar, para que el PDF diga siempre lo que se calculó
   total: number;
   warranty: { kind: string; text: string };
   validity_days: number;

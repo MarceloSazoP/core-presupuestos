@@ -25,7 +25,8 @@ const view = (s: Snapshot, token: string) => ({
   professional: { name: s.professional.name, phone: s.professional.phone, email: s.professional.email, has_logo: !!s.professional.logo_file_id, has_signature: !!s.professional.signature_file_id },
   customer: { name: s.customer.name },
   service_description: s.service_description, service_address: s.service_address,
-  items: s.items, subtotal: s.subtotal, discount: s.discount, total: s.total,
+  items: s.items, subtotal: s.subtotal, discount: s.discount,
+  include_vat: s.include_vat ?? false, vat: s.vat ?? 0, vat_rate: s.vat_rate ?? 0, total: s.total,
   warranty: s.warranty, validity_days: s.validity_days, observations: s.observations,
   pdf_url: `/public/quotes/${token}/pdf`,
 });

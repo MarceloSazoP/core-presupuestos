@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import { migrate } from '../scripts/migrate';
 import { pool } from '../src/db';
-import { lineTotal } from '../src/modules/quotes/totals';
+import { lineTotal, sumTotals, vatOf } from '../src/modules/quotes/totals';
 import { assertTestDb, resetDb, startApp } from './helpers';
 
 let app: Awaited<ReturnType<typeof startApp>>;
@@ -127,6 +127,35 @@ describe('API: presupuestos (Contrato API §6, §9 y §14)', () => {
     const otra = await items(a.token, q.id, [{ description: 'Uno', quantity: 2, unit_price: 1000 }]);
     assert.equal(otra.json.subtotal, 2000);
     assert.equal(otra.json.total, -501, 'el descuento previo sigue aplicando (finalize lo rechaza si supera el subtotal)');
+  });
+
+  it('IVA: 19 % de (subtotal − descuento), redondeo .5 hacia arriba, y sin IVA no cambia nada', () => {
+    assert.equal(vatOf(100000), 19000);
+    assert.equal(vatOf(50), 10, '9,5 sube');
+    assert.equal(vatOf(2), 0, '0,38 baja');
+    assert.equal(vatOf(3), 1, '0,57 sube');
+    assert.equal(vatOf(0), 0);
+    assert.equal(vatOf(-500), 0, 'un neto negativo no genera IVA');
+    assert.equal(vatOf(999_999_999_000_000), 189_999_999_810_000, 'sin perder precisión con montos enormes');
+    assert.deepEqual(sumTotals([10000], 1000, true), { subtotal: 10000, vat: 1710, total: 10710 }, 'el descuento va antes del IVA');
+    assert.deepEqual(sumTotals([10000], 1000, false), { subtotal: 10000, vat: 0, total: 9000 });
+  });
+
+  it('IVA: la casilla recalcula; cambiar ítems o descuento también; el esquema no deja un total que no cuadra', async () => {
+    const q = await crear();
+    await items(a.token, q.id, [{ description: 'Uno', quantity: 1, unit_price: 10000 }]);
+    let r = await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { include_vat: true } });
+    assert.deepEqual([r.json.include_vat, r.json.subtotal, r.json.vat, r.json.total], [true, 10000, 1900, 11900]);
+    r = await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { discount: 1000 } });
+    assert.deepEqual([r.json.discount, r.json.vat, r.json.total], [1000, 1710, 10710], 'el descuento se aplica antes del IVA');
+    r = await items(a.token, q.id, [{ description: 'Uno', quantity: 1, unit_price: 20000 }]);
+    assert.deepEqual([r.json.subtotal, r.json.vat, r.json.total], [20000, 3610, 22610], 'cambiar los ítems recalcula el IVA');
+    r = await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { include_vat: false } });
+    assert.deepEqual([r.json.include_vat, r.json.vat, r.json.total], [false, 0, 19000]);
+    assert.equal((await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { include_vat: 'si' } })).status, 422);
+    assert.equal((await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { vat: 5 } })).status, 422, 'el cliente nunca envía el IVA');
+    await assert.rejects(pool.query('UPDATE quotes SET vat = 5 WHERE id = $1', [q.id]), /quotes_/, 'IVA sin la casilla');
+    await assert.rejects(pool.query('UPDATE quotes SET total = total + 1 WHERE id = $1', [q.id]), /quotes_total_check/);
   });
 
   it('ítems: rechaza lo que el contrato rechaza, sin dejar nada a medias', async () => {
