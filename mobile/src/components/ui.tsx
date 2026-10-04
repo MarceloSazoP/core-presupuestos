@@ -182,7 +182,7 @@ export function Pastilla({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' 
   );
 }
 
-// Control segmentado como el de iOS: una pista gris y la opción elegida como una pastilla blanca que flota encima. Para cambiar de
+// Control segmentado como el de iOS: una pista gris y la opción elegida como una pastilla del color de la acción (azul, texto blanco) que flota encima. Para cambiar de
 // vista dentro de una misma pantalla (Visita | Presupuesto).
 export function Segmentos<T extends string>({ opciones, valor, alElegir, etiqueta }: { opciones: readonly { id: T; texto: string }[]; valor: T; alElegir: (v: T) => void; etiqueta: string }) {
   const t = useTema();
@@ -199,9 +199,9 @@ export function Segmentos<T extends string>({ opciones, valor, alElegir, etiquet
               if (!elegido) void Haptics.selectionAsync();
               alElegir(o.id);
             }}
-            style={[e.segmento, elegido && [{ backgroundColor: t.oscuro ? t.borde : '#FFFFFF' }, !t.oscuro && e.sombraSegmento]]}
+            style={[e.segmento, elegido && [{ backgroundColor: t.acento }, !t.oscuro && e.sombraSegmento]]}
           >
-            <Text style={[e.textoSegmento, { color: elegido ? t.texto : t.suave, fontWeight: elegido ? '600' : '500' }]}>{o.texto}</Text>
+            <Text style={[e.textoSegmento, { color: elegido ? '#FFFFFF' : t.suave, fontWeight: elegido ? '600' : '500' }]}>{o.texto}</Text>
           </Pressable>
         );
       })}
