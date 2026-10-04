@@ -73,7 +73,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 
 **QuoteSummary** (listados). `code_id` es el ID corto del presupuesto (la primera parte del código): la app lo muestra en las listas como el identificador con el que el usuario reconoce y nombra cada presupuesto. No es secreto ni da acceso por sí solo.
 ```json
-{ "id": "uuid", "code_id": "7K4M2Q", "number": null, "customer": { "id": "uuid", "name": "Juan Pérez" },
+{ "id": "uuid", "code_id": "7K4M2Q", "number": null, "version": 1, "customer": { "id": "uuid", "name": "Juan Pérez" },
   "service_description": "Mantención calefont", "total": 20000,
   "doc_status": "PENDING", "commercial_status": "NONE",
   "next_contact_date": null, "sent_at": null, "updated_at": "…" }
@@ -82,6 +82,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 **Quote** (detalle)
 ```json
 { "id": "uuid", "code_id": "7K4M2Q", "number": null, "doc_status": "DRAFT", "commercial_status": "NONE",
+  "version": 1, "previous_number": null, "next_version_id": null,
   "customer": { "…Customer…" },
   "professional": { "name": "Pedro Soto", "phone": "+56912345678", "email": "pedro@mail.cl", "has_logo": false },
   "service_description": "", "address": null, "latitude": null, "longitude": null,
@@ -244,6 +245,18 @@ Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, emai
 
 **IVA (decisión del 2026-10-04).** `include_vat = true` agrega el IVA al presupuesto. Los precios que se escriben son **netos** (sin IVA). El IVA es el 19 % de `subtotal − discount` (el descuento va antes del IVA), redondeado al peso con `.5` hacia arriba, y `total = subtotal − discount + vat`. Con `include_vat = false`, `vat = 0` y `total = subtotal − discount`, como antes. Es una línea informativa de un presupuesto comercial: **no** emite documentos tributarios (el pie del PDF sigue diciéndolo). La tasa vive solo en el servidor; los clientes pueden mostrar una vista previa pero siempre muestran lo que devuelve el servidor.
 
+### Rehacer un presupuesto rechazado: versiones (decisión del 2026-10-04)
+
+Un presupuesto terminado sigue siendo inmutable: lo que se envió al cliente no cambia. Pero uno **rechazado** puede rehacerse como una **nueva versión** (2.ª, 3.ª…), que es otro presupuesto con su propio código, número y PDF, y que dice de qué versión viene.
+
+**`POST /quotes/{id}/revise`** (solo sesión `USER`; cuerpo opcional `{ "id": "uuid" }` para reintentos) → **201** `Quote` en `DRAFT` con `version = anterior + 1`, `previous_number` (el número del rechazado) y el campo extra `"access_code"` (como en `POST /quotes`).
+- Solo si `commercial_status = REJECTED`; si no, **409 `INVALID_STATE`**. Un rechazado se rehace **una sola vez**: si ya tiene una versión nueva, **409 `ALREADY_REVISED`** con el `id` de esa versión en `details`.
+- **Se copia:** cliente, descripción del trabajo, dirección y ubicación, ítems y tareas (con ids nuevos), descuento, IVA, garantía, validez, observaciones, firma y QR, y las notas y medidas de la visita.
+- **No se copia:** fotos y notas de voz (siguen en la versión original), el seguimiento, el número ni las fechas.
+- La versión original queda como estaba (`REJECTED`) y su detalle trae `next_version_id`. Cada versión se numera `CP-AAAA-NNNN` como cualquier presupuesto al terminarla.
+- **Se ve en todas partes:** `version` y `previous_number` aparecen en el detalle, el listado (`version`), el snapshot, la vista pública y el PDF («Presupuesto CP-2026-0007 · Versión 2», y debajo «Reemplaza al presupuesto CP-2026-0003»). La versión 1 no muestra nada extra.
+- Requiere conexión (necesita el presupuesto original en el servidor).
+
 ### Etapa 2 — levantamiento
 
 | Método y ruta | Cuerpo / descripción |
@@ -386,7 +399,7 @@ Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`,
 ### `GET /public/quotes/{token}`
 **200** — el snapshot del contrato de BD §5, **sin** teléfono ni correo del cliente:
 ```json
-{ "number": "CP-2026-0001", "finalized_at": "…", "valid_until": "2026-10-18",
+{ "number": "CP-2026-0001", "version": 1, "previous_number": null, "finalized_at": "…", "valid_until": "2026-10-18",
   "professional": { "name": "Pedro Soto", "phone": "+56912345678", "email": "pedro@mail.cl",
                     "has_logo": true, "has_signature": false },
   "customer": { "name": "Juan Pérez" },
@@ -497,6 +510,7 @@ El código es lo que se guarda y se envía; el símbolo es lo que se muestra en 
 
 - **Aislamiento:** usuario B recibe 404 en cada ruta con IDs del usuario A.
 - **Estados:** `finalize` rechaza presupuestos incompletos; un `FINALIZED` rechaza todas las escrituras; `NONE → SENT` solo vía envío confirmado; `finalize` sin envío deja `FINALIZED + NONE`.
+- **Versiones:** rehacer solo un rechazado, una sola vez, copiar lo que corresponde, que `version` suba de 1 en 1 y que el original no cambie.
 - **Totales:** `line_total`, `subtotal`, `vat` y `total` con cantidades decimales, descuento e IVA (incluido el redondeo de `.5` y que el IVA se calcula después del descuento).
 - **Acceso público:** el token no permite editar; revocado ⇒ 404; la respuesta no contiene campos internos.
 - **Código:** `/access/code/exchange` responde el mismo 404 para ID inexistente, secreto equivocado y código revocado; 5 fallos bloquean el código; rotar invalida el anterior; el scope `QUOTE_CODE` se limita a su presupuesto y a la tabla de §9 según el estado (un `FINALIZED` rechaza toda escritura; borrar, estado comercial y clientes ⇒ 403).

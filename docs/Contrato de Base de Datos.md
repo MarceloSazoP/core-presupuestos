@@ -88,6 +88,8 @@ CREATE TABLE quotes (
   short_id            text NOT NULL UNIQUE                    -- primera mitad del código (v0.3, D9)
                       CHECK (short_id ~ '^[0-9A-HJKMNP-TV-Z]{6}$'),   -- alfabeto Crockford base32 (sin I, L, O, U)
   number              text,                                   -- 'CP-2026-0001', asignado al finalizar
+  version             int NOT NULL DEFAULT 1 CHECK (version >= 1),       -- v0.4: 2.ª, 3.ª versión de un rechazado
+  parent_quote_id     uuid REFERENCES quotes(id) ON DELETE RESTRICT,     -- el presupuesto rechazado del que viene
   doc_status          text NOT NULL DEFAULT 'DRAFT'
                       CHECK (doc_status IN ('DRAFT','PENDING','FINALIZED')),
   commercial_status   text NOT NULL DEFAULT 'NONE'
@@ -125,6 +127,7 @@ CREATE TABLE quotes (
   CONSTRAINT quotes_customer_fk FOREIGN KEY (customer_id, user_id)
     REFERENCES customers (id, user_id) ON DELETE RESTRICT,
   UNIQUE (user_id, number),
+  CHECK ((version = 1) = (parent_quote_id IS NULL)),
   CHECK ((latitude IS NULL) = (longitude IS NULL)),
   CHECK (total = subtotal - discount + vat),
   CHECK (include_vat OR vat = 0),
@@ -362,6 +365,8 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 ```json
 {
   "number": "CP-2026-0001",
+  "version": 1,
+  "previous_number": null,
   "finalized_at": "2026-10-03T14:05:00Z",
   "valid_until": "2026-10-18",
   "professional": { "name": "", "phone": "", "email": "", "logo_file_id": null, "signature_file_id": null },
@@ -461,7 +466,7 @@ Cerradas con las recomendaciones del asistente por delegación del usuario; se p
 | # | Tema | Decisión |
 |---|------|----------|
 | 1 | Numeración | `CP-AAAA-NNNN` por usuario y año (Definición §11). El ejemplo `CP-8F42K` de la vista online (§22) era ilustrativo. |
-| 2 | Corregir tras finalizar | `FINALIZED` es inmutable y el MVP **no** incluye "duplicar presupuesto" (no está en la doc). Para corregir se crea un presupuesto nuevo. Reabrir la decisión si en las pruebas aparece como dolor real. |
+| 2 | Corregir tras finalizar | `FINALIZED` es inmutable. **Reabierta el 2026-10-04:** un presupuesto **rechazado** se puede rehacer como **nueva versión** (otro presupuesto, con su código, número y PDF, que dice «Versión 2/3» y a cuál reemplaza); ver §15. Los demás siguen sin poder duplicarse. |
 | 3 | Acceso del profesional | **Cambiada en v0.3:** el MVP usa **"ID + código seguro"** (Definición §35, CLAUDE.md §16) en lugar del enlace privado de edición, porque así lo definió el usuario: la app móvil crea el presupuesto y su código, y el profesional lo completa, edita o ve desde la web escribiéndolo. Se descarta el enlace privado para no mantener dos mecanismos. Quien pierda el código entra con SMS o correo y genera uno nuevo. |
 | 4 | Datos del cliente en vista pública y PDF | Solo nombre del cliente y dirección del servicio; sin teléfono ni correo, porque el enlace puede reenviarse. |
 | 5 | Tasa de aceptación | `aceptados / (aceptados + rechazados)` decididos en el mes. Un presupuesto sin respuesta no cuenta como rechazo. |
@@ -513,7 +518,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0006` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0007` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -590,3 +595,24 @@ ALTER TABLE quote_items
 - Una tarea guarda `quantity = 1` y `unit = 'un'` para no cambiar el resto del esquema (`line_total = round(quantity × unit_price)` sigue valiendo y `unit` sigue teniendo un valor); lo que la distingue es `kind`.
 - Los snapshots ya creados no traen `kind` en sus ítems: se leen como `ITEM`.
 - **Pruebas que acompañan:** una tarea se crea sin cantidad ni unidad y con `quantity = 1`; con cantidad o unidad responde 422; `unit_price` omitido vale 0; suma al subtotal; una tarea en 0 es «Incluido» y no cambia el total; el snapshot, la vista pública y el PDF las muestran como tarea; el esquema rechaza una tarea con cantidad distinta de 1.
+
+
+---
+
+## 15. Migración `0006` (versiones de un presupuesto rechazado, decisión del 2026-10-04)
+
+El usuario pidió que un presupuesto rechazado pueda volver a editarse, diciendo que es una 2.ª o 3.ª versión, en el presupuesto y en el PDF. Detalle de la regla y de lo que se copia en `Contrato de API.md` §6 («Rehacer un presupuesto rechazado»). Lo enviado no se modifica: la versión nueva es **otro presupuesto**.
+
+```sql
+ALTER TABLE quotes
+  ADD COLUMN version int NOT NULL DEFAULT 1 CHECK (version >= 1),
+  ADD COLUMN parent_quote_id uuid REFERENCES quotes(id) ON DELETE RESTRICT,
+  ADD CONSTRAINT quotes_version_parent_check CHECK ((version = 1) = (parent_quote_id IS NULL));
+
+-- Un rechazado se rehace una sola vez: cada presupuesto tiene a lo más una versión siguiente.
+CREATE UNIQUE INDEX quotes_parent_idx ON quotes (parent_quote_id) WHERE parent_quote_id IS NOT NULL;
+```
+
+- `version = padre.version + 1`; la cadena de versiones se sigue por `parent_quote_id`. El número `CP-AAAA-NNNN` de cada versión se asigna al terminarla, como siempre (el índice único `(user_id, number)` no cambia).
+- Los snapshots ya creados no traen `version` ni `previous_number`: se leen como versión 1.
+- **Pruebas que acompañan:** solo un rechazado se rehace (los demás estados dan 409); se rehace una sola vez (409 `ALREADY_REVISED`); la nueva versión copia ítems, tareas, descuento, IVA y condiciones pero no fotos ni seguimiento; `version` sube de 1 en 1; el original no cambia; el snapshot, la vista pública y el listado traen la versión; el esquema rechaza `version > 1` sin padre y dos hijos del mismo padre.
