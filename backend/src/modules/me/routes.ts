@@ -3,7 +3,7 @@ import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import { query, withTx } from '../../db';
 import { requireSession, requireUser, type AuthedRequest } from '../../http/session';
-import { AppError, notFound } from '../../errors';
+import { notFound } from '../../errors';
 import { upload, uploaded } from '../../http/upload';
 import { parse } from '../../http/validate';
 import { IMAGES } from '../../lib/filetype';
@@ -11,16 +11,16 @@ import { discardUpload, removeMany, storeFile, type FileKind } from '../../lib/f
 import { pathOf } from '../../lib/storage';
 import { email, name, phone } from '../auth/schemas';
 
-type Row = { id: string; name: string; phone: string; email: string; contact_phone: string | null; contact_email: string | null; logo_file_id: string | null; signature_file_id: string | null; include_signature: boolean };
+type Row = { id: string; name: string; phone: string; email: string; contact_phone: string | null; contact_email: string | null; logo_file_id: string | null; signature_file_id: string | null; use_logo: boolean; include_signature: boolean };
 
 const perfil = (u: Row) => ({
   id: u.id, name: u.name, phone: u.phone, email: u.email, contact_phone: u.contact_phone, contact_email: u.contact_email,
-  has_logo: u.logo_file_id !== null, has_signature: u.signature_file_id !== null, include_signature: u.include_signature,
+  has_logo: u.logo_file_id !== null, has_signature: u.signature_file_id !== null, use_logo: u.use_logo, include_signature: u.include_signature,
   // cambian con cada imagen nueva: las apps los usan en la dirección de la imagen para no mostrar una guardada en caché
   logo_id: u.logo_file_id, signature_id: u.signature_file_id,
 });
 
-const COLS = 'id, name, phone, email, contact_phone, contact_email, logo_file_id, signature_file_id, include_signature';
+const COLS = 'id, name, phone, email, contact_phone, contact_email, logo_file_id, signature_file_id, use_logo, include_signature';
 const uid = (req: unknown) => (req as AuthedRequest).session.userId;
 const MB = 1024 * 1024;
 
@@ -28,9 +28,9 @@ const MB = 1024 * 1024;
 // `column` es siempre una de las dos constantes de abajo, nunca texto del cliente.
 async function setSlot(c: PoolClient, userId: string, column: 'logo_file_id' | 'signature_file_id', newId: string | null): Promise<string | null> {
   const old = (await c.query<{ id: string | null }>(`SELECT ${column} AS id FROM users WHERE id = $1 FOR UPDATE`, [userId])).rows[0]!.id;
-  // Sin firma no hay «incluir la firma»: borrarla apaga la opción en la misma sentencia (la restricción del esquema lo exige).
-  if (column === 'signature_file_id') await c.query('UPDATE users SET signature_file_id = $2, include_signature = include_signature AND $2::uuid IS NOT NULL, updated_at = now() WHERE id = $1', [userId, newId]);
-  else await c.query(`UPDATE users SET ${column} = $2, updated_at = now() WHERE id = $1`, [userId, newId]);
+  // Subir una imagen enciende su interruptor (quien sube un logo quiere usarlo); borrarla lo deja como está.
+  const flag = column === 'logo_file_id' ? 'use_logo' : 'include_signature';
+  await c.query(`UPDATE users SET ${column} = $2, ${flag} = CASE WHEN $2::uuid IS NOT NULL THEN true ELSE ${flag} END, updated_at = now() WHERE id = $1`, [userId, newId]);
   if (!old) return null;
   // Un presupuesto ya finalizado conserva su logo y su firma (el snapshot es inmutable): si alguno los usa, el archivo se queda.
   return (await c.query<{ storage_key: string }>(
@@ -53,20 +53,17 @@ export const meRoutes = () => {
   // (Contrato API §4); `.strict()` rechaza cualquier otro campo. Lo no enviado se conserva y `null` borra el contacto propio.
   r.put('/', async (req, res) => {
     const body = parse(
-      z.strictObject({ name, contact_phone: phone.nullable(), contact_email: email.nullable(), include_signature: z.boolean() }).partial().refine((b) => Object.keys(b).length > 0, { message: 'Envía al menos un campo' }),
+      z.strictObject({ name, contact_phone: phone.nullable(), contact_email: email.nullable(), use_logo: z.boolean(), include_signature: z.boolean() }).partial().refine((b) => Object.keys(b).length > 0, { message: 'Envía al menos un campo' }),
       req.body,
     );
-    if (body.include_signature) {
-      const tiene = (await query<{ signature_file_id: string | null }>('SELECT signature_file_id FROM users WHERE id = $1', [uid(req)])).rows[0]!.signature_file_id;
-      if (!tiene) throw new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'include_signature', message: 'Sube tu firma para incluirla' }]);
-    }
     await query(
       `UPDATE users SET name = CASE WHEN $2 THEN $3 ELSE name END,
                         contact_phone = CASE WHEN $4 THEN $5 ELSE contact_phone END,
                         contact_email = CASE WHEN $6 THEN $7 ELSE contact_email END,
                         include_signature = CASE WHEN $8 THEN $9 ELSE include_signature END,
+                        use_logo = CASE WHEN $10 THEN $11 ELSE use_logo END,
                         updated_at = now() WHERE id = $1`,
-      [uid(req), 'name' in body, body.name ?? null, 'contact_phone' in body, body.contact_phone ?? null, 'contact_email' in body, body.contact_email ?? null, 'include_signature' in body, body.include_signature ?? false],
+      [uid(req), 'name' in body, body.name ?? null, 'contact_phone' in body, body.contact_phone ?? null, 'contact_email' in body, body.contact_email ?? null, 'include_signature' in body, body.include_signature ?? false, 'use_logo' in body, body.use_logo ?? false],
     );
     res.json(await profile(uid(req)));
   });

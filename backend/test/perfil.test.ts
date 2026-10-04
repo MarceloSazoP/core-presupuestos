@@ -84,34 +84,46 @@ describe('API: perfil y datos de contacto (Contrato API §4 y BD §16)', () => {
     assert.equal((await app.api('GET', '/me/logo', { token: a.token })).status, 404);
   });
 
-  it('la firma es del perfil: no se activa sin imagen, borrarla la apaga y sale en todos los presupuestos terminados o en ninguno', async () => {
+  it('un interruptor por imagen: se puede encender sin imagen, subirla lo enciende, apagado no se usa en ningún presupuesto y encendido en todos', async () => {
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
-    const sin = await put({ include_signature: true });
-    assert.equal(sin.status, 422);
-    assert.equal(sin.json.error.details[0].field, 'include_signature');
-    assert.equal((await app.upload('PUT', '/me/signature', { token: a.token, file: png })).json.include_signature, false, 'subirla no la activa sola');
-    assert.equal((await put({ include_signature: true })).json.include_signature, true);
+    const inicial = (await app.api('GET', '/me', { token: a.token })).json;
+    assert.deepEqual([inicial.use_logo, inicial.include_signature], [false, false]);
+    const sinImagen = await put({ use_logo: true, include_signature: true });
+    assert.equal(sinImagen.status, 200, 'encender no exige tener ya la imagen');
+    assert.deepEqual([sinImagen.json.use_logo, sinImagen.json.include_signature, sinImagen.json.has_logo, sinImagen.json.has_signature], [true, true, false, false]);
+    await put({ use_logo: false, include_signature: false });
+    const subida = await app.upload('PUT', '/me/logo', { token: a.token, file: png });
+    assert.equal(subida.json.use_logo, true, 'subir el logo enciende su interruptor');
+    assert.equal(subida.json.include_signature, false, 'y no el de la firma');
+    assert.equal((await app.upload('PUT', '/me/signature', { token: a.token, file: png })).json.include_signature, true);
 
     const terminar = async () => {
       const q = (await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Juan', phone: '+56933333333' } } })).json;
       await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { service_description: 'Instalar puerta', validity_days: 15 } });
       await app.api('PUT', `/quotes/${q.id}/items`, { token: a.token, body: { items: [{ description: 'Puerta', quantity: 1, unit_price: 1000 }] } });
       assert.equal((await app.api('POST', `/quotes/${q.id}/finalize`, { token: a.token, body: {} })).status, 200);
-      return (await pool.query('SELECT snapshot FROM quote_documents WHERE quote_id = $1', [q.id])).rows[0].snapshot;
+      const snap = (await pool.query('SELECT snapshot FROM quote_documents WHERE quote_id = $1', [q.id])).rows[0].snapshot;
+      return { id: q.id as string, snap };
     };
-    const con = await terminar();
-    assert.equal(con.include_signature, true);
-    assert.ok(con.professional.signature_file_id, 'la imagen queda fijada en el snapshot');
+    const conAmbas = await terminar();
+    assert.ok(conAmbas.snap.professional.logo_file_id && conAmbas.snap.professional.signature_file_id, 'encendidas: las dos imágenes quedan fijadas');
+    assert.equal(conAmbas.snap.include_signature, true);
 
-    assert.equal((await put({ include_signature: false })).json.include_signature, false);
-    const sinFirma = await terminar();
-    assert.deepEqual([sinFirma.include_signature, sinFirma.professional.signature_file_id], [false, null], 'apagada: en ningún presupuesto nuevo');
-    const algunId = (await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Borrador', phone: '+56933333339' } } })).json.id;
-    assert.equal((await app.api('PATCH', `/quotes/${algunId}`, { token: a.token, body: { include_signature: true } })).status, 422, 'ya no se elige por presupuesto');
+    await put({ use_logo: false, include_signature: false });
+    const detalle = await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Pedro', phone: '+56933333339' } } });
+    assert.equal(detalle.json.professional.has_logo, false, 'con el interruptor apagado el presupuesto no muestra logo');
+    const sinAmbas = await terminar();
+    assert.deepEqual([sinAmbas.snap.professional.logo_file_id, sinAmbas.snap.professional.signature_file_id, sinAmbas.snap.include_signature], [null, null, false], 'apagadas: en ningún presupuesto nuevo');
+    assert.equal((await app.api('GET', '/me', { token: a.token })).json.has_logo, true, 'la imagen subida se conserva');
+    assert.equal((await fetch(`${app.base}/quotes/${detalle.json.id}/logo`, { headers: { Authorization: `Bearer ${a.token}` } })).status, 404, 'y no se sirve en un presupuesto en edición');
+    const anterior = (await pool.query('SELECT snapshot FROM quote_documents WHERE quote_id = $1', [conAmbas.id])).rows[0].snapshot;
+    assert.deepEqual(anterior, conAmbas.snap, 'lo ya terminado no cambió');
 
+    assert.equal((await app.api('DELETE', '/me/signature', { token: a.token })).status, 204);
     await put({ include_signature: true });
     assert.equal((await app.api('DELETE', '/me/signature', { token: a.token })).status, 204);
-    assert.equal((await app.api('GET', '/me', { token: a.token })).json.include_signature, false, 'sin firma la opción se apaga');
-    await assert.rejects(pool.query('UPDATE users SET include_signature = true WHERE id = $1', [a.user.id]), /users_signature_check/);
+    assert.equal((await app.api('GET', '/me', { token: a.token })).json.include_signature, true, 'borrar la imagen no apaga el interruptor');
+    const algunId = (await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Borrador', phone: '+56933333330' } } })).json.id;
+    assert.equal((await app.api('PATCH', `/quotes/${algunId}`, { token: a.token, body: { include_signature: true } })).status, 422, 'ya no se elige por presupuesto');
   });
 });
