@@ -199,7 +199,7 @@ export function Segmentos<T extends string>({ opciones, valor, alElegir, etiquet
               if (!elegido) void Haptics.selectionAsync();
               alElegir(o.id);
             }}
-            style={[e.segmento, elegido && [{ backgroundColor: t.acento }, !t.oscuro && e.sombraSegmento]]}
+            style={[e.segmento, elegido && [{ backgroundColor: t.oscuro ? '#2F5BC4' : t.acento }, !t.oscuro && e.sombraSegmento]]}
           >
             <Text style={[e.textoSegmento, { color: elegido ? '#FFFFFF' : t.suave, fontWeight: elegido ? '600' : '500' }]}>{o.texto}</Text>
           </Pressable>
