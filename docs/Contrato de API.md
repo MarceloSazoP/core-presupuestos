@@ -92,7 +92,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
     "voice_notes": [{ "id": "uuid", "url": "/files/uuid", "duration_seconds": 42, "created_at": "…" }]
   },
   "items": [{ "id": "uuid", "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
-  "subtotal": 0, "discount": 0, "total": 0,
+  "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "total": 0,
   "warranty": { "kind": "NONE", "text": null },
   "validity_days": null, "observations": null,
   "include_signature": false, "include_qr": false,
@@ -239,8 +239,10 @@ Todo se escribe solo si `doc_status ∈ {DRAFT, PENDING}`; en `FINALIZED` respon
 Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, email?, address? }` crea el cliente y el presupuesto en una sola transacción.
 
 **`PATCH /quotes/{id}`** — campos parciales; solo los enviados cambian.
-`customer_id, service_description, address, latitude, longitude, discount, warranty {kind, text}, validity_days, observations, include_signature, include_qr`.
-`latitude` y `longitude` van juntas o ninguna. El backend recalcula `total`.
+`customer_id, service_description, address, latitude, longitude, discount, include_vat, warranty {kind, text}, validity_days, observations, include_signature, include_qr`.
+`latitude` y `longitude` van juntas o ninguna. El backend recalcula `vat` y `total` cuando cambian `discount` o `include_vat`.
+
+**IVA (decisión del 2026-10-04).** `include_vat = true` agrega el IVA al presupuesto. Los precios que se escriben son **netos** (sin IVA). El IVA es el 19 % de `subtotal − discount` (el descuento va antes del IVA), redondeado al peso con `.5` hacia arriba, y `total = subtotal − discount + vat`. Con `include_vat = false`, `vat = 0` y `total = subtotal − discount`, como antes. Es una línea informativa de un presupuesto comercial: **no** emite documentos tributarios (el pie del PDF sigue diciéndolo). La tasa vive solo en el servidor; los clientes pueden mostrar una vista previa pero siempre muestran lo que devuelve el servidor.
 
 ### Etapa 2 — levantamiento
 
@@ -262,7 +264,7 @@ Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, emai
   { "id": "uuid?", "description": "Pilas grandes", "quantity": 1, "unit": "un", "unit_price": 5000 },
   { "description": "Piso flotante", "quantity": 12.5, "unit": "m2", "unit_price": 18000 } ] }
 ```
-`unit` es el código del catálogo de §12.1 y vale `un` si se omite. Responde `Quote` con `line_total`, `subtotal` y `total` calculados. `line_total = round(quantity × unit_price)`, redondeo hacia arriba en `.5`.
+`unit` es el código del catálogo de §12.1 y vale `un` si se omite. Responde `Quote` con `line_total`, `subtotal`, `vat` y `total` calculados. `line_total = round(quantity × unit_price)`, redondeo hacia arriba en `.5`.
 
 ### Guardar
 
@@ -381,7 +383,7 @@ Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`,
                     "has_logo": true, "has_signature": false },
   "customer": { "name": "Juan Pérez" },
   "service_description": "", "service_address": null,
-  "items": [], "subtotal": 0, "discount": 0, "total": 0,
+  "items": [], "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "vat_rate": 19, "total": 0,
   "warranty": { "kind": "M3", "text": "3 meses" }, "validity_days": 15, "observations": null,
   "pdf_url": "/public/quotes/{token}/pdf" }
 ```
@@ -487,7 +489,7 @@ El código es lo que se guarda y se envía; el símbolo es lo que se muestra en 
 
 - **Aislamiento:** usuario B recibe 404 en cada ruta con IDs del usuario A.
 - **Estados:** `finalize` rechaza presupuestos incompletos; un `FINALIZED` rechaza todas las escrituras; `NONE → SENT` solo vía envío confirmado; `finalize` sin envío deja `FINALIZED + NONE`.
-- **Totales:** `line_total`, `subtotal` y `total` con cantidades decimales y descuento.
+- **Totales:** `line_total`, `subtotal`, `vat` y `total` con cantidades decimales, descuento e IVA (incluido el redondeo de `.5` y que el IVA se calcula después del descuento).
 - **Acceso público:** el token no permite editar; revocado ⇒ 404; la respuesta no contiene campos internos.
 - **Código:** `/access/code/exchange` responde el mismo 404 para ID inexistente, secreto equivocado y código revocado; 5 fallos bloquean el código; rotar invalida el anterior; el scope `QUOTE_CODE` se limita a su presupuesto y a la tabla de §9 según el estado (un `FINALIZED` rechaza toda escritura; borrar, estado comercial y clientes ⇒ 403).
 - **Autenticación:** código vencido, intento 6, respuesta idéntica para cuenta nueva y existente.

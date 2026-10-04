@@ -102,6 +102,8 @@ CREATE TABLE quotes (
   -- Etapa 3 (totales los calcula siempre el backend)
   subtotal            bigint NOT NULL DEFAULT 0 CHECK (subtotal >= 0),
   discount            bigint NOT NULL DEFAULT 0 CHECK (discount >= 0),
+  include_vat         boolean NOT NULL DEFAULT false,            -- v0.4: agrega el IVA (19 %) sobre subtotal − descuento
+  vat                 bigint NOT NULL DEFAULT 0 CHECK (vat >= 0),
   total               bigint NOT NULL DEFAULT 0,
   warranty_kind       text NOT NULL DEFAULT 'NONE'
                       CHECK (warranty_kind IN ('NONE','D7','D15','D30','M3','M6','Y1','CUSTOM')),
@@ -124,7 +126,8 @@ CREATE TABLE quotes (
     REFERENCES customers (id, user_id) ON DELETE RESTRICT,
   UNIQUE (user_id, number),
   CHECK ((latitude IS NULL) = (longitude IS NULL)),
-  CHECK (total = subtotal - discount),
+  CHECK (total = subtotal - discount + vat),
+  CHECK (include_vat OR vat = 0),
   CHECK (warranty_kind <> 'CUSTOM' OR warranty_text IS NOT NULL),
   CHECK ((doc_status = 'FINALIZED') = (finalized_at IS NOT NULL)),
   CHECK ((doc_status = 'FINALIZED') = (number IS NOT NULL)),
@@ -285,7 +288,7 @@ CREATE INDEX audit_events_quote_idx ON audit_events (quote_id, created_at DESC);
 ```
 
 **Reglas que el esquema no expresa (las aplica el backend):**
-- `subtotal = Σ line_total` y `total = subtotal − discount`; el cliente nunca los envía.
+- `subtotal = Σ line_total`; `vat = include_vat ? round((subtotal − discount) × 19 / 100) : 0` (solo si `subtotal − discount > 0`) y `total = subtotal − discount + vat`; el cliente nunca los envía. La tasa del 19 % vive solo en el backend y se congela en el snapshot al finalizar.
 - Al finalizar: `discount ≤ subtotal` y al menos un ítem.
 - `next_contact_date` y filas de `follow_ups` se escriben en la misma transacción.
 - `files.user_id` debe coincidir con el dueño del presupuesto al que se asocia el archivo.
@@ -364,7 +367,7 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
   "service_description": "",
   "service_address": null,
   "items": [{ "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
-  "subtotal": 0, "discount": 0, "total": 0,
+  "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "vat_rate": 19, "total": 0,
   "warranty": { "kind": "M3", "text": "3 meses" },
   "validity_days": 15,
   "observations": null,
@@ -508,7 +511,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0004` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0005` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -547,3 +550,24 @@ CREATE INDEX auth_challenges_email_idx ON auth_challenges (email, created_at DES
 - **Retención:** `auth_identities` vive mientras exista la cuenta. Las sesiones revocadas siguen purgándose como en §7.
 - **Lo que deja de existir:** registrarse con un teléfono sin verificar como identidad, y `auth_challenges.signup_email` sin verificar (el correo se verifica en el mismo desafío).
 - **Pruebas que acompañan:** dos cuentas pueden tener el mismo teléfono no verificado pero no el mismo verificado; `(provider, subject)` es único; no se puede dejar `phone_verified_at` sin `phone`.
+
+
+---
+
+## 13. Migración `0004` (IVA, decisión del 2026-10-04)
+
+El usuario pidió una casilla para que el presupuesto calcule el IVA. Detalle de la regla en `Contrato de API.md` §6 (`PATCH /quotes/{id}`). Los presupuestos existentes quedan sin IVA y con el mismo total.
+
+```sql
+ALTER TABLE quotes
+  ADD COLUMN include_vat boolean NOT NULL DEFAULT false,
+  ADD COLUMN vat bigint NOT NULL DEFAULT 0 CHECK (vat >= 0);
+
+ALTER TABLE quotes DROP CONSTRAINT quotes_check2;   -- el nombre se verifica con \d antes de escribir el archivo
+ALTER TABLE quotes
+  ADD CONSTRAINT quotes_total_check CHECK (total = subtotal - discount + vat),
+  ADD CONSTRAINT quotes_vat_check CHECK (include_vat OR vat = 0);
+```
+
+- Los snapshots ya creados no traen `include_vat`: se leen como `false`.
+- **Pruebas que acompañan:** `total = subtotal − descuento + IVA`; con `include_vat = false` el IVA es 0; el descuento se aplica antes del IVA; el redondeo de `.5` sube; cambiar el descuento o la casilla recalcula; el snapshot, el PDF y la vista pública muestran el IVA; el esquema rechaza un total que no cuadra.
