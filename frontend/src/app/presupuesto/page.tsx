@@ -10,6 +10,7 @@ import { Editor } from "./editor";
 import { Encabezado } from "./encabezado";
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { EnviarCorreo } from "./enviar-correo";
+import { Multimedia } from "./multimedia";
 
 export const metadata: Metadata = { title: "Presupuesto · CorePresupuesto" };
 
@@ -57,6 +58,8 @@ export default async function PresupuestoPage() {
         <h1 className="text-2xl font-semibold leading-tight">{p.descripcion}</h1>
         <p className="text-muted">Para {p.cliente.nombre}</p>
       </header>
+
+      <Multimedia fotos={p.levantamiento.fotos} audios={p.levantamiento.audios} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <section aria-labelledby="detalle" className="tarjeta items flex flex-col gap-2">

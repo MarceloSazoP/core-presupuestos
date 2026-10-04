@@ -8,6 +8,7 @@ import { completarPresupuestoAction, salirAction, type EstadoEdicion } from "../
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { EnviarCorreo } from "./enviar-correo";
 import { GrillaItems, type Fila } from "./grilla-items";
+import { Multimedia } from "./multimedia";
 
 type Inicial = {
   descripcion: string;
@@ -16,7 +17,7 @@ type Inicial = {
   garantia: string;
   validezDias: number;
   observaciones: string | null;
-  levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[] };
+  levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[]; fotos: string[]; audios: { id: string; segundos: number }[] };
   cliente: { nombre: string; correo: string | null; telefono: string };
 };
 
@@ -143,6 +144,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             <p className="text-sm text-muted">{inicial.levantamiento.medidas.map((m) => `${m.etiqueta}: ${m.valor}`).join(" · ")}</p>
           )}
         </section>
+
+        <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} />
       </div>
 
       <section className="flex flex-col gap-1">

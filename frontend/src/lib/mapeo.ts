@@ -19,7 +19,7 @@ export type QuoteApi = {
   customer: { name: string; phone: string; email: string | null };
   professional: { name: string; phone: string; email: string; has_logo: boolean };
   service_description: string;
-  survey: { notes: string | null; measurements: { label: string; value: string }[] };
+  survey: { notes: string | null; measurements: { label: string; value: string }[]; photos: { id: string }[]; voice_notes: { id: string; duration_seconds: number }[] };
   items: { description: string; quantity: number; unit: string; unit_price: number }[];
   discount: number;
   total: number;
@@ -39,7 +39,7 @@ export type Presupuesto = {
   profesional: { nombre: string; telefono: string; correo: string; tieneLogo: boolean };
   cliente: { nombre: string; telefono: string; correo: string | null };
   descripcion: string;
-  levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[] };
+  levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[]; fotos: string[]; audios: { id: string; segundos: number }[] };
   items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
   garantia: string;
@@ -58,7 +58,12 @@ export const aPresupuesto = (q: QuoteApi): Presupuesto => ({
   profesional: { nombre: q.professional.name, telefono: q.professional.phone, correo: q.professional.email, tieneLogo: q.professional.has_logo },
   cliente: { nombre: q.customer.name, telefono: q.customer.phone, correo: q.customer.email },
   descripcion: q.service_description,
-  levantamiento: { notas: q.survey.notes, medidas: q.survey.measurements.map((m) => ({ etiqueta: m.label, valor: m.value })) },
+  levantamiento: {
+    notas: q.survey.notes,
+    medidas: q.survey.measurements.map((m) => ({ etiqueta: m.label, valor: m.value })),
+    fotos: q.survey.photos.map((f) => f.id),
+    audios: q.survey.voice_notes.map((v) => ({ id: v.id, segundos: v.duration_seconds })),
+  },
   items: q.items.map((i) => ({ descripcion: i.description, cantidad: i.quantity, unidad: i.unit, precioUnitario: i.unit_price })),
   descuento: q.discount,
   garantia: textoGarantia(q.warranty.kind, q.warranty.text),

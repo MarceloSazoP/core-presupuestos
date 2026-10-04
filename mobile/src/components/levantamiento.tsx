@@ -133,7 +133,7 @@ function Fotos({ q, cambiar }: Props) {
     setPreparando((n) => n + r.assets.length);
     for (const a of r.assets) {
       try {
-        const uri = guardarArchivo(await prepararFoto(a.uri, a.width, a.height), 'jpg');
+        const uri = await guardarArchivo(await prepararFoto(a.uri, a.width, a.height));
         const id = randomUUID();
         cambiar((p) => conSurvey(p, { photos: [...p.survey.photos, { id, url: '', caption: null, local_uri: uri }] }));
         await encolar({ quote_id: q.id, method: 'POST', path: `/quotes/${q.id}/photos`, archivo: { uri, name: 'foto.jpg', type: 'image/jpeg' }, fields: { id } });
@@ -220,7 +220,7 @@ function Voz({ q, cambiar }: Props) {
     if (!uri) return;
     setGuardando(true);
     try {
-      const local = guardarArchivo(uri, 'm4a');
+      const local = await guardarArchivo(uri);
       const id = randomUUID();
       cambiar((p) => conSurvey(p, { voice_notes: [...p.survey.voice_notes, { id, url: '', duration_seconds: duracion, local_uri: local }] }));
       await encolar({ quote_id: q.id, method: 'POST', path: `/quotes/${q.id}/voice-notes`, archivo: { uri: local, name: 'nota.m4a', type: 'audio/mp4' }, fields: { id, duration_seconds: String(duracion) } });

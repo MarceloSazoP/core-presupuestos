@@ -17,13 +17,13 @@ export class ApiError extends Error {
   }
 }
 
-type Opciones = { token?: string; method?: string; body?: unknown };
+type Opciones = { token?: string; method?: string; body?: unknown; range?: string };
 
-async function pedir(path: string, { token, method = 'GET', body }: Opciones): Promise<Response> {
+async function pedir(path: string, { token, method = 'GET', body, range }: Opciones): Promise<Response> {
   try {
     return await fetch(BASE + path, {
       method,
-      headers: { ...(token && { Authorization: `Bearer ${token}` }), ...(body !== undefined && { 'Content-Type': 'application/json' }) },
+      headers: { ...(token && { Authorization: `Bearer ${token}` }), ...(range && { Range: range }), ...(body !== undefined && { 'Content-Type': 'application/json' }) },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: 'no-store',
       signal: AbortSignal.timeout(20_000),
@@ -45,8 +45,8 @@ export async function api<T = unknown>(path: string, o: Opciones = {}): Promise<
 }
 
 // Para archivos (PDF, logo): devuelve la respuesta tal cual, o el error de la API.
-export async function apiArchivo(path: string, token?: string): Promise<Response> {
-  const res = await pedir(path, { token });
+export async function apiArchivo(path: string, token?: string, range?: string): Promise<Response> {
+  const res = await pedir(path, { token, range });
   if (!res.ok) throw await comoError(res);
   return res;
 }

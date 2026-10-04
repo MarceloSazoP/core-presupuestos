@@ -40,8 +40,9 @@ export async function api<T = unknown>(path: string, { method = 'GET', body, tok
   let res: Response;
   try {
     res = await pedir().catch((e) => (reintentar ? pedir() : Promise.reject(e)));
-  } catch {
-    throw new ApiError(0, 'SIN_CONEXION', 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.');
+  } catch (e) {
+    // En desarrollo se agrega la causa real: un archivo ilegible o una URL mal armada también llegan aquí.
+    throw new ApiError(0, 'SIN_CONEXION', `No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.${__DEV__ ? ` (${e instanceof Error ? e.message : String(e)})` : ''}`);
   }
   if (res.status === 204) return undefined as T;
   const json = await res.json().catch(() => null);

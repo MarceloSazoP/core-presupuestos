@@ -1,16 +1,20 @@
-import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 
 // Fotos y voz pendientes de subir: se copian al almacenamiento permanente de la app (el caché puede ser purgado por iOS
 // antes de que haya señal). Se borran al subirse o descartarse.
 const carpeta = () => new Directory(Paths.document, 'pendientes');
 
-export function guardarArchivo(uri: string, extension: string): string {
+// `copy` es asíncrono: hay que esperarlo, o la cola intenta subir un archivo que aún no existe.
+export async function guardarArchivo(uri: string): Promise<string> {
   carpeta().create({ idempotent: true, intermediates: true });
-  const destino = new File(carpeta(), `${randomUUID()}.${extension}`);
-  new File(uri).copy(destino);
+  const origen = new File(uri);
+  await origen.copy(carpeta());
+  const destino = new File(carpeta(), origen.name);
+  if (!destino.exists) throw new Error('No se pudo guardar el archivo en el teléfono');
   return destino.uri;
 }
+
+export const existeArchivo = (uri: string) => new File(uri).exists;
 
 export function borrarArchivo(uri: string) {
   try {

@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { api, ApiError, subir } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { guardarCodigo } from '@/lib/codigos';
-import { borrarArchivo } from './archivos';
+import { borrarArchivo, existeArchivo } from './archivos';
 import { agregarOp, borrarOp, cambiarOp, guardarKv, leerKv, limpiarTodo, listarKv, ops, type Op } from './db';
 import { esTransitorio, espera, reemplazadas } from './reglas';
 
@@ -79,6 +79,7 @@ let temporizador: ReturnType<typeof setTimeout> | undefined;
 export const vaciar = () => (corriendo ??= correr().finally(() => (corriendo = null)));
 
 async function enviar(o: Op) {
+  if (o.file_uri && !existeArchivo(o.file_uri)) throw new ApiError(422, 'ARCHIVO_PERDIDO', 'El archivo ya no está en el teléfono: vuelve a tomar la foto o grabar la nota.');
   const r = o.file_uri
     ? await subir<unknown>(o.path, { uri: o.file_uri, name: o.file_name!, type: o.file_type! }, JSON.parse(o.fields ?? '{}'))
     : await api<unknown>(o.path, { method: o.method, body: o.body ? JSON.parse(o.body) : undefined });
