@@ -3,20 +3,22 @@ import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import { query, withTx } from '../../db';
 import { requireSession, requireUser, type AuthedRequest } from '../../http/session';
+import { notFound } from '../../errors';
 import { upload, uploaded } from '../../http/upload';
 import { parse } from '../../http/validate';
 import { IMAGES } from '../../lib/filetype';
 import { discardUpload, removeMany, storeFile, type FileKind } from '../../lib/files';
-import { name } from '../auth/schemas';
+import { pathOf } from '../../lib/storage';
+import { email, name, phone } from '../auth/schemas';
 
-type Row = { id: string; name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null };
+type Row = { id: string; name: string; phone: string; email: string; contact_phone: string | null; contact_email: string | null; logo_file_id: string | null; signature_file_id: string | null };
 
 const perfil = (u: Row) => ({
-  id: u.id, name: u.name, phone: u.phone, email: u.email,
+  id: u.id, name: u.name, phone: u.phone, email: u.email, contact_phone: u.contact_phone, contact_email: u.contact_email,
   has_logo: u.logo_file_id !== null, has_signature: u.signature_file_id !== null,
 });
 
-const COLS = 'id, name, phone, email, logo_file_id, signature_file_id';
+const COLS = 'id, name, phone, email, contact_phone, contact_email, logo_file_id, signature_file_id';
 const uid = (req: unknown) => (req as AuthedRequest).session.userId;
 const MB = 1024 * 1024;
 
@@ -43,10 +45,20 @@ export const meRoutes = () => {
     res.json(await profile(uid(req)));
   });
 
-  // El teléfono y el correo no se cambian en el MVP (Contrato API §4); `.strict()` rechaza cualquier otro campo.
+  // Nombre y datos de contacto que salen en los presupuestos. El teléfono y el correo de la CUENTA no se cambian en el MVP
+  // (Contrato API §4); `.strict()` rechaza cualquier otro campo. Lo no enviado se conserva y `null` borra el contacto propio.
   r.put('/', async (req, res) => {
-    const body = parse(z.strictObject({ name }), req.body);
-    await query('UPDATE users SET name = $2, updated_at = now() WHERE id = $1', [uid(req), body.name]);
+    const body = parse(
+      z.strictObject({ name, contact_phone: phone.nullable(), contact_email: email.nullable() }).partial().refine((b) => Object.keys(b).length > 0, { message: 'Envía al menos un campo' }),
+      req.body,
+    );
+    await query(
+      `UPDATE users SET name = CASE WHEN $2 THEN $3 ELSE name END,
+                        contact_phone = CASE WHEN $4 THEN $5 ELSE contact_phone END,
+                        contact_email = CASE WHEN $6 THEN $7 ELSE contact_email END,
+                        updated_at = now() WHERE id = $1`,
+      [uid(req), 'name' in body, body.name ?? null, 'contact_phone' in body, body.contact_phone ?? null, 'contact_email' in body, body.contact_email ?? null],
+    );
     res.json(await profile(uid(req)));
   });
 
@@ -64,6 +76,12 @@ export const meRoutes = () => {
       } finally {
         await discardUpload(up);
       }
+    });
+    // Descarga del propio logo o firma (para mostrarlos en «Configurar»). `column` es una de las dos constantes de arriba.
+    r.get(`/${path}`, async (req, res) => {
+      const f = (await query<{ storage_key: string; mime_type: string }>(`SELECT f.storage_key, f.mime_type FROM files f JOIN users u ON u.${column} = f.id WHERE u.id = $1`, [uid(req)])).rows[0];
+      if (!f) throw notFound();
+      res.type(f.mime_type).sendFile(pathOf(f.storage_key));
     });
     r.delete(`/${path}`, async (req, res) => {
       const oldKey = await withTx((c) => setSlot(c, uid(req), column, null));

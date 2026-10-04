@@ -23,7 +23,7 @@ export async function quoteDetail(q: QuoteRow) {
     query('SELECT file_id, duration_seconds, created_at FROM survey_voice_notes WHERE quote_id = $1 ORDER BY created_at', [q.id]),
     query('SELECT id, kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
     query<{ token: string }>(`SELECT token FROM quote_access WHERE quote_id = $1 AND kind = 'PUBLIC' AND revoked_at IS NULL`, [q.id]),
-    query<{ name: string; phone: string; email: string; logo_file_id: string | null }>('SELECT name, phone, email, logo_file_id FROM users WHERE id = $1', [q.user_id]),
+    query<{ name: string; phone: string; email: string; logo_file_id: string | null }>('SELECT name, COALESCE(contact_phone, phone) AS phone, COALESCE(contact_email, email) AS email, logo_file_id FROM users WHERE id = $1', [q.user_id]),
     q.parent_quote_id ? query<{ number: string }>('SELECT number FROM quotes WHERE id = $1', [q.parent_quote_id]) : Promise.resolve({ rows: [] as { number: string }[] }),
     query<{ id: string }>('SELECT id FROM quotes WHERE parent_quote_id = $1', [q.id]),
   ]);

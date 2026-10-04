@@ -64,7 +64,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     editable(q0);
     const [items, user, customer] = await Promise.all([
       query<ItemRow>('SELECT kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q0.id]),
-      query<UserRow>('SELECT name, phone, email, logo_file_id, signature_file_id FROM users WHERE id = $1', [q0.user_id]),
+      query<UserRow>('SELECT name, COALESCE(contact_phone, phone) AS phone, COALESCE(contact_email, email) AS email, logo_file_id, signature_file_id FROM users WHERE id = $1', [q0.user_id]),
       query<{ name: string }>('SELECT name FROM customers WHERE id = $1 AND user_id = $2', [q0.customer_id, q0.user_id]),
     ]);
     const bad = problems(q0, items.rows, user.rows[0]!);
