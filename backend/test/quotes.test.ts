@@ -62,6 +62,15 @@ describe('API: presupuestos (Contrato API §6, §9 y §14)', () => {
     assert.ok(!JSON.stringify(rows).includes(q.access_code.slice(7)), 'el secreto no se guarda en claro');
   });
 
+  it('el listado trae el ID corto de cada presupuesto (no el secreto)', async () => {
+    const q = await crear();
+    const lista = (await app.api('GET', '/quotes', { token: a.token })).json.data;
+    assert.equal(lista[0].code_id, q.code_id);
+    assert.ok(!JSON.stringify(lista).includes(q.access_code.slice(7)), 'el secreto no sale en listados');
+    const dash = (await app.api('GET', '/dashboard', { token: a.token })).json;
+    assert.equal(dash.pending[0].code_id, q.code_id);
+  });
+
   it('cliente: o customer_id o customer; el de otro usuario no sirve', async () => {
     const c = (await app.api('POST', '/customers', { token: a.token, body: cliente })).json;
     assert.equal((await crear(a.token, { customer_id: c.id })).customer.id, c.id);

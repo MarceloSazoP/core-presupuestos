@@ -142,7 +142,7 @@ describe('API: seguimiento comercial y dashboard (Contrato API §8, §11 y §14)
     assert.deepEqual(d.finalized.map((q: { id: string }) => q.id).sort(), [futuro.id, sinFecha.id, fin.id].sort(), 'lo que está en Seguimiento no se repite');
     const lista = (await app.api('GET', '/quotes?section=finalized', { token: a.token })).json;
     assert.equal(lista.total, 3, 'el listado por sección coincide con el tablero (un enviado sin fecha sigue en Finalizados)');
-    assert.deepEqual(Object.keys(d.pending[0]).sort(), ['commercial_status', 'customer', 'doc_status', 'id', 'next_contact_date', 'number', 'sent_at', 'service_description', 'total', 'updated_at']);
+    assert.deepEqual(Object.keys(d.pending[0]).sort(), ['code_id', 'commercial_status', 'customer', 'doc_status', 'id', 'next_contact_date', 'number', 'sent_at', 'service_description', 'total', 'updated_at']);
     assert.deepEqual((await app.api('GET', '/dashboard', { token: b.token })).json.counts, { pending: 0, follow_up: 0, finalized: 0 }, 'B no ve nada de A');
   });
 

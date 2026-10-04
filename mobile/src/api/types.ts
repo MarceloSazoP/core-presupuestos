@@ -6,6 +6,7 @@ export type EstadoComercial = 'NONE' | 'SENT' | 'FOLLOW_UP' | 'ACCEPTED' | 'REJE
 
 export type ResumenPresupuesto = {
   id: string;
+  code_id?: string; // ID corto; las listas guardadas por una versión anterior no lo traen
   number: string | null;
   customer: { id: string; name: string };
   service_description: string;
@@ -43,3 +44,6 @@ export type Presupuesto = {
 };
 
 export type PresupuestoCreado = Presupuesto & { access_code?: string };
+
+export type Cliente = { id: string; name: string; phone: string; email: string | null; address: string | null };
+export type ClienteDetalle = Cliente & { summary: { quotes: number; accepted: number; follow_up: number } };

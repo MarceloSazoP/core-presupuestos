@@ -1,46 +1,17 @@
 import { FlashList } from '@shopify/flash-list';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
-import { Boton, Pastilla, Texto } from '@/components/ui';
-import { diaCorto } from '@/lib/fechas';
-import { clp } from '@/lib/formato';
+import { FilaPresupuesto } from '@/components/fila-presupuesto';
+import { Boton, Texto } from '@/components/ui';
 import { reconciliar } from '@/lib/notificaciones';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { creacionesPendientes, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
-
-// Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
-function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 'ok' | 'suave' } {
-  if (q.doc_status !== 'FINALIZED') return { texto: 'Pendiente', tono: 'aviso' };
-  const comercial = { NONE: 'Cerrado', SENT: 'Enviado', FOLLOW_UP: 'Seguimiento', ACCEPTED: 'Aceptado', REJECTED: 'Rechazado' } as const;
-  return { texto: comercial[q.commercial_status], tono: q.commercial_status === 'ACCEPTED' ? 'ok' : 'suave' };
-}
-
-function Fila({ q }: { q: ResumenPresupuesto }) {
-  const t = useTema();
-  const estado = estadoVisible(q);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${q.customer.name}, ${estado.texto}`}
-      onPress={() => router.push({ pathname: '/presupuesto/[id]', params: { id: q.id } })}
-      style={({ pressed }) => [e.fila, { backgroundColor: t.tarjeta, borderColor: t.borde, opacity: pressed ? 0.7 : 1 }]}
-    >
-      <View style={e.filaTexto}>
-        <Texto fuerte numberOfLines={1}>{q.customer.name}</Texto>
-        <Texto variante="chico" suave numberOfLines={2}>{q.service_description || 'Sin descripción todavía'}</Texto>
-        <Pastilla texto={estado.texto} tono={estado.tono} />
-        {q.next_contact_date ? <Texto variante="chico" suave>Contactar el {diaCorto(q.next_contact_date)}</Texto> : null}
-      </View>
-      <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
-    </Pressable>
-  );
-}
 
 export default function Presupuestos() {
   const t = useTema();
@@ -67,7 +38,7 @@ export default function Presupuestos() {
     const nuevos: ResumenPresupuesto[] = [];
     for (const id of await creacionesPendientes()) {
       const b = await leerBorrador(id);
-      if (b && !base?.some((r) => r.id === id)) nuevos.push({ id, number: null, customer: { id: b.customer.id, name: b.customer.name }, service_description: b.service_description, total: 0, doc_status: 'DRAFT', commercial_status: 'NONE', next_contact_date: null, updated_at: '' });
+      if (b && !base?.some((r) => r.id === id)) nuevos.push({ id, code_id: b.code_id || undefined, number: null, customer: { id: b.customer.id, name: b.customer.name }, service_description: b.service_description, total: 0, doc_status: 'DRAFT', commercial_status: 'NONE', next_contact_date: null, updated_at: '' });
     }
     setLista(base || nuevos.length ? [...nuevos, ...(base ?? [])] : base);
   }, []);
@@ -80,7 +51,7 @@ export default function Presupuestos() {
       <FlashList
         data={lista ?? []}
         keyExtractor={(q) => q.id}
-        renderItem={({ item }) => <Fila q={item} />}
+        renderItem={({ item }) => <FilaPresupuesto q={item} />}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: espacio.l, paddingBottom: insets.bottom + MIN_TOQUE + espacio.xxl }}
         ItemSeparatorComponent={Separador}
@@ -118,9 +89,6 @@ export default function Presupuestos() {
 const Separador = () => <View style={{ height: espacio.m }} />;
 
 const e = StyleSheet.create({
-  fila: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.l, minHeight: MIN_TOQUE },
-  filaTexto: { flex: 1, gap: espacio.xs },
-  monto: { fontVariant: ['tabular-nums'] },
   aviso: { gap: espacio.s, paddingBottom: espacio.m },
   cargando: { marginTop: espacio.xxl },
   vacio: { gap: espacio.s, paddingTop: espacio.xxl },

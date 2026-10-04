@@ -71,9 +71,9 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
   "address": "Av. X 1234", "created_at": "…", "updated_at": "…" }
 ```
 
-**QuoteSummary** (listados)
+**QuoteSummary** (listados). `code_id` es el ID corto del presupuesto (la primera parte del código): la app lo muestra en las listas como el identificador con el que el usuario reconoce y nombra cada presupuesto. No es secreto ni da acceso por sí solo.
 ```json
-{ "id": "uuid", "number": null, "customer": { "id": "uuid", "name": "Juan Pérez" },
+{ "id": "uuid", "code_id": "7K4M2Q", "number": null, "customer": { "id": "uuid", "name": "Juan Pérez" },
   "service_description": "Mantención calefont", "total": 20000,
   "doc_status": "PENDING", "commercial_status": "NONE",
   "next_contact_date": null, "sent_at": null, "updated_at": "…" }

@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
@@ -74,6 +75,11 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       await recargar();
+      // «Guardar para después» deja el presupuesto pendiente y vuelve a la lista; «Terminar» se queda para mostrar el envío.
+      if (que === 'guardar') {
+        if (router.canGoBack()) router.back();
+        else router.replace('/');
+      }
     } catch (err) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setError(err instanceof Error && !('status' in err) ? err.message : mensajeDe(err));
