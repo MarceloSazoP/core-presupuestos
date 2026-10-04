@@ -60,7 +60,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 | `POST /access/code/exchange` | 10 por IP/hora y, por código, 5 fallos seguidos bloquean ese código 15 min (responde 429) |
 | `POST /access/pair` | 30 por IP/hora |
 | `POST /access/pair/poll` | 600 por IP/hora (cada computador consulta cada 2 s mientras muestra el QR) |
-| `POST /access/pair/claim` | 30 por usuario/hora |
+| `POST /access/pair/claim` | 30 por IP/hora |
 | `GET /public/*` | 60 por IP/minuto |
 | `POST /quotes/{id}/send-email` | 10 por usuario/hora |
 
