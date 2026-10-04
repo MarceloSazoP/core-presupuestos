@@ -10,7 +10,7 @@ const K_TOKEN = 'token';
 const K_USUARIO = 'usuario';
 
 type Estado = 'cargando' | 'dentro' | 'fuera';
-type Valor = { estado: Estado; usuario: Usuario | null; iniciar: (token: string, usuario: Usuario) => Promise<void>; salir: () => Promise<void> };
+type Valor = { estado: Estado; usuario: Usuario | null; iniciar: (token: string, usuario: Usuario) => Promise<void>; actualizar: (usuario: Usuario) => Promise<void>; salir: () => Promise<void> };
 
 const Contexto = createContext<Valor | null>(null);
 
@@ -34,6 +34,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     if (t) await api('/auth/logout', { method: 'POST', token: t }).catch(() => {}); // revoca la sesión en el servidor si hay red
   }, []);
 
+  // Cambios en el perfil (nombre, contacto, logo): se guardan también para poder abrir la app sin conexión.
+  const actualizar = useCallback(async (u: Usuario) => {
+    setUsuario(u);
+    await guardar(K_USUARIO, JSON.stringify(u));
+  }, []);
+
   const iniciar = useCallback(async (t: string, u: Usuario) => {
     await Promise.all([guardar(K_TOKEN, t), guardar(K_USUARIO, JSON.stringify(u)), usarDatosDe(u.id)]);
     token.current = t;
@@ -55,5 +61,5 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     })();
   }, [salir]);
 
-  return <Contexto.Provider value={{ estado, usuario, iniciar, salir }}>{children}</Contexto.Provider>;
+  return <Contexto.Provider value={{ estado, usuario, iniciar, actualizar, salir }}>{children}</Contexto.Provider>;
 }

@@ -68,12 +68,12 @@ export function mensajeDe(e: unknown): string {
 // Subida multipart (fotos y notas de voz, Contrato API §6). El `fetch` de Expo sigue el estándar web y NO admite el objeto
 // `{ uri, name, type }` propio de React Native ("Unsupported FormDataPart implementation"): el archivo va como `File`
 // (expo-file-system, que lee desde su ruta sin cargarlo entero en memoria de JS) o, en la web de desarrollo, como Blob.
-export const subir = async <T>(path: string, archivo: { uri: string; name: string; type: string }, campos: Record<string, string> = {}) => {
+export const subir = async <T>(path: string, archivo: { uri: string; name: string; type: string }, campos: Record<string, string> = {}, metodo: 'POST' | 'PUT' = 'POST') => {
   const form = new FormData();
   for (const [k, v] of Object.entries(campos)) form.append(k, v);
   const parte = Platform.OS === 'web' ? await (await fetch(archivo.uri)).blob() : new File(archivo.uri);
   form.append('file', parte as Blob, archivo.name);
-  return api<T>(path, { method: 'POST', body: form, reintentar: 'id' in campos }); // con `id` repetir es seguro (Contrato API §1)
+  return api<T>(path, { method: metodo, body: form, reintentar: metodo === 'PUT' || 'id' in campos }); // un PUT reemplaza y con `id` repetir es seguro (Contrato API §1)
 };
 
 // Fuente para expo-image y expo-audio: los archivos de la API se descargan con el token.
