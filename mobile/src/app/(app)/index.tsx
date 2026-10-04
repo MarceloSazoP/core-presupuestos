@@ -13,6 +13,7 @@ import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/l
 import { Pestanas } from '@/components/pestanas';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
+import { useRefrescar } from '@/lib/refrescar';
 import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -82,6 +83,7 @@ export default function Presupuestos() {
 
   useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
+  useRefrescar(() => void cargar()); // y cuando cambia algo en la web
 
   return (
     <View style={{ flex: 1, backgroundColor: t.fondo }}>

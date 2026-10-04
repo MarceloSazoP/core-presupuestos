@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
@@ -14,6 +14,8 @@ import { Sincronizacion } from '@/components/sincronizacion';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
 import { clp } from '@/lib/formato';
+import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
+import { useRefrescar } from '@/lib/refrescar';
 import { asegurarSincronizado, guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { espacio, useTema } from '@/theme';
 
@@ -27,6 +29,11 @@ export default function Detalle() {
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [generando, setGenerando] = useState(false);
+  const [vista, setVista] = useState({ cierre: 0, levantamiento: 0 }); // sube cuando el servidor trae cambios de otro lugar (la web)
+  const actual = useRef<Presupuesto | null>(null);
+  useEffect(() => {
+    actual.current = q;
+  }, [q]);
 
   const { pendientes } = useCola();
   const colaVacia = pendientes === 0;
@@ -37,11 +44,17 @@ export default function Detalle() {
     void leerCodigo(id).then(setCodigo); // el código llega al sincronizar un presupuesto creado sin conexión
     try {
       const servidor = await api<Presupuesto>(`/quotes/${id}`);
-      if (!(await hayPendientesDe(id))) setQ(servidor);
+      if (!(await hayPendientesDe(id))) {
+        const local = actual.current;
+        if (local) setVista((v) => ({ cierre: v.cierre + Number(huellaCierre(local) !== huellaCierre(servidor)), levantamiento: v.levantamiento + Number(huellaLevantamiento(local) !== huellaLevantamiento(servidor)) }));
+        setQ(servidor);
+      }
     } catch (err) {
       setError(mensajeDe(err)); // sin conexión se sigue con la copia local, si la hay
     }
   }, [id]);
+
+  useRefrescar(() => void recargar()); // cambios hechos en la web aparecen aquí sin salir de la pantalla
 
   const cambiar = useCallback((f: (p: Presupuesto) => Presupuesto) => setQ((p) => (p ? f(p) : p)), []);
 
@@ -106,8 +119,7 @@ export default function Detalle() {
         <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
         {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
-        <Texto variante="titulo">{q.customer.name}</Texto>
-        <ContactoCliente key={`${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} />
+        <ContactoCliente key={`${q.customer.name}|${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} nombreEditable={!cerrado} />
         {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
         {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
       </View>
@@ -150,9 +162,9 @@ export default function Detalle() {
       </View>
 
       {cerrado && q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
-      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento q={q} cambiar={cambiar} />}
+      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento key={vista.levantamiento} q={q} cambiar={cambiar} />}
       {cerrado && q.commercial_status !== 'NONE' ? <Seguimiento q={q} recargar={recargar} /> : null}
-      {cerrado ? null : <Cierre q={q} recargar={recargar} />}
+      {cerrado ? null : <Cierre key={vista.cierre} q={q} recargar={recargar} />}
 
       {cerrado && q.items.length ? (
         <View style={e.bloque}>

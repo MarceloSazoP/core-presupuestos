@@ -263,6 +263,10 @@ Reglas de la cola:
 - Los datos locales pertenecen a un usuario: si entra otro en el mismo teléfono se borran (`usarDatosDe`).
 - Disparadores: abrir la app, volver a primer plano, cada edición y el reintento con espera (2 s, 4 s… tope 60 s). No se usa `expo-network`.
 
+### Cambios hechos en otro lugar (la web) llegan a la app (decisión del 2026-10-04)
+
+Lo que se cambia en la web (IVA, ítems, descuento, notas, datos del cliente…) debe verse en la app sin salir de la pantalla. La app vuelve a pedir el presupuesto (y la lista) al abrir la pantalla, al volver a primer plano y cada 8 s mientras está a la vista; no hay canal en tiempo real en el MVP. Reglas: (1) si la cola tiene cambios sin enviar de ese presupuesto, **manda lo local** y no se pisa nada; (2) cada bloque editable (cierre, levantamiento) se vuelve a armar **solo si el servidor cambió sus propios campos** respecto de la copia local, así no se pierde lo que se está escribiendo cuando solo cambió otra cosa (p. ej. terminó de subir una foto).
+
 ### Clientes recurrentes y contactos (decisión del 2026-10-04, app móvil)
 
 El usuario pidió reutilizar clientes y traerlos desde la agenda del teléfono. **No estaba en la documentación anterior**; no cambia la API (ya existen `/customers` y `customer_id` en `POST /quotes`, Contrato API §5 y §6), solo la app. Sigue siendo un solo cliente por presupuesto y **no es un CRM**: sin etiquetas, notas de cliente ni importación masiva.
