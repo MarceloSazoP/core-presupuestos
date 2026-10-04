@@ -20,7 +20,7 @@ export async function quoteDetail(q: QuoteRow) {
     query('SELECT id, label, value FROM survey_measurements WHERE quote_id = $1 ORDER BY position', [q.id]),
     query('SELECT file_id, caption, created_at FROM survey_photos WHERE quote_id = $1 ORDER BY position, created_at', [q.id]),
     query('SELECT file_id, duration_seconds, created_at FROM survey_voice_notes WHERE quote_id = $1 ORDER BY created_at', [q.id]),
-    query('SELECT id, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
+    query('SELECT id, kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
     query<{ token: string }>(`SELECT token FROM quote_access WHERE quote_id = $1 AND kind = 'PUBLIC' AND revoked_at IS NULL`, [q.id]),
     query<{ name: string; phone: string; email: string; logo_file_id: string | null }>('SELECT name, phone, email, logo_file_id FROM users WHERE id = $1', [q.user_id]),
   ]);

@@ -168,6 +168,22 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.deepEqual([(await finalizar(sin.id)).json.vat], [0], 'sin la casilla, el IVA es 0');
   });
 
+  it('con tareas: el snapshot y la vista pública las marcan, y el PDF se genera', async () => {
+    const q = await completo();
+    await app.api('PUT', `/quotes/${q.id}/items`, { token: a.token, body: { items: [
+      { description: 'Piso', quantity: 2, unit: 'm2', unit_price: 10000 },
+      { kind: 'TASK', description: 'Botar escombros', unit_price: 30000 },
+      { kind: 'TASK', description: 'Limpiar bodega' },
+    ] } });
+    const r = await finalizar(q.id);
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.equal(r.json.total, 50000);
+    const j = await (await fetch(`${app.base}/public/quotes/${await tokenOf(q.id)}`)).json();
+    assert.deepEqual(j.items.map((i: { kind: string }) => i.kind), ['ITEM', 'TASK', 'TASK']);
+    const pdf = await fetch(`${app.base}/public/quotes/${await tokenOf(q.id)}/pdf`);
+    assert.equal(Buffer.from(await pdf.arrayBuffer()).subarray(0, 5).toString(), '%PDF-');
+  });
+
   it('vista pública: solo lectura, sin datos internos ni de contacto del cliente, con cabeceras de privacidad', async () => {
     const q = await completo(a.token);
     await finalizar(q.id);

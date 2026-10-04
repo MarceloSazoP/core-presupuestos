@@ -83,13 +83,24 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
               { text: 'Precio', bold: true, alignment: 'right' },
               { text: 'Total', bold: true, alignment: 'right' },
             ],
-            ...s.items.map((i) => [
-              i.description,
-              { text: qty(i.quantity), alignment: 'right' as const },
-              { text: unitSymbol(i.unit), alignment: 'center' as const },
-              { text: clp(i.unit_price), alignment: 'right' as const },
-              { text: clp(i.line_total), alignment: 'right' as const },
-            ]),
+            // Una tarea no lleva cantidad, unidad ni precio unitario; con valor 0 se presenta como «Incluido».
+            ...s.items.map((i) =>
+              i.kind === 'TASK'
+                ? [
+                    { text: [{ text: 'TAREA  ', fontSize: 7, bold: true, color: '#666666' }, i.description] },
+                    { text: '', alignment: 'right' as const },
+                    { text: '', alignment: 'center' as const },
+                    { text: '', alignment: 'right' as const },
+                    { text: i.line_total > 0 ? clp(i.line_total) : 'Incluido', alignment: 'right' as const },
+                  ]
+                : [
+                    i.description,
+                    { text: qty(i.quantity), alignment: 'right' as const },
+                    { text: unitSymbol(i.unit), alignment: 'center' as const },
+                    { text: clp(i.unit_price), alignment: 'right' as const },
+                    { text: clp(i.line_total), alignment: 'right' as const },
+                  ],
+            ),
           ],
         },
         layout: 'lightHorizontalLines',

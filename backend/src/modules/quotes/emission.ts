@@ -20,7 +20,7 @@ import { quoteDetail, type QuoteRow } from './serialize';
 
 export const publicUrl = (token: string) => `${config.WEB_BASE_URL}/q/${token}`;
 
-type ItemRow = { description: string; quantity: number; unit: string; unit_price: number; line_total: number };
+type ItemRow = { kind: 'ITEM' | 'TASK'; description: string; quantity: number; unit: string; unit_price: number; line_total: number };
 type UserRow = { name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null };
 
 // Lo que exige `finalize` (Contrato API §7). Devuelve todos los problemas juntos, no solo el primero.
@@ -63,7 +63,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     const q0 = await loadQuote(req, req.params.id);
     editable(q0);
     const [items, user, customer] = await Promise.all([
-      query<ItemRow>('SELECT description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q0.id]),
+      query<ItemRow>('SELECT kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q0.id]),
       query<UserRow>('SELECT name, phone, email, logo_file_id, signature_file_id FROM users WHERE id = $1', [q0.user_id]),
       query<{ name: string }>('SELECT name FROM customers WHERE id = $1 AND user_id = $2', [q0.customer_id, q0.user_id]),
     ]);
@@ -94,7 +94,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
           professional: { name: u.name, phone: u.phone, email: u.email, logo_file_id: u.logo_file_id, signature_file_id: q.include_signature ? u.signature_file_id : null },
           customer: { name: customer.rows[0]!.name },
           service_description: q.service_description!.trim(), service_address: q.address,
-          items: items.rows.map((i) => ({ description: i.description, quantity: i.quantity, unit: i.unit, unit_price: i.unit_price, line_total: i.line_total })),
+          items: items.rows.map((i) => ({ kind: i.kind, description: i.description, quantity: i.quantity, unit: i.unit, unit_price: i.unit_price, line_total: i.line_total })),
           subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, vat_rate: VAT_RATE, total: q.total,
           warranty: { kind: q.warranty_kind, text: warrantyText(q.warranty_kind, q.warranty_text) },
           validity_days: q.validity_days!, observations: q.observations, include_signature: q.include_signature, include_qr: q.include_qr,

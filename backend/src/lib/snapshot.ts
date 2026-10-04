@@ -8,7 +8,7 @@ export type Snapshot = {
   customer: { name: string };
   service_description: string;
   service_address: string | null;
-  items: { description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
+  items: { kind?: 'ITEM' | 'TASK'; description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
   subtotal: number;
   discount: number;
   include_vat?: boolean; // los snapshots anteriores al IVA no lo traen: se leen como false

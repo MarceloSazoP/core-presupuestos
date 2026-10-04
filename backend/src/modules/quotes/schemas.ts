@@ -57,19 +57,25 @@ export const Measurements = z.strictObject({
   measurements: z.array(z.strictObject({ id: z.uuid().optional(), label: Short, value: Short })).max(50, 'Máximo 50 medidas'),
 });
 
-export const Items = z.strictObject({
-  items: z
-    .array(
-      z.strictObject({
-        id: z.uuid().optional(),
-        description: z.string().trim().min(1, 'Cada ítem necesita una descripción').max(300, 'Máximo 300 caracteres'),
-        quantity: z.number().gt(0, 'Debe ser mayor que 0').max(1_000_000, 'Demasiado grande').refine(hasMax3Decimals, 'Máximo 3 decimales'),
-        unit: z.string().refine(isUnit, 'Unidad de medida no válida').default('un'),
-        unit_price: z.number().int().min(0).max(999_999_999, 'Demasiado grande'),
-      }),
-    )
-    .max(100, 'Máximo 100 ítems'),
-});
+const Description = z.string().trim().min(1, 'Cada ítem necesita una descripción').max(300, 'Máximo 300 caracteres');
+const UnitPrice = z.number().int().min(0).max(999_999_999, 'Demasiado grande');
+
+// Una línea es un ítem (cantidad × precio) o una tarea (actividad sin cantidad ni unidad, Contrato API §6). Sin `kind` es
+// un ítem, como antes. En una tarea `quantity` y `unit` no existen: el esquema estricto responde 422 si llegan.
+const Line = z.discriminatedUnion('kind', [
+  z.strictObject({
+    kind: z.literal('ITEM'),
+    id: z.uuid().optional(),
+    description: Description,
+    quantity: z.number().gt(0, 'Debe ser mayor que 0').max(1_000_000, 'Demasiado grande').refine(hasMax3Decimals, 'Máximo 3 decimales'),
+    unit: z.string().refine(isUnit, 'Unidad de medida no válida').default('un'),
+    unit_price: UnitPrice,
+  }),
+  z.strictObject({ kind: z.literal('TASK'), id: z.uuid().optional(), description: Description, unit_price: UnitPrice.default(0) }),
+]);
+const withKind = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) && !('kind' in v) ? { ...v, kind: 'ITEM' } : v);
+
+export const Items = z.strictObject({ items: z.array(z.preprocess(withKind, Line)).max(100, 'Máximo 100 ítems') });
 
 export const ListQuotes = z.object({
   section: z.enum(['pending', 'follow_up', 'finalized']).optional(),

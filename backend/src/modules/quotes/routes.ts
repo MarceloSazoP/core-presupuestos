@@ -176,16 +176,17 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     const q = await loadQuote(req, req.params.id);
     editable(q);
     const { items } = parse(Items, req.body);
-    const lines = items.map((i) => lineTotal(i.quantity, i.unit_price));
+    // Una tarea no tiene cantidad ni unidad: se guarda como 1 un y su total es su valor (0 = incluida).
+    const lines = items.map((i) => lineTotal(i.kind === 'TASK' ? 1 : i.quantity, i.unit_price));
     try {
       await withTx(async (c) => {
         const { rows } = await c.query<{ discount: number; include_vat: boolean }>('SELECT discount, include_vat FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
         await c.query('DELETE FROM quote_items WHERE quote_id = $1', [q.id]);
         for (const [i, it] of items.entries()) {
           await c.query(
-            `INSERT INTO quote_items (id, quote_id, position, description, quantity, unit, unit_price, line_total)
-             VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8)`,
-            [it.id ?? null, q.id, i, it.description, it.quantity, it.unit, it.unit_price, lines[i]]);
+            `INSERT INTO quote_items (id, quote_id, position, kind, description, quantity, unit, unit_price, line_total)
+             VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [it.id ?? null, q.id, i, it.kind, it.description, it.kind === 'TASK' ? 1 : it.quantity, it.kind === 'TASK' ? 'un' : it.unit, it.unit_price, lines[i]]);
         }
         const { subtotal, vat, total } = sumTotals(lines, rows[0]!.discount, rows[0]!.include_vat);
         await c.query('UPDATE quotes SET subtotal = $2, vat = $3, total = $4, updated_at = now() WHERE id = $1', [q.id, subtotal, vat, total]);

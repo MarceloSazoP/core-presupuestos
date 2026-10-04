@@ -158,6 +158,28 @@ describe('API: presupuestos (Contrato API §6, §9 y §14)', () => {
     await assert.rejects(pool.query('UPDATE quotes SET total = total + 1 WHERE id = $1', [q.id]), /quotes_total_check/);
   });
 
+  it('tareas: sin cantidad ni unidad, valor opcional («Incluido»), suman al subtotal y conservan el orden', async () => {
+    const q = await crear();
+    const r = await items(a.token, q.id, [
+      { description: 'Piso flotante', quantity: 12.5, unit: 'm2', unit_price: 18000 },
+      { kind: 'TASK', description: 'Botar escombros', unit_price: 30000 },
+      { kind: 'TASK', description: 'Limpiar bodega' },
+    ]);
+    assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.deepEqual(r.json.items.map((i: { kind: string }) => i.kind), ['ITEM', 'TASK', 'TASK'], 'sin kind es un ítem, como antes');
+    const [, t1, t2] = r.json.items;
+    assert.deepEqual([t1.quantity, t1.unit, t1.unit_price, t1.line_total], [1, 'un', 30000, 30000]);
+    assert.deepEqual([t2.description, t2.unit_price, t2.line_total], ['Limpiar bodega', 0, 0], 'sin valor queda incluida');
+    assert.equal(r.json.subtotal, 225000 + 30000);
+    for (const mala of [{ kind: 'TASK', description: 'x', quantity: 2 }, { kind: 'TASK', description: 'x', unit: 'm2' }, { kind: 'OTRO', description: 'x', unit_price: 1 }, { kind: 'TASK', description: '' }]) {
+      assert.equal((await items(a.token, q.id, [mala])).status, 422, JSON.stringify(mala));
+    }
+    assert.equal((await app.api('GET', `/quotes/${q.id}`, { token: a.token })).json.items.length, 3, 'lo rechazado no dejó nada a medias');
+    await assert.rejects(pool.query(`UPDATE quote_items SET quantity = 2, line_total = 60000 WHERE quote_id = $1 AND kind = 'TASK' AND unit_price = 30000`, [q.id]), /quote_items_task_check/);
+    const solo = await items(a.token, q.id, [{ kind: 'TASK', description: 'Revisión', unit_price: 0 }]);
+    assert.deepEqual([solo.json.subtotal, solo.json.total], [0, 0], 'solo tareas incluidas: total 0');
+  });
+
   it('ítems: rechaza lo que el contrato rechaza, sin dejar nada a medias', async () => {
     const q = await crear();
     await items(a.token, q.id, [{ description: 'Bueno', quantity: 1, unit_price: 100 }]);
