@@ -11,7 +11,8 @@ import { prepararLogo } from '@/lib/foto';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
 
-// Logo o firma del perfil (Contrato API §4): vista previa de la imagen ACTUAL, elegir/cambiar y quitar. Al cambiarla pasa un
+// Logo o firma del perfil (Contrato API §4). El título lleva su interruptor: encendido habilita subir la imagen y se usa en todos los
+// presupuestos; apagado no se usa en ninguno (y se oculta la subida). Encendido: vista previa de la imagen ACTUAL, elegir/cambiar y quitar. Al cambiarla pasa un
 // destello verde que dice «Actualizado». La dirección de la imagen lleva el id del archivo (`logo_id` / `signature_id`), que
 // cambia con cada imagen nueva: así nunca se ve una vieja guardada en caché.
 type Props = { ruta: 'logo' | 'signature'; titulo: string; ayuda: string; vacio: string; nombre: string };
@@ -26,6 +27,8 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
   const estiloDestello = useAnimatedStyle(() => ({ opacity: destello.get() }));
 
   const tiene = ruta === 'logo' ? !!usuario?.has_logo : !!usuario?.has_signature;
+  const activo = ruta === 'logo' ? !!usuario?.use_logo : !!usuario?.include_signature;
+  const campo = ruta === 'logo' ? 'use_logo' : 'include_signature';
   const id = ruta === 'logo' ? usuario?.logo_id : usuario?.signature_id;
 
   // Sube rápido, se queda un momento y se apaga despacio.
@@ -35,12 +38,11 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  // Solo la firma: incluirla es una opción del perfil (Contrato API §4), no de cada presupuesto: o va en todos o en ninguno.
-  async function incluir(valor: boolean) {
+  // Es una opción del perfil (Contrato API §4), no de cada presupuesto: o va en todos o en ninguno.
+  async function usar(valor: boolean) {
     setCambiando(true);
     try {
-      await actualizar(await api<Usuario>('/me', { method: 'PUT', body: { include_signature: valor } }));
-      encender('Actualizado');
+      await actualizar(await api<Usuario>('/me', { method: 'PUT', body: { [campo]: valor } }));
     } catch (err) {
       Alert.alert('No se pudo cambiar', mensajeDe(err));
     } finally {
@@ -87,32 +89,32 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
 
   return (
     <View style={e.seccion}>
-      <Texto variante="subtitulo">{titulo}</Texto>
-      <Texto variante="chico" suave>{ayuda}</Texto>
-      <View style={[e.vista, { backgroundColor: tiene ? '#FFFFFF' : t.tarjeta, borderColor: t.borde }]}>
-        {tiene ? (
-          <Image source={fuenteDeArchivo(`/me/${ruta}?v=${id ?? 'sin-id'}`)} contentFit="contain" accessibilityLabel={titulo} style={e.imagen} />
-        ) : (
-          <Texto variante="chico" suave>{vacio}</Texto>
-        )}
-        {/* Destello verde al cambiar: solo se ve un instante y no recibe toques */}
-        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, e.destello, { backgroundColor: `${t.ok}40`, borderColor: t.ok }, estiloDestello]}>
-          <View style={[e.etiqueta, { backgroundColor: t.ok }]}>
-            <Texto variante="chico" fuerte color="sobreAcento">{mensaje} ✓</Texto>
-          </View>
-        </Animated.View>
+      <View style={e.filaSwitch}>
+        <Texto variante="subtitulo" style={e.textoSwitch}>{titulo}</Texto>
+        <Switch accessibilityLabel={`${titulo}: ${activo ? 'activado' : 'desactivado'}`} value={activo} disabled={cambiando} onValueChange={(v) => void usar(v)} trackColor={{ true: t.acento }} />
       </View>
-      {ruta === 'signature' ? (
+      {activo ? (
         <>
-          <View style={e.filaSwitch}>
-            <Texto style={e.textoSwitch}>Incluir mi firma en todos mis presupuestos</Texto>
-            <Switch accessibilityLabel="Incluir mi firma en todos mis presupuestos" value={tiene && !!usuario?.include_signature} disabled={!tiene || cambiando} onValueChange={(v) => void incluir(v)} trackColor={{ true: t.acento }} />
+          <Texto variante="chico" suave>{ayuda}</Texto>
+          <View style={[e.vista, { backgroundColor: tiene ? '#FFFFFF' : t.tarjeta, borderColor: t.borde }]}>
+            {tiene ? (
+              <Image source={fuenteDeArchivo(`/me/${ruta}?v=${id ?? 'sin-id'}`)} contentFit="contain" accessibilityLabel={titulo} style={e.imagen} />
+            ) : (
+              <Texto variante="chico" suave>{vacio}</Texto>
+            )}
+            {/* Destello verde al cambiar: solo se ve un instante y no recibe toques */}
+            <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, e.destello, { backgroundColor: `${t.ok}40`, borderColor: t.ok }, estiloDestello]}>
+              <View style={[e.etiqueta, { backgroundColor: t.ok }]}>
+                <Texto variante="chico" fuerte color="sobreAcento">{mensaje} ✓</Texto>
+              </View>
+            </Animated.View>
           </View>
-          <Texto variante="chico" suave>{tiene ? 'Activada, la firma sale en todos los presupuestos que termines; apagada, no sale en ninguno. El nombre, el teléfono y el correo siempre salen bajo la línea de firma.' : 'Sube tu firma para poder activarla.'}</Texto>
+          <Boton titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} variante="secundario" onPress={() => void elegir()} cargando={ocupado} />
+          {tiene ? <Boton titulo={`Quitar ${nombre}`} variante="texto" onPress={quitar} disabled={ocupado} /> : null}
         </>
-      ) : null}
-      <Boton titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} variante="secundario" onPress={() => void elegir()} cargando={ocupado} />
-      {tiene ? <Boton titulo={`Quitar ${nombre}`} variante="texto" onPress={quitar} disabled={ocupado} /> : null}
+      ) : (
+        <Texto variante="chico" suave>{`Apagado: ${nombre} no sale en tus presupuestos. Enciéndelo para subir la imagen.`}</Texto>
+      )}
     </View>
   );
 }

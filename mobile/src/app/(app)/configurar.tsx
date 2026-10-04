@@ -77,7 +77,7 @@ export default function Configurar() {
 
       <ImagenPerfil ruta="logo" titulo="Logo" nombre="el logo" ayuda="Sale arriba en tus presupuestos, en su propia fila: sirve un logo horizontal. PNG o JPEG; se ajusta solo a un tamaño liviano." vacio="Todavía no subes un logo" />
 
-      <ImagenPerfil ruta="signature" titulo="Firma" nombre="la firma" ayuda="Se imprime sobre la línea de firma del PDF cuando activas «Incluir mi firma» en un presupuesto. Mejor sobre fondo blanco o transparente." vacio="Todavía no subes tu firma" />
+      <ImagenPerfil ruta="signature" titulo="Firma" nombre="la firma" ayuda="Se imprime sobre la línea de firma del PDF en todos tus presupuestos. Mejor sobre fondo blanco o transparente. Bajo la línea siempre salen tu nombre, teléfono y correo." vacio="Todavía no subes tu firma" />
 
       <View style={e.seccion}>
         <Texto variante="subtitulo">Tu cuenta</Texto>
