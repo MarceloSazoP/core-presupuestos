@@ -1,3 +1,4 @@
+import { salirAction } from "../actions";
 import { BotonTema } from "../boton-tema";
 import { Reloj } from "../reloj";
 
@@ -29,6 +30,11 @@ export function Encabezado({ profesional, logoSrc }: { profesional: Profesional;
       <div className="flex items-center gap-4">
         <Reloj />
         <BotonTema />
+        <form action={salirAction}>
+          <button type="submit" className="boton-secundario" title="Consultar otro presupuesto">
+            Salir
+          </button>
+        </form>
       </div>
     </header>
   );

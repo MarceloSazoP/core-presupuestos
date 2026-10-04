@@ -5,7 +5,7 @@ import { useActionState, useEffect, useRef, useState, useTransition, type FormEv
 import { clp, miles } from "@/lib/formato";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
-import { completarPresupuestoAction, salirAction, type EstadoEdicion } from "../actions";
+import { completarPresupuestoAction, type EstadoEdicion } from "../actions";
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
@@ -129,7 +129,6 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       return llenas.length > 0 ? llenas : actuales.slice(0, 1);
     });
   };
-  const salir = () => enTransicion(() => salirAction());
 
   const agregar = (tipo: Fila["tipo"] = "item") =>
     setFilas((actuales) => (actuales.length >= MAX_ITEMS ? actuales : [...actuales, filaVacia(Math.max(...actuales.map((f) => f.clave)) + 1, tipo)]));
@@ -388,7 +387,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </section>
       </div>
 
-      <div className="flex flex-col gap-4 border-t border-borde pt-6">
+      <div className="flex flex-col gap-4">
         {estado.errores && (
           <ul role="alert" className="list-disc pl-5 text-sm text-error">
             {estado.errores.map((e) => (
@@ -434,22 +433,35 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </div>
         </dialog>
 
-        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={salir} className="boton-texto">
-            Consultar otro presupuesto
+      </div>
+
+      {/* Acciones secundarias en el teléfono: la barra fija de abajo solo lleva el total y la acción principal. */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
+          Guardar y seguir después
+        </button>
+        <button type="button" onClick={previsualizar} className="boton-secundario" disabled={pendiente}>
+          Previsualizar presupuesto
+        </button>
+      </div>
+
+      {/* Barra fija: el total y las acciones siempre a la vista. Una sola acción principal. */}
+      <div className="sticky bottom-0 z-10 -mx-5 -mb-5 flex items-center justify-between gap-3 rounded-b-xl border-t border-borde bg-card/95 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8 lg:-mx-10 lg:-mb-10 lg:px-10">
+        <p className="flex flex-col leading-tight tabular-nums">
+          <span className="text-sm text-muted">Total</span>
+          <span className={`text-2xl font-bold ${descuentoExcesivo ? "text-error" : ""}`}>{clp(totales.total)}</span>
+        </p>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <button type="button" onClick={previsualizar} className="boton-texto hidden whitespace-nowrap sm:inline-flex" disabled={pendiente}>
+            Previsualizar presupuesto
           </button>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
-              Guardar y seguir después
-            </button>
-            <button type="button" onClick={previsualizar} className="boton-secundario" disabled={pendiente}>
-              Previsualizar presupuesto
-            </button>
-            <button type="button" onClick={intentarTerminar} className="boton" disabled={pendiente}>
-              {pendiente && <span className="spinner" aria-hidden="true" />}
-              {pendiente ? "Procesando…" : "Terminar y enviar"}
-            </button>
-          </div>
+          <button type="submit" name="accion" value="guardar" className="boton-secundario hidden whitespace-nowrap sm:inline-flex" disabled={pendiente}>
+            Guardar y seguir después
+          </button>
+          <button type="button" onClick={intentarTerminar} className="boton whitespace-nowrap" disabled={pendiente}>
+            {pendiente && <span className="spinner" aria-hidden="true" />}
+            {pendiente ? "Procesando…" : "Terminar y enviar"}
+          </button>
         </div>
       </div>
     </form>

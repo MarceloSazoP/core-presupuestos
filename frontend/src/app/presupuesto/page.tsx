@@ -5,7 +5,6 @@ import { simboloUnidad } from "@/lib/opciones";
 import { cargarPresupuesto, esFinalizado } from "@/lib/presupuesto";
 import { totalLinea } from "@/lib/totales";
 import { enlaceWhatsApp, mensajePresupuesto } from "@/lib/whatsapp";
-import { salirAction } from "../actions";
 import { Editor } from "./editor";
 import { Encabezado } from "./encabezado";
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
@@ -170,11 +169,6 @@ export default async function PresupuestoPage() {
             </a>
             <EnlaceWhatsApp href={whatsappUrl} className="boton-secundario" />
             <EnviarCorreo destino={p.cliente.correo} />
-            <form action={salirAction}>
-              <button type="submit" className="boton-texto w-full">
-                Consultar otro presupuesto
-              </button>
-            </form>
           </div>
         </aside>
       </div>
