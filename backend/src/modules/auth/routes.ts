@@ -31,13 +31,18 @@ export function authRoutes(sendCode: SendCode, ipStartLimit = 10) {
   // Inicia registro o ingreso. La respuesta es idéntica exista o no la cuenta (Contrato API §3).
   r.post('/start', ipLimit, async (req, res) => {
     const body = parse(StartBody, req.body);
-    const { rows: users } = await query<{ phone: string; email: string }>('SELECT phone, email FROM users WHERE phone = $1', [body.phone]);
+    // Una cuenta es la misma persona si coincide el teléfono O el correo: quien entra con su correo pero escribe otro teléfono
+    // (o al revés) sigue siendo esa cuenta, no una nueva. Si coinciden con cuentas distintas gana la del teléfono.
+    const { rows: users } = await query<{ phone: string; email: string }>(
+      'SELECT phone, email FROM users WHERE phone = $1 OR email = $2 ORDER BY (phone = $1) DESC LIMIT 1', [body.phone, body.email]);
     const existing = users[0];
     // Cuenta existente: el código va al contacto GUARDADO, nunca a uno enviado en la petición.
     const destination = existing ? (body.channel === 'SMS' ? existing.phone : existing.email) : body.channel === 'SMS' ? body.phone : body.email;
+    // El desafío se asocia a la identidad real de la cuenta (su teléfono guardado), no al que se escribió.
+    const identity = existing ? existing.phone : body.phone;
 
     const { rows: recent } = await query<{ n: number }>(
-      `SELECT count(*)::int AS n FROM auth_challenges WHERE phone = $1 AND created_at > now() - interval '1 hour'`, [body.phone]);
+      `SELECT count(*)::int AS n FROM auth_challenges WHERE phone = $1 AND created_at > now() - interval '1 hour'`, [identity]);
     if (recent[0]!.n >= MAX_PER_PHONE_HOUR) throw new AppError(429, 'RATE_LIMITED', 'Demasiados intentos para este teléfono', undefined, { 'Retry-After': '3600' });
     if (body.channel === 'SMS') {
       // Tope diario global: cada SMS cuesta dinero (Arquitectura §3).
@@ -51,7 +56,7 @@ export function authRoutes(sendCode: SendCode, ipStartLimit = 10) {
     await query(
       `INSERT INTO auth_challenges (id, phone, channel, destination, signup_name, signup_email, code_hash, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, now() + make_interval(mins => $8))`,
-      [id, body.phone, body.channel, destination, existing ? null : body.name, existing ? null : body.email, hashCode(id, code), CODE_MINUTES],
+      [id, identity, body.channel, destination, existing ? null : body.name, existing ? null : body.email, hashCode(id, code), CODE_MINUTES],
     );
     try {
       await sendCode(body.channel, destination, code);

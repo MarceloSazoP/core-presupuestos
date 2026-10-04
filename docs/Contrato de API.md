@@ -123,8 +123,8 @@ Inicia registro **o** ingreso. El cliente siempre envía los tres datos del onbo
 ```
 
 - `channel`: `SMS` | `EMAIL`.
-- Si el teléfono **no existe**: se registra con `name` y `email` al verificar.
-- Si **existe**: `name` y `email` se ignoran y el código se envía al **contacto guardado** (SMS al teléfono, correo al email guardado), nunca a uno enviado en la petición.
+- Si ni el teléfono **ni el correo** existen: se registra con `name` y `email` al verificar.
+- Si **alguno de los dos existe** (coincide el teléfono o el correo de una cuenta), es un **ingreso a esa cuenta**: `name`, `phone` y `email` se ignoran y el código se envía al **contacto guardado** (SMS al teléfono, correo al email guardado), nunca a uno enviado en la petición. Así, entrar con el mismo correo pero otro teléfono no crea una persona nueva ni choca con «correo ya en uso». Si el teléfono y el correo coinciden con cuentas distintas, gana la del teléfono.
 - La respuesta es idéntica en ambos casos (no revela si la cuenta existe).
 
 **202**

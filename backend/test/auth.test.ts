@@ -56,6 +56,26 @@ describe('API: autenticación (Contrato API §3 y §14)', () => {
     assert.equal(v.json.user.name, 'Pedro');
   });
 
+  it('el mismo correo con otro teléfono es la misma cuenta (ingreso), no una persona nueva que choca con «correo ya en uso»', async () => {
+    const nueva = await start();
+    const v0 = await app.api('POST', '/auth/verify', { body: { challenge_id: nueva.json.challenge_id, code: app.sent[0]!.code } });
+    const otro = await start({ phone: '+56988880000', name: 'Pedro de nuevo', email: 'PEDRO@test.cl' }); // otro teléfono, correo con mayúsculas
+    assert.equal(otro.status, 202);
+    assert.equal(app.sent[1]!.destination, 'pedro@test.cl', 'el código va al correo guardado');
+    const v = await app.api('POST', '/auth/verify', { body: { challenge_id: otro.json.challenge_id, code: app.sent[1]!.code } });
+    assert.equal(v.status, 200, JSON.stringify(v.json));
+    assert.deepEqual([v.json.is_new_user, v.json.user.id, v.json.user.phone, v.json.user.name], [false, v0.json.user.id, PHONE, 'Pedro'], 'entra a la cuenta existente, con sus datos');
+    assert.equal((await pool.query('SELECT count(*)::int AS n FROM users')).rows[0].n, 1, 'no se creó otra persona');
+    // por SMS pasa lo mismo: va al teléfono guardado, no al que se escribió
+    const sms = await start({ phone: '+56988880000', email: 'pedro@test.cl', channel: 'SMS' });
+    assert.equal(app.sent[2]!.destination, PHONE);
+    assert.equal(sms.json.destination_masked, '+56*******11', 'enmascara el teléfono guardado, no el escrito');
+    // y el teléfono guardado con otro correo también es ingreso (como antes)
+    const porTelefono = await start({ email: 'otro@test.cl' });
+    assert.equal(app.sent[3]!.destination, 'pedro@test.cl');
+    assert.equal(porTelefono.status, 202);
+  });
+
   it('el código es de un solo uso y el intento 6 falla aunque sea el correcto', async () => {
     const s = await start();
     const code = app.sent[0]!.code;
