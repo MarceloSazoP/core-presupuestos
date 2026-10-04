@@ -105,7 +105,7 @@ function EditorUnidad({ initialValue, onValueChange }: CustomCellEditorProps<Fil
 }
 
 // Grilla editable de ítems (AG Grid Community). Enter confirma la celda y abre la siguiente (descripción → cantidad →
-// unidad → precio → descripción de la fila de abajo, creándola si es la última). Escribir sobre una celda la edita.
+// unidad → precio → descripción de la fila de abajo, creándola si es la última). Un clic sobre una celda la edita.
 export function GrillaItems({
   filas,
   onChange,
@@ -233,6 +233,7 @@ export function GrillaItems({
         getRowId={(p) => String(p.data.clave)}
         domLayout="autoHeight"
         enterNavigatesVerticallyAfterEdit={false}
+        singleClickEdit // un clic abre el editor de la celda (por defecto AG Grid pide doble clic o empezar a escribir)
         stopEditingWhenCellsLoseFocus
         onGridReady={(e) => (api.current = e.api)}
         onFirstDataRendered={() => enfocarAlCargar && editar(0, EDITABLES[0])}

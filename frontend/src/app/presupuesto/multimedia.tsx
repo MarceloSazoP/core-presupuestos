@@ -16,7 +16,7 @@ export function Multimedia({ fotos, audios }: Props) {
             <li key={id}>
               <a href={`/presupuesto/archivo/${id}`} target="_blank" rel="noopener">
                 {/* eslint-disable-next-line @next/next/no-img-element -- archivo privado servido por el BFF; no hay nada que optimizar */}
-                <img src={`/presupuesto/archivo/${id}`} alt={`Foto ${i + 1} de la visita`} loading="lazy" className="aspect-square w-full rounded-lg object-cover" />
+                <img src={`/presupuesto/archivo/${id}?mini=1`} width={480} height={480} alt={`Foto ${i + 1} de la visita`} loading="lazy" decoding="async" className="aspect-square w-full rounded-lg object-cover" />
               </a>
             </li>
           ))}
