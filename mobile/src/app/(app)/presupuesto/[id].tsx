@@ -162,9 +162,9 @@ export default function Detalle() {
       </View>
 
       {cerrado && q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
-      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento key={vista.levantamiento} q={q} cambiar={cambiar} />}
+      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento key={`levantamiento-${vista.levantamiento}`} q={q} cambiar={cambiar} />}
       {cerrado && q.commercial_status !== 'NONE' ? <Seguimiento q={q} recargar={recargar} /> : null}
-      {cerrado ? null : <Cierre key={vista.cierre} q={q} recargar={recargar} />}
+      {cerrado ? null : <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} />}
 
       {cerrado && q.items.length ? (
         <View style={e.bloque}>
