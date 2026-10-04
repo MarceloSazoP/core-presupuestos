@@ -146,6 +146,44 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 
 ### `POST /auth/logout` → **204** (revoca la sesión actual)
 
+### 3.1 Propuesta v0.4 — identidad verificada y acceso con Google o Apple (borrador, no implementado)
+
+**Problema que corrige.** Hoy el teléfono es la identidad de la cuenta, pero solo se verifica si el registro fue por SMS; y el correo solo se verifica si el registro fue por correo. Quien se registra por correo con el teléfono de otra persona queda dueño de esa identidad (el código de esa persona le llegaría a su correo), y quien se registra por SMS con un correo equivocado deja un correo sin verificar que luego recibe códigos de recuperación. Esta sección lo cierra y agrega el inicio de sesión social.
+
+**Reglas**
+
+1. La cuenta se identifica por su **correo verificado** (único). Se verifica con un código enviado a ese correo, o porque Google o Apple lo entregan ya verificado.
+2. El **teléfono** pasa a ser un dato de contacto (PDF, WhatsApp). No identifica la cuenta ni sirve para ingresar mientras no esté verificado con un SMS (cuando exista Twilio). Puede repetirse entre cuentas no verificadas.
+3. Google y Apple son **otras formas de entrar a la misma cuenta**, no cuentas distintas. Una cuenta puede tener varias (correo, Google, Apple).
+4. Nunca se envía un código a un correo o teléfono que llegue en la petición para una cuenta que ya existe: va siempre al contacto verificado guardado.
+
+**`POST /auth/start`** (cambia): `{ "email": "…", "name": "…" }` para correo; `{ "phone": "+56…" }` para SMS, solo si existe una cuenta con ese teléfono verificado. En ambos casos la respuesta es igual exista o no la cuenta. `name` solo se usa al crear.
+
+**`POST /auth/social`**
+```json
+{ "provider": "GOOGLE", "id_token": "…", "nonce": "…", "name": "Pedro Soto" }
+```
+- `provider`: `GOOGLE` | `APPLE`. `nonce`: lo genera la app y debe venir dentro del token (evita reutilizarlo).
+- El servidor valida firma (claves públicas del proveedor), emisor, `aud` (los identificadores de cliente de CorePresupuesto), vencimiento y `nonce`. Nunca confía en datos que envíe la app aparte del token.
+- Si la identidad (`provider` + `sub`) ya existe: ingresa a esa cuenta.
+- Si no existe y el correo del token está verificado y coincide con el correo verificado de una cuenta: **vincula** la identidad a esa cuenta e ingresa.
+- Si no existe nada: crea la cuenta con el correo del token (en Apple puede ser una dirección de reenvío; se acepta) y `name` (Apple solo lo entrega la primera vez: la app lo envía).
+- **200**: igual que `/auth/verify`, más `"needs_phone": true` si la cuenta aún no tiene teléfono. Errores: 401 `UNAUTHENTICATED` (token inválido, vencido o con otro `nonce`), 422 (el proveedor no entregó correo), 429.
+
+**Cuenta y sesiones** (requieren sesión `USER`)
+
+| Método y ruta | Descripción |
+|---------------|-------------|
+| `PUT /me` | Ahora también acepta `phone` mientras no esté verificado. |
+| `GET /me/identities` | Formas de entrar: `[{ id, provider, created_at }]`. |
+| `POST /me/identities` | `{ provider, id_token, nonce }`: vincula Google o Apple a la cuenta actual. |
+| `DELETE /me/identities/{id}` | **204**. No permite quitar la última forma de entrar (409). |
+| `GET /me/sessions` | Sesiones activas: `[{ id, created_at, last_used_at, current }]`. |
+| `DELETE /me/sessions/{id}` | **204**. Cierra esa sesión (p. ej. la de un teléfono perdido). |
+
+**Límites:** `POST /auth/social` 20 por IP/hora.
+**Pruebas mínimas:** token con firma, `aud`, emisor, `nonce` o vencimiento inválidos → 401; la misma identidad entra siempre a la misma cuenta; vincular por correo solo si ambos están verificados; no se puede quitar la última identidad; cerrar una sesión ajena → 404; el correo no verificado nunca recibe códigos de ingreso.
+
 ---
 
 ## 4. Perfil

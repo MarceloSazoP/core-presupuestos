@@ -503,3 +503,47 @@ ALTER TABLE quote_access
 > Los nombres de las restricciones (`sessions_check`, `quote_access_check1`…) son los que Postgres asigna por defecto; se verifican con `\d` antes de escribir el archivo.
 
 **Pruebas que acompañan a la migración:** `short_id` rechaza caracteres fuera del alfabeto y duplicados; `kind = 'CODE'` exige `code_hash`; `kind = 'PUBLIC'` exige `token`; una sesión `QUOTE_CODE` exige `quote_id`.
+
+---
+
+## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
+
+Acompaña a `Contrato de API.md` §3.1. La migración `0004` se escribe cuando se apruebe.
+
+```sql
+-- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
+ALTER TABLE users
+  ADD COLUMN email_verified_at timestamptz,
+  ADD COLUMN phone_verified_at timestamptz,
+  ALTER COLUMN phone DROP NOT NULL,
+  DROP CONSTRAINT users_phone_key;
+
+-- Cuentas existentes (solo hay datos de desarrollo): se dan por verificadas.
+UPDATE users SET email_verified_at = now(), phone_verified_at = now();
+ALTER TABLE users ALTER COLUMN email_verified_at SET NOT NULL;
+
+-- Un teléfono verificado pertenece a una sola cuenta; los no verificados pueden repetirse (nadie puede "reservar" el de otro).
+CREATE UNIQUE INDEX users_phone_verified_idx ON users (phone) WHERE phone_verified_at IS NOT NULL;
+ALTER TABLE users ADD CONSTRAINT users_phone_verified_check CHECK (phone_verified_at IS NULL OR phone IS NOT NULL);
+
+CREATE TABLE auth_identities (          -- formas de entrar con un proveedor externo
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  provider   text NOT NULL CHECK (provider IN ('GOOGLE','APPLE')),
+  subject    text NOT NULL,             -- `sub` del token: estable, no cambia aunque cambie el correo
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (provider, subject)
+);
+CREATE INDEX auth_identities_user_idx ON auth_identities (user_id);
+
+-- Los desafíos de código se identifican por correo (o por teléfono verificado), no solo por teléfono.
+ALTER TABLE auth_challenges
+  ADD COLUMN email text,
+  ALTER COLUMN phone DROP NOT NULL,
+  ADD CONSTRAINT auth_challenges_identity_check CHECK ((phone IS NOT NULL) <> (email IS NOT NULL));
+CREATE INDEX auth_challenges_email_idx ON auth_challenges (email, created_at DESC);
+```
+
+- **Retención:** `auth_identities` vive mientras exista la cuenta. Las sesiones revocadas siguen purgándose como en §7.
+- **Lo que deja de existir:** registrarse con un teléfono sin verificar como identidad, y `auth_challenges.signup_email` sin verificar (el correo se verifica en el mismo desafío).
+- **Pruebas que acompañan:** dos cuentas pueden tener el mismo teléfono no verificado pero no el mismo verificado; `(provider, subject)` es único; no se puede dejar `phone_verified_at` sin `phone`.
