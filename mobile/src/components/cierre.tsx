@@ -19,7 +19,9 @@ const GARANTIAS = [
 ] as const;
 const MAX_ITEMS = 100;
 
-type Fila = { clave: string; description: string; quantity: string; unit: string; unit_price: string };
+// `tipo`: un ítem es cantidad × precio; una tarea (botar escombros, limpiar bodega) no tiene cantidad ni unidad y su valor
+// es opcional: vacío = incluida en el presupuesto.
+type Fila = { clave: string; tipo: 'item' | 'tarea'; description: string; quantity: string; unit: string; unit_price: string };
 
 const numero = (s: string) => Number(s.replace(',', '.'));
 const entero = (s: string) => Number(s.replace(/\D/g, '') || 0);
@@ -43,7 +45,12 @@ function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }: { opci
 export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
   const t = useTema();
   const contador = useRef(0);
-  const [filas, setFilas] = useState<Fila[]>(() => q.items.map((i) => ({ clave: i.id, description: i.description, quantity: String(i.quantity), unit: i.unit, unit_price: String(i.unit_price) })));
+  const [filas, setFilas] = useState<Fila[]>(() =>
+    q.items.map((i) => {
+      const tarea = i.kind === 'TASK';
+      return { clave: i.id, tipo: tarea ? 'tarea' : 'item', description: i.description, quantity: String(i.quantity), unit: i.unit, unit_price: tarea && i.unit_price === 0 ? '' : String(i.unit_price) };
+    }),
+  );
   const [descuento, setDescuento] = useState(String(q.discount || ''));
   const [conIva, setConIva] = useState(q.include_vat);
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
@@ -53,12 +60,19 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
   const [trabajando, setTrabajando] = useState<'guardar' | 'terminar' | null>(null);
 
   const cambiar = (clave: string, campo: keyof Fila, v: string) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, [campo]: v } : f)));
-  const subtotal = filas.reduce((s, f) => s + Math.round(numero(f.quantity) * entero(f.unit_price) || 0), 0); // vista previa; manda el servidor
+  const valorDe = (f: Fila) => (f.tipo === 'tarea' ? entero(f.unit_price) : Math.round(numero(f.quantity) * entero(f.unit_price)) || 0);
+  const subtotal = filas.reduce((s, f) => s + valorDe(f), 0); // vista previa; manda el servidor
+  const agregar = (tipo: Fila['tipo']) => setFilas((fs) => [...fs, { clave: `n${++contador.current}`, tipo, description: '', quantity: '1', unit: 'un', unit_price: '' }]);
   const { iva, total } = totalesDe(subtotal, entero(descuento), conIva);
 
   async function guardar() {
-    const items = filas.filter((f) => f.description.trim()).map((f) => ({ description: f.description.trim(), quantity: numero(f.quantity), unit: f.unit, unit_price: entero(f.unit_price) }));
-    if (items.some((i) => !(i.quantity > 0))) throw new Error('Cada ítem necesita una cantidad mayor que 0.');
+    const llenas = filas.filter((f) => f.description.trim());
+    if (llenas.some((f) => f.tipo === 'item' && !(numero(f.quantity) > 0))) throw new Error('Cada ítem necesita una cantidad mayor que 0.');
+    const items = llenas.map((f) =>
+      f.tipo === 'tarea'
+        ? { kind: 'TASK', description: f.description.trim(), unit_price: entero(f.unit_price) }
+        : { kind: 'ITEM', description: f.description.trim(), quantity: numero(f.quantity), unit: f.unit, unit_price: entero(f.unit_price) },
+    );
     await api(`/quotes/${q.id}/items`, { method: 'PUT', body: { items } });
     await api(`/quotes/${q.id}`, {
       method: 'PATCH',
@@ -100,9 +114,19 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
     <View style={e.seccion}>
       <Texto variante="subtitulo">Presupuesto</Texto>
 
-      {filas.map((f, n) => (
+      {filas.map((f, n) => f.tipo === 'tarea' ? (
         <View key={f.clave} style={[e.item, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-          <Campo etiqueta={`Ítem ${n + 1}`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Qué vas a hacer o vender" maxLength={300} />
+          <Pastilla texto="Tarea" tono="suave" />
+          <Campo etiqueta={`Tarea (línea ${n + 1})`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Por ejemplo: botar escombros" maxLength={300} />
+          <Campo etiqueta="Valor (opcional)" value={f.unit_price} onChangeText={(v) => cambiar(f.clave, 'unit_price', v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" ayuda="Si lo dejas vacío, la tarea va incluida en el presupuesto." />
+          <View style={e.fila}>
+            <Texto fuerte style={e.monto}>{f.unit_price ? clp(entero(f.unit_price)) : 'Incluido'}</Texto>
+            <Boton titulo="Quitar" variante="texto" onPress={() => setFilas((fs) => fs.filter((x) => x.clave !== f.clave))} />
+          </View>
+        </View>
+      ) : (
+        <View key={f.clave} style={[e.item, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+          <Campo etiqueta={`Ítem (línea ${n + 1})`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Qué vas a hacer o vender" maxLength={300} />
           <View style={e.fila}>
             <View style={e.mitad}><Campo etiqueta="Cantidad" value={f.quantity} onChangeText={(v) => cambiar(f.clave, 'quantity', v.replace(/[^\d.,]/g, ''))} keyboardType="decimal-pad" /></View>
             <View style={e.mitad}><Campo etiqueta="Precio unitario" value={f.unit_price} onChangeText={(v) => cambiar(f.clave, 'unit_price', v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" /></View>
@@ -114,7 +138,10 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
           </View>
         </View>
       ))}
-      <Boton titulo="+ Agregar ítem" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => setFilas((fs) => [...fs, { clave: `n${++contador.current}`, description: '', quantity: '1', unit: 'un', unit_price: '' }])} />
+      <View style={e.fila}>
+        <Boton titulo="+ Agregar ítem" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
+        <Boton titulo="+ Agregar tarea" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
+      </View>
 
       <Campo etiqueta="Descuento (opcional)" value={descuento} onChangeText={(v) => setDescuento(v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" />
       <View style={e.filaIva}>

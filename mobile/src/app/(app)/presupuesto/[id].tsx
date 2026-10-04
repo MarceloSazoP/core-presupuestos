@@ -152,9 +152,13 @@ export default function Detalle() {
             <View key={i.id} style={e.item}>
               <View style={e.itemTexto}>
                 <Texto>{i.description}</Texto>
-                <Texto variante="chico" suave>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
+                {i.kind === 'TASK' ? (
+                  <Texto variante="chico" suave>Tarea</Texto>
+                ) : (
+                  <Texto variante="chico" suave>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
+                )}
               </View>
-              <Texto fuerte style={e.monto}>{clp(i.line_total)}</Texto>
+              <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : clp(i.line_total)}</Texto>
             </View>
           ))}
           {q.include_vat ? (

@@ -32,7 +32,7 @@ export type Presupuesto = {
     photos: { id: string; url: string; caption: string | null; local_uri?: string }[]; // local_uri: aún no subida
     voice_notes: { id: string; url: string; duration_seconds: number; local_uri?: string }[];
   };
-  items: { id: string; description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
+  items: { id: string; kind?: 'ITEM' | 'TASK'; description: string; quantity: number; unit: string; unit_price: number; line_total: number }[]; // TASK: actividad sin cantidad ni unidad; sin `kind` (copias antiguas) es un ítem
   subtotal: number;
   discount: number;
   include_vat: boolean;
