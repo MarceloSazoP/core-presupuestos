@@ -191,12 +191,14 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 
 | Método y ruta | Descripción |
 |---------------|-------------|
-| `GET /me` | Perfil del usuario. |
-| `PUT /me` | `{ "name": "…" }`. El teléfono y el correo **no se cambian** en el MVP. |
+| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature }`. |
+| `PUT /me` | Parcial: `{ "name"?, "contact_phone"?, "contact_email"? }` (al menos uno). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `DELETE /me/logo` | **204** |
 | `PUT /me/signature` | Igual que el logo. |
 | `DELETE /me/signature` | **204** |
+
+**Datos de contacto (decisión del 2026-10-04).** `phone` y `email` son la identidad de la cuenta (con ellos se ingresa) y no cambian. `contact_phone` y `contact_email` son los datos que salen en los presupuestos, el PDF, la vista pública y el correo al cliente; el usuario los configura desde «Configurar» en la app y valen `null` mientras no los cambie (entonces se usan `phone` y `email`). `name` es el nombre que sale en los presupuestos: puede ser el de un negocio («Instalaciones R. Sazo»). Al terminar un presupuesto sus datos de contacto, su nombre y su logo **quedan fijados** en el snapshot: cambiarlos después no altera lo ya enviado. `contact_phone` va en formato internacional como `phone`; `null` vuelve a usar el de la cuenta.
 
 ---
 

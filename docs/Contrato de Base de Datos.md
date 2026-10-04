@@ -60,6 +60,8 @@ CREATE TABLE users (
   phone          text NOT NULL UNIQUE CHECK (phone ~ '^\+[1-9][0-9]{7,14}$'),   -- E.164, identidad de la cuenta
   email          text NOT NULL UNIQUE CHECK (email = lower(email) AND length(email) <= 254),
   name           text NOT NULL CHECK (length(name) BETWEEN 1 AND 120),
+  contact_phone  text CHECK (contact_phone IS NULL OR contact_phone ~ '^\+[1-9][0-9]{7,14}$'),   -- v0.4: el que sale en los presupuestos (null = usar phone)
+  contact_email  text CHECK (contact_email IS NULL OR (contact_email = lower(contact_email) AND length(contact_email) <= 254)),  -- idem (null = usar email)
   logo_file_id      uuid,   -- FK a files, se agrega abajo
   signature_file_id uuid,
   created_at     timestamptz NOT NULL DEFAULT now(),
@@ -518,7 +520,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0007` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0008` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -616,3 +618,20 @@ CREATE UNIQUE INDEX quotes_parent_idx ON quotes (parent_quote_id) WHERE parent_q
 - `version = padre.version + 1`; la cadena de versiones se sigue por `parent_quote_id`. El número `CP-AAAA-NNNN` de cada versión se asigna al terminarla, como siempre (el índice único `(user_id, number)` no cambia).
 - Los snapshots ya creados no traen `version` ni `previous_number`: se leen como versión 1.
 - **Pruebas que acompañan:** solo un rechazado se rehace (los demás estados dan 409); se rehace una sola vez (409 `ALREADY_REVISED`); la nueva versión copia ítems, tareas, descuento, IVA y condiciones pero no fotos ni seguimiento; `version` sube de 1 en 1; el original no cambia; el snapshot, la vista pública y el listado traen la versión; el esquema rechaza `version > 1` sin padre y dos hijos del mismo padre.
+
+
+---
+
+## 16. Migración `0007` (datos de contacto del profesional, decisión del 2026-10-04)
+
+El usuario pidió un menú «Configurar» para definir sus datos de contacto y su logo. El logo y la firma ya existían (`users.logo_file_id`, `users.signature_file_id`); lo nuevo es poder cambiar el teléfono y el correo **que salen en los presupuestos** sin tocar la identidad con la que se ingresa. Detalle en `Contrato de API.md` §4.
+
+```sql
+ALTER TABLE users
+  ADD COLUMN contact_phone text CHECK (contact_phone IS NULL OR contact_phone ~ '^\+[1-9][0-9]{7,14}$'),
+  ADD COLUMN contact_email text CHECK (contact_email IS NULL OR (contact_email = lower(contact_email) AND length(contact_email) <= 254));
+```
+
+- Los usuarios existentes quedan con `NULL` (siguen usando su teléfono y correo de cuenta).
+- Sin `UNIQUE`: son datos de presentación, no identidad.
+- **Pruebas que acompañan:** `PUT /me` cambia nombre y contacto sin tocar `phone` ni `email`; `null` vuelve a los de la cuenta; un teléfono o correo inválido da 422; el snapshot, el PDF y la vista pública usan el contacto configurado; un presupuesto ya terminado no cambia si después se cambia el contacto.

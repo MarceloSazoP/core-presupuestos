@@ -15,7 +15,7 @@ export function ConsultaForm() {
           Consultar presupuesto
         </label>
         <p id="codigo-ayuda" className="ayuda">
-          El código lo genera la app móvil al crear el presupuesto.
+          El código lo genera la app móvil al crear el presupuesto, por ejemplo 7K4M2Q-X9D2P4HTRB.
         </p>
       </div>
       <input
@@ -32,7 +32,7 @@ export function ConsultaForm() {
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="search"
-        placeholder="Por ejemplo: 7K4M2Q-X9D2P4HTRB"
+        placeholder="7K4M2Q-X9D2P4HTRB"
         className="campo font-mono uppercase tracking-wider"
         aria-invalid={Boolean(estado.error)}
         aria-describedby={estado.error ? "codigo-error codigo-ayuda" : "codigo-ayuda"}
