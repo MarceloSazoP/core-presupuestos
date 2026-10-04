@@ -8,6 +8,7 @@ import type { ResumenPresupuesto } from '@/api/types';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { clp } from '@/lib/formato';
+import { reconciliar } from '@/lib/notificaciones';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { creacionesPendientes, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
@@ -56,6 +57,7 @@ export default function Presupuestos() {
     try {
       base = (await api<{ data: ResumenPresupuesto[] }>('/quotes?limit=100')).data;
       void guardarKv('lista', JSON.stringify(base));
+      void reconciliar(base); // mantiene al día los recordatorios de contacto
       setError(null);
     } catch (err) {
       setError(mensajeDe(err)); // sin señal en terreno se muestra la última lista guardada

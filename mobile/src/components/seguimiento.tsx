@@ -5,6 +5,7 @@ import { api, mensajeDe } from '@/api/client';
 import type { EstadoComercial, Presupuesto } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { diaCorto, enDias } from '@/lib/fechas';
+import { pedirPermiso, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
@@ -36,6 +37,7 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
       await accion();
       void Haptics.selectionAsync();
       await Promise.all([recargar(), cargarHistorial()]);
+      void sincronizarRecordatorios(); // las fechas y los estados cambian qué avisos corresponden
     } catch (err) {
       setError(mensajeDe(err));
     } finally {
@@ -44,7 +46,10 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
   }
 
   const cambiarEstado = (status: string) => hacer(async () => { await api(`/quotes/${q.id}/commercial-status`, { method: 'PUT', body: { status, ...(nota.trim() ? { note: nota.trim() } : {}) } }); setNota(''); });
-  const programar = (dias: number) => hacer(() => api(`/quotes/${q.id}/follow-ups`, { method: 'POST', body: { next_contact_date: enDias(dias), ...(nota.trim() ? { note: nota.trim() } : {}) } }).then(() => setNota('')));
+  const programar = async (dias: number) => {
+    await pedirPermiso(); // primera vez: el sistema pregunta; si lo rechazan, la fecha igual se guarda en la app
+    return hacer(() => api(`/quotes/${q.id}/follow-ups`, { method: 'POST', body: { next_contact_date: enDias(dias), ...(nota.trim() ? { note: nota.trim() } : {}) } }).then(() => setNota('')));
+  };
   const soloNota = () => nota.trim() && hacer(() => api(`/quotes/${q.id}/follow-ups`, { method: 'POST', body: { note: nota.trim() } }).then(() => setNota('')));
 
   return (
