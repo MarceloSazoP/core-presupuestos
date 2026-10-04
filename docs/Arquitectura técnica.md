@@ -146,6 +146,7 @@ Sin clase base genérica de CRUD ni capa `services` que solo reenvíe: la ruta v
 - `lib/pdf.ts` recibe el **snapshot** y devuelve un `Buffer`. Sin acceso a la BD ni al disco, salvo el logo y la firma que se le pasan ya leídos.
 - Se fijan `setUrlAccessPolicy(() => false)` y `setLocalAccessPolicy` restringido al directorio de fuentes de pdfmake; las imágenes entran como datos en memoria. Evita lectura de archivos o peticiones de red desde contenido del usuario.
 - Fuente Roboto incluida en pdfmake; formato de dinero con `toLocaleString('es-CL')`.
+- Cada página del PDF lleva un pie discreto (7 pt, gris): «Generado por CORE Presupuestos v1.0 · CORE Tecnología Empresarial SpA · RUT 78.496.567-8». Es la constante `GENERADO_POR` de `lib/pdf.ts`; la versión sube con las versiones del producto.
 - El QR (`qrcode`) apunta a `public_url`, la URL de la **web** (`WEB_BASE_URL/q/{token}`), no a la API.
 - Fotos, notas y medidas nunca se pasan a `lib/pdf.ts`.
 - `finalize` es síncrono (Contrato API §15). Orden: construir snapshot → generar PDF en memoria → escribir el archivo → transacción (número, snapshot, filas, estado, enlace público) → si falla, borrar el archivo.
