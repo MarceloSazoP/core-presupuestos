@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { formatearCodigo } from "@/lib/codigo";
 import { consultarAction, type EstadoConsulta } from "./actions";
 
 export function ConsultaForm() {
   const [estado, accion, pendiente] = useActionState<EstadoConsulta, FormData>(consultarAction, {});
+  const [codigo, setCodigo] = useState("");
 
   return (
     <form action={accion} className="flex flex-col gap-3">
@@ -21,14 +23,17 @@ export function ConsultaForm() {
         name="codigo"
         type="text"
         required
-        maxLength={32}
+        value={codigo}
+        onChange={(e) => setCodigo(formatearCodigo(e.target.value))}
+        minLength={17}
+        maxLength={17}
         autoComplete="off"
-        autoCapitalize="none"
+        autoCapitalize="characters"
         autoCorrect="off"
         spellCheck={false}
         enterKeyHint="search"
         placeholder="Por ejemplo: 7K4M2Q-X9D2P4HTRB"
-        className="campo"
+        className="campo font-mono uppercase tracking-wider"
         aria-invalid={Boolean(estado.error)}
         aria-describedby={estado.error ? "codigo-error codigo-ayuda" : "codigo-ayuda"}
       />
