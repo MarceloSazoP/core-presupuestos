@@ -52,6 +52,12 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Necesitamos la cámara para leer el QR de la web y abrir tu presupuesto en el computador."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Necesitamos acceso a tus fotos para agregarlas al presupuesto.",
@@ -65,7 +71,14 @@
         }
       ],
       "expo-asset",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "CorePresupuesto usa tus contactos solo para traer los datos de un cliente que tú elijas."
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

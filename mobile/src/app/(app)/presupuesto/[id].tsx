@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
@@ -99,7 +99,7 @@ export default function Detalle() {
   const cerrado = q.doc_status === 'FINALIZED';
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <Stack.Screen options={{ title: q.number ?? 'Presupuesto' }} />
+      <Stack.Screen options={{ title: codigo ?? q.code_id ?? 'Presupuesto' }} />
       <Sincronizacion />
 
       <View style={e.bloque}>
@@ -143,6 +143,10 @@ export default function Detalle() {
             )}
           </>
         )}
+        <View style={[e.separador, { borderTopColor: t.borde }]}>
+          <Texto variante="chico" suave>¿Sin escribir el código? Abre este presupuesto en la web escaneando el QR de su portada.</Texto>
+          <Boton titulo="Ver en la web (leer QR)" variante="secundario" onPress={() => router.push({ pathname: '/escanear', params: { id, titulo: `${q.number ?? 'Este presupuesto'} de ${q.customer.name}` } })} />
+        </View>
       </View>
 
       {cerrado && q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
@@ -191,6 +195,7 @@ const e = StyleSheet.create({
   // El alto de línea va con la letra: Texto trae uno de 22 pt y con letra de 26 recortaba la parte de arriba.
   codigo: { fontSize: 26, lineHeight: 36, fontWeight: '600', letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
   fila: { flexDirection: 'row', gap: espacio.m },
+  separador: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m, gap: espacio.s },
   mitad: { flex: 1 },
   item: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: espacio.m },
   itemTexto: { flex: 1 },
