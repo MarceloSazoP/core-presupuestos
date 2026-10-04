@@ -2,13 +2,13 @@ import { randomUUID } from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar, guardarBorrador } from '@/sync/cola';
-import { espacio, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Etapa 1 del wizard (CLAUDE.md §10): cliente, ubicación y descripción inicial. Funciona sin conexión: el presupuesto
 // nace en el teléfono con su propio id y se envía por la cola. El servidor entrega el código al recibirlo (sync/cola.ts).
@@ -26,6 +26,16 @@ export default function Nuevo() {
   const refCorreo = useRef<TextInput>(null);
   const refDireccion = useRef<TextInput>(null);
   const refServicio = useRef<TextInput>(null);
+
+  // Cancelar: si ya escribió algo se pregunta antes de descartar, porque el gesto de deslizar hacia abajo no avisa.
+  const hayDatos = [nombre, telefono, correo, direccion, servicio].some((v) => v.trim());
+  const cancelar = () => {
+    if (!hayDatos) return router.back();
+    Alert.alert('¿Descartar este presupuesto?', 'Lo que escribiste no se guardará.', [
+      { text: 'Seguir editando', style: 'cancel' },
+      { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
+    ]);
+  };
 
   async function crear() {
     const tel = normalizarTelefono(telefono);
@@ -63,7 +73,19 @@ export default function Nuevo() {
   }
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
+    <View style={{ flex: 1, backgroundColor: t.fondo }}>
+      {/* Hoja de iOS: la barrita de arriba avisa que se puede deslizar hacia abajo, y «Cancelar» es la salida visible */}
+      <View style={e.cabecera}>
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarre, { backgroundColor: t.suave }]} />
+        <View style={e.barra}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={cancelar} hitSlop={8} style={e.lado}>
+            <Texto color="acento">Cancelar</Texto>
+          </Pressable>
+          <Texto fuerte accessibilityRole="header">Nuevo presupuesto</Texto>
+          <View style={e.lado} />
+        </View>
+      </View>
+    <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ flex: 1 }} contentContainerStyle={e.contenido}>
       <Campo etiqueta="Cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoFocus autoCapitalize="words" autoComplete="off" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
       <Campo ref={refTelefono} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" placeholder="9 1234 5678" />
       <Campo ref={refCorreo} etiqueta="Correo (opcional)" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" onSubmitEditing={() => refDireccion.current?.focus()} ayuda="Con correo, el PDF se envía solo al terminar." />
@@ -72,8 +94,10 @@ export default function Nuevo() {
       <View style={e.acciones}>
         {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
         <Boton titulo="Crear presupuesto" onPress={crear} cargando={cargando} />
+        <Boton titulo="Cancelar" variante="secundario" onPress={cancelar} disabled={cargando} />
       </View>
     </ScrollView>
+    </View>
   );
 }
 
@@ -86,6 +110,10 @@ const borradorNuevo = (id: string, customer: { name: string; phone: string; emai
 });
 
 const e = StyleSheet.create({
+  cabecera: { paddingTop: espacio.s, paddingHorizontal: espacio.l, gap: espacio.s },
+  agarre: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, opacity: 0.5 },
+  barra: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
   contenido: { padding: espacio.xl, gap: espacio.l },
   acciones: { gap: espacio.m, paddingTop: espacio.s },
 });

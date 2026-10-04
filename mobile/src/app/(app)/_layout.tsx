@@ -39,7 +39,7 @@ export default function AppLayout() {
           ),
         }}
       />
-      <Stack.Screen name="nuevo" options={{ title: 'Nuevo presupuesto', presentation: 'modal' }} />
+      <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} /> {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
       </Stack>
     </>
