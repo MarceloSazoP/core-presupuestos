@@ -57,7 +57,7 @@ export default function Landing() {
           <p className="text-lg font-bold tracking-tight">CORE Presupuestos</p>
         </nav>
 
-        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-center lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12">
+        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12">
           <div className="flex flex-col gap-6">
             <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.02] tracking-[-0.025em]">
               Del terreno al presupuesto, sin olvidar nada.
@@ -73,7 +73,7 @@ export default function Landing() {
             <section
               id="consulta"
               aria-labelledby="consultar"
-              className="ficha scroll-mt-6 p-5 lg:absolute lg:-bottom-6 lg:-left-20 lg:z-10 lg:w-[22rem] xl:bottom-10 xl:left-[54%] xl:-translate-x-1/2"
+              className="ficha scroll-mt-6 p-5 lg:absolute lg:top-0 lg:-left-20 lg:z-10 lg:w-[22rem] xl:top-12 xl:left-[54%] xl:-translate-x-1/2"
             >
               <ConsultaForm />
               <p aria-hidden="true" className="my-4 flex items-center gap-3 text-sm font-medium text-muted">
