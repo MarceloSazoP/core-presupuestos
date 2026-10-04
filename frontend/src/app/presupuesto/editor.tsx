@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 import { clp, miles } from "@/lib/formato";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
@@ -57,6 +57,13 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   const [observaciones, setObservaciones] = useState(inicial.observaciones ?? "");
   const [confirmando, setConfirmando] = useState(false);
   const [intentoTerminar, setIntentoTerminar] = useState(false);
+  const modal = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = modal.current;
+    if (!d) return;
+    if (confirmando && !d.open) d.showModal();
+    if (!confirmando && d.open) d.close();
+  }, [confirmando]);
 
   // <form action> reinicia el formulario al terminar y los <select> vuelven a su valor inicial en pantalla (y se
   // reenviaría el viejo). Enviando con onSubmit y una transición no hay reinicio. method="post" evita que, si el envío
@@ -329,39 +336,39 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </p>
         )}
 
-        {confirmando ? (
-          <div role="group" aria-labelledby="confirmar" className="flex flex-col gap-3 rounded-xl border border-aviso p-4">
-            <p id="confirmar" className="font-medium">
+        <dialog ref={modal} aria-labelledby="confirmar" onClose={() => setConfirmando(false)} className="m-auto w-[min(92vw,26rem)] rounded-xl border-2 border-tinta bg-background p-5 text-foreground backdrop:bg-black/50">
+          <div className="flex flex-col gap-3">
+            <h2 id="confirmar" className="text-lg font-semibold">
               ¿Cerrar y enviar este presupuesto?
-            </p>
+            </h2>
             <p className="ayuda">
               {inicial.cliente.correo ? `Se enviará el PDF a ${inicial.cliente.correo}` : "El cliente no tiene correo: se cerrará sin enviarlo"} y ya no podrás editarlo.
             </p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button type="submit" name="accion" value="terminar" className="boton" disabled={pendiente}>
-                Sí, terminar y enviar
-              </button>
+            <div className="mt-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" onClick={() => setConfirmando(false)} className="boton-secundario">
                 Volver a editar
               </button>
+              <button type="submit" name="accion" value="terminar" className="boton" disabled={pendiente}>
+                Sí, terminar y enviar
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button type="button" onClick={salir} className="boton-texto">
-              Consultar otro presupuesto
+        </dialog>
+
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <button type="button" onClick={salir} className="boton-texto">
+            Consultar otro presupuesto
+          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
+              Guardar y seguir después
             </button>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
-                Guardar y seguir después
-              </button>
-              <button type="button" onClick={intentarTerminar} className="boton" disabled={pendiente}>
-                {pendiente && <span className="spinner" aria-hidden="true" />}
-                {pendiente ? "Procesando…" : "Terminar y enviar"}
-              </button>
-            </div>
+            <button type="button" onClick={intentarTerminar} className="boton" disabled={pendiente}>
+              {pendiente && <span className="spinner" aria-hidden="true" />}
+              {pendiente ? "Procesando…" : "Terminar y enviar"}
+            </button>
           </div>
-        )}
+        </div>
       </div>
     </form>
   );

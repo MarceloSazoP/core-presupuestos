@@ -152,10 +152,10 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
   const unidades = datos.getAll('item_unidad').map(String);
   const precios = datos.getAll('item_precio').map(String);
 
-  // Al guardar se ignoran las filas totalmente vacías; al terminar, todas cuentan.
+  // Las filas totalmente vacías se ignoran siempre (Enter en la grilla deja una fila en blanco al final).
   const filas = descripciones
     .map((descripcion, i) => ({ tarea: tipos[i] === 'tarea', descripcion, cantidad: cantidades[i] ?? '', unidad: unidades[i] ?? '', precio: precios[i] ?? '' }))
-    .filter((f) => terminar || f.descripcion.trim() !== '' || f.precio.trim() !== '');
+    .filter((f) => f.descripcion.trim() !== '' || f.precio.trim() !== '');
   // Una tarea (actividad sin cantidad ni unidad) solo necesita descripción; su precio es opcional (vacío = incluida).
   if (filas.some((f) => !f.descripcion.trim() || (!f.tarea && (!f.cantidad.trim() || !f.precio.trim())))) {
     return { errores: ['Completa la descripción, la cantidad y el precio de cada ítem, y la descripción de cada tarea.'] };
