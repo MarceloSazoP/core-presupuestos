@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { cant, clp } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
 
-export const metadata: Metadata = { title: "Presupuesto · CorePresupuesto", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Presupuesto · CORE Presupuestos", robots: { index: false, follow: false } };
 
 // Vista pública del cliente (Contrato API §10): solo lectura, sin cuenta. Se abre sobre todo en el teléfono, desde el
 // enlace que llega por WhatsApp o correo.

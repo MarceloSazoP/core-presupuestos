@@ -13,9 +13,16 @@ import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
 import { Multimedia } from "./multimedia";
 
-export const metadata: Metadata = { title: "Presupuesto · CorePresupuesto" };
+export const metadata: Metadata = { title: "Presupuesto · CORE Presupuestos" };
 
 const LOGO = "/presupuesto/logo";
+
+// Cambia cuando cambian los datos: con ella como `key`, el editor se vuelve a armar cuando llegan cambios hechos en otro lugar.
+const huella = (o: unknown) => {
+  let h = 5381;
+  for (const c of JSON.stringify(o)) h = ((h << 5) + h + c.charCodeAt(0)) | 0;
+  return String(h);
+};
 
 export default async function PresupuestoPage() {
   const cargado = await cargarPresupuesto();
@@ -25,26 +32,26 @@ export default async function PresupuestoPage() {
 
   // Pendiente: se completa o se edita. Cerrado: solo se ve.
   if (!esFinalizado(p)) {
+    const datosEditor = {
+      descripcion: p.descripcion,
+      version: p.version,
+      numeroAnterior: p.numeroAnterior,
+      direccion: p.direccion,
+      items: p.items,
+      descuento: p.descuento,
+      conIva: p.conIva,
+      garantia: p.garantia,
+      validezDias: p.validezDias,
+      observaciones: p.observaciones,
+      levantamiento: p.levantamiento,
+              cliente: { nombre: p.cliente.nombre, correo: p.cliente.correo, telefono: p.cliente.telefono },
+    };
+
     return (
       <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
         <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
         <h1 className="sr-only">Completar presupuesto</h1>
-        <Editor
-          inicial={{
-            descripcion: p.descripcion,
-            version: p.version,
-            numeroAnterior: p.numeroAnterior,
-            direccion: p.direccion,
-            items: p.items,
-            descuento: p.descuento,
-            conIva: p.conIva,
-            garantia: p.garantia,
-            validezDias: p.validezDias,
-            observaciones: p.observaciones,
-            levantamiento: p.levantamiento,
-            cliente: { nombre: p.cliente.nombre, correo: p.cliente.correo, telefono: p.cliente.telefono },
-          }}
-        />
+        <Editor key={huella(datosEditor)} inicial={datosEditor} />
       </main>
     );
   }

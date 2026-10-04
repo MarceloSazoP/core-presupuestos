@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 import { clp, miles } from "@/lib/formato";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
@@ -58,6 +59,30 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   const [observaciones, setObservaciones] = useState(inicial.observaciones ?? "");
   const [confirmando, setConfirmando] = useState(false);
   const [intentoTerminar, setIntentoTerminar] = useState(false);
+  const router = useRouter();
+  const [hayNovedad, setHayNovedad] = useState(false);
+  // En vivo: cuando alguien cambia el presupuesto desde otro lugar (la app), se recarga solo; si aquí hay cambios sin guardar no se
+  // pisa nada y se avisa. Los avisos de nuestro propio guardado se ignoran.
+  const estadoActual = JSON.stringify([filas, descuento, servicio, conIva, direccion, garantia, validez, observaciones]);
+  const vivo = useRef({ actual: estadoActual, base: estadoActual, ignorarHasta: 0 });
+  useEffect(() => {
+    vivo.current.actual = estadoActual;
+  }, [estadoActual]);
+  useEffect(() => {
+    if (pendiente) return;
+    vivo.current.base = vivo.current.actual;
+    vivo.current.ignorarHasta = Date.now() + 2500;
+  }, [pendiente]);
+  useEffect(() => {
+    const es = new EventSource("/presupuesto/eventos");
+    es.addEventListener("changed", () => {
+      const v = vivo.current;
+      if (Date.now() < v.ignorarHasta) return;
+      if (v.actual !== v.base) setHayNovedad(true);
+      else router.refresh();
+    });
+    return () => es.close();
+  }, [router]);
   const modal = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = modal.current;
@@ -71,6 +96,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   // ocurre antes de cargar el JavaScript, los datos viajen en la URL.
   const enviar = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    vivo.current.ignorarHasta = Date.now() + 30_000; // hasta que termine el guardado, sus avisos son nuestros
     setConfirmando(false);
     const datos = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
     enTransicion(() => accion(datos));
@@ -141,6 +167,20 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   }
 
   return (
+    <>
+      {hayNovedad && (
+        <p role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-aviso p-3 text-sm">
+          Hay cambios nuevos hechos desde otro lugar.
+          <button type="button" onClick={() => {
+              setHayNovedad(false);
+              router.refresh();
+            }}
+            className="boton-secundario"
+          >
+            Actualizar (se pierde lo que no guardaste)
+          </button>
+        </p>
+      )}
     <form method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
       {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-3">
@@ -208,7 +248,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         <h3 id="titulo-items" className="etiqueta uppercase tracking-wide text-muted">
           Ítems y tareas
         </h3>
-        <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} enfocarAlCargar={Boolean(servicio.trim())} />
+        <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button type="button" onClick={() => agregar("item")} className="boton-secundario">
             + Agregar ítem
@@ -376,5 +416,6 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </div>
       </div>
     </form>
+    </>
   );
 }

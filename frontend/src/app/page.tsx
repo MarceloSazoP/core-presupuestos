@@ -4,7 +4,7 @@ import { HojaDemo } from "./hoja-demo";
 import { VinculoQr } from "./vinculo-qr";
 
 export const metadata: Metadata = {
-  title: "CorePresupuesto · Del terreno al presupuesto, sin olvidar nada",
+  title: "CORE Presupuestos · Del terreno al presupuesto, sin olvidar nada",
   description:
     "Anota lo que ves en la visita (notas, fotos, medidas y voz), prepara el presupuesto y envíalo al cliente en PDF. Para electricistas, gasfíteres, instaladores y técnicos independientes.",
 };
@@ -54,10 +54,7 @@ export default function Landing() {
     <main className="marca">
       <div className="bg-amarillo text-tinta">
         <nav className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
-          <p className="text-lg font-bold tracking-tight">CorePresupuesto</p>
-          <a href="#consulta" className="boton-secundario !border-tinta">
-            Consultar presupuesto
-          </a>
+          <p className="text-lg font-bold tracking-tight">CORE Presupuestos</p>
         </nav>
 
         <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-center lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12">
@@ -72,7 +69,7 @@ export default function Landing() {
             <p className="text-sm font-medium">Próximamente en Android y iPhone.</p>
           </div>
 
-          <div className="relative flex flex-col gap-10 lg:block lg:pb-28 xl:static">
+          <div className="relative flex flex-col gap-10 lg:block lg:pb-3.5 xl:static">
             <section
               id="consulta"
               aria-labelledby="consultar"
@@ -146,7 +143,7 @@ export default function Landing() {
 
       <footer className="bg-tinta px-4 py-8 text-sm text-white/80 sm:px-6 lg:px-12">
         <div className="flex flex-col justify-between gap-2 sm:flex-row">
-          <p className="font-semibold text-white">CorePresupuesto</p>
+          <p className="font-semibold text-white">CORE Presupuestos</p>
           <p>Presupuesto comercial: no es un documento tributario.</p>
         </div>
       </footer>

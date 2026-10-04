@@ -9,7 +9,7 @@ const plex = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "CorePresupuesto",
+  title: "CORE Presupuestos",
   description: "Captura, presupuesta, envía y haz seguimiento.",
   robots: { index: false, follow: false },
 };

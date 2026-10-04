@@ -113,9 +113,7 @@ export function GrillaItems({
   filas,
   onChange,
   onAgregar,
-  enfocarAlCargar = false,
 }: {
-  enfocarAlCargar?: boolean;
   filas: Fila[];
   onChange: (filas: Fila[]) => void;
   onAgregar: () => void;
@@ -263,7 +261,6 @@ export function GrillaItems({
         singleClickEdit // un clic abre el editor de la celda (por defecto AG Grid pide doble clic o empezar a escribir)
         stopEditingWhenCellsLoseFocus
         onGridReady={(e) => (api.current = e.api)}
-        onFirstDataRendered={() => enfocarAlCargar && editar(0, EDITABLES[0]!)}
         onCellValueChanged={(e) => onChange(filas.map((f) => (f.clave === e.data?.clave ? { ...e.data } : f)))}
         onCellEditingStopped={alTerminarEdicion}
       />

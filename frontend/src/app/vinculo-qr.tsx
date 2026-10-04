@@ -84,7 +84,7 @@ export function VinculoQr() {
         <div className="relative size-32 shrink-0 overflow-hidden rounded-lg border border-borde bg-white p-1.5">
           {activo ? (
             // eslint-disable-next-line @next/next/no-img-element -- imagen generada en el servidor (data URL), no hay nada que optimizar
-            <img src={activo.v.qr} alt="Código QR para abrir un presupuesto desde la app de CorePresupuesto" width={116} height={116} className={`size-full transition-[filter,opacity] duration-200 ${vencido || activo.listo ? "opacity-30 blur-sm" : ""}`} />
+            <img src={activo.v.qr} alt="Código QR para abrir un presupuesto desde la app de CORE Presupuestos" width={116} height={116} className={`size-full transition-[filter,opacity] duration-200 ${vencido || activo.listo ? "opacity-30 blur-sm" : ""}`} />
           ) : (
             <div className="grid size-full place-items-center">{fase.tipo === "cargando" && <span className="spinner" aria-hidden="true" />}</div>
           )}
