@@ -4,12 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, enDias } from '@/lib/fechas';
 import { pedirPermiso, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { asegurarSincronizado } from '@/sync/cola';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Seguimiento comercial mínimo (CLAUDE.md §13): que no se olvide un presupuesto enviado. El estado se cambia desde las pestañas de
 // la lista; aquí van el próximo contacto, las notas, llamar, WhatsApp y el historial.
@@ -60,67 +60,84 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
   };
   const soloNota = () => nota.trim() && hacer(() => api(`/quotes/${q.id}/follow-ups`, { method: 'POST', body: { note: nota.trim() } }).then(() => setNota('')));
 
+  const conFecha = !!q.next_contact_date;
   return (
-    <View style={e.seccion}>
-      <Texto variante="subtitulo">Seguimiento</Texto>
-
+    <Seccion titulo="Seguimiento" descripcion="Para que no se te olvide volver a llamar.">
       {cerrada ? null : (
-        <>
-          {/* Destacado con un recuadro: es lo que no hay que olvidar */}
-          <View style={[e.proximo, { borderColor: q.next_contact_date ? t.seguimiento : t.borde, backgroundColor: q.next_contact_date ? `${t.seguimiento}1F` : t.tarjeta }]}>
-            <Texto variante="chico" fuerte color={q.next_contact_date ? 'seguimiento' : 'suave'}>PRÓXIMO CONTACTO</Texto>
-            <Texto variante="subtitulo" color={q.next_contact_date ? 'seguimiento' : 'suave'}>{q.next_contact_date ? diaCorto(q.next_contact_date) : 'Sin fecha programada'}</Texto>
-            {q.next_contact_date ? <Texto variante="chico" suave>Ese día, a las 9:00, te llega un aviso en este teléfono.</Texto> : null}
+        <Tarjeta>
+          {/* Destacado: es lo que no hay que olvidar */}
+          <View style={[e.proximo, { backgroundColor: conFecha ? `${t.seguimiento}1A` : t.campo, borderColor: conFecha ? t.seguimiento : t.borde }]}>
+            <View style={e.rotulo}>
+              <Icono nombre="calendario" tamano={16} color={conFecha ? t.seguimiento : t.suave} />
+              <Texto variante="chico" fuerte color={conFecha ? 'seguimiento' : 'suave'}>Próximo contacto</Texto>
+            </View>
+            <Texto variante="titulo" color={conFecha ? 'seguimiento' : 'suave'}>{conFecha ? diaCorto(q.next_contact_date!) : 'Sin fecha'}</Texto>
+            {conFecha ? <Texto variante="chico" suave>Ese día, a las 9:00, te llega un aviso en este teléfono.</Texto> : <Texto variante="chico" suave>Elige cuándo volver a contactar al cliente.</Texto>}
           </View>
           <View style={e.chips}>
-            {PLAZOS.map((p) => (
-              <Pressable key={p.dias} accessibilityRole="button" disabled={ocupado} onPress={() => void programar(enDias(p.dias))} style={[e.chip, { borderColor: q.next_contact_date === enDias(p.dias) ? t.acento : t.borde, backgroundColor: t.tarjeta }]}>
-                <Texto>{p.texto}</Texto>
-              </Pressable>
-            ))}
+            {PLAZOS.map((p) => {
+              const elegido = q.next_contact_date === enDias(p.dias);
+              return (
+                <Pressable key={p.dias} accessibilityRole="button" accessibilityState={{ selected: elegido }} disabled={ocupado} onPress={() => void programar(enDias(p.dias))} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? `${t.acento}1A` : t.campo, opacity: pressed ? 0.7 : 1 }]}>
+                  <Texto color={elegido ? 'acento' : 'texto'} fuerte={elegido}>{p.texto}</Texto>
+                </Pressable>
+              );
+            })}
           </View>
-          {Platform.OS === 'web' ? null : <Boton titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha en el calendario'} variante="secundario" disabled={ocupado} onPress={abrirCalendario} />}
+          {Platform.OS === 'web' ? null : <Boton titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha'} icono="calendario" variante="secundario" disabled={ocupado} onPress={abrirCalendario} />}
           {calendario && Platform.OS === 'ios' ? (
-            <View style={[e.calendario, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+            <View style={[e.calendario, { backgroundColor: t.campo, borderColor: t.borde }]}>
               <DateTimePicker value={elegida} mode="date" display="inline" minimumDate={new Date()} locale="es-CL" accentColor={t.acento} onChange={(_, d) => d && setElegida(d)} />
               <Boton titulo={`Programar para el ${diaCorto(aFechaLocal(elegida))}`} disabled={ocupado} onPress={() => void programar(aFechaLocal(elegida))} />
             </View>
           ) : null}
-          {q.next_contact_date ? <Boton titulo="Quitar la fecha" variante="texto" disabled={ocupado} onPress={() => void hacer(() => api(`/quotes/${q.id}/next-contact`, { method: 'DELETE' }))} /> : null}
-        </>
+          {conFecha ? <Boton titulo="Quitar la fecha" variante="texto" disabled={ocupado} onPress={() => void hacer(() => api(`/quotes/${q.id}/next-contact`, { method: 'DELETE' }))} /> : null}
+        </Tarjeta>
       )}
 
-      <Campo etiqueta="Nota (opcional)" value={nota} onChangeText={setNota} multiline maxLength={2000} placeholder="Qué te dijo, qué falta" />
-      <Boton titulo="Guardar nota" variante="secundario" disabled={ocupado || !nota.trim()} onPress={() => void soloNota()} />
-
-      <View style={e.chips}>
-        <Boton titulo="Llamar" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`tel:${q.customer.phone}`)} />
-        <Boton titulo="WhatsApp" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
-      </View>
-      {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
+      <Tarjeta>
+        <View style={e.fila}>
+          <Boton titulo="Llamar" icono="llamar" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`tel:${q.customer.phone}`)} />
+          <Boton titulo="WhatsApp" icono="mensaje" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
+        </View>
+        <Campo etiqueta="Nota (opcional)" value={nota} onChangeText={setNota} multiline maxLength={2000} placeholder="Qué te dijo, qué falta" />
+        <Boton titulo="Guardar nota" variante="secundario" disabled={ocupado || !nota.trim()} onPress={() => void soloNota()} />
+        {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
+      </Tarjeta>
 
       {historial.length ? (
-        <View style={e.historial}>
+        <Tarjeta>
           <Texto variante="chico" fuerte>Historial</Texto>
-          {historial.map((h) => (
-            <View key={h.id} style={[e.registro, { borderColor: t.borde }]}>
-              <Texto variante="chico" suave>{diaCorto(h.created_at.slice(0, 10))} · {NOMBRE[h.commercial_status] ?? h.commercial_status}{h.next_contact_date ? ` · contactar ${diaCorto(h.next_contact_date)}` : ''}</Texto>
-              {h.note ? <Texto>{h.note}</Texto> : null}
+          {/* Línea de tiempo: un punto por registro, unidos por una línea. */}
+          {historial.map((h, i) => (
+            <View key={h.id} style={e.registro}>
+              <View style={e.riel}>
+                <View style={[e.punto, { backgroundColor: t.seguimiento }]} />
+                {i < historial.length - 1 ? <View style={[e.linea, { backgroundColor: t.borde }]} /> : null}
+              </View>
+              <View style={e.registroTexto}>
+                <Texto variante="chico" suave>{diaCorto(h.created_at.slice(0, 10))} · {NOMBRE[h.commercial_status] ?? h.commercial_status}{h.next_contact_date ? ` · contactar ${diaCorto(h.next_contact_date)}` : ''}</Texto>
+                {h.note ? <Texto>{h.note}</Texto> : null}
+              </View>
             </View>
           ))}
-        </View>
+        </Tarjeta>
       ) : null}
-    </View>
+    </Seccion>
   );
 }
 
 const e = StyleSheet.create({
-  seccion: { gap: espacio.m },
+  fila: { flexDirection: 'row', gap: espacio.m },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
-  chip: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: 999, paddingHorizontal: espacio.l, alignItems: 'center', justifyContent: 'center' },
+  chip: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.l, alignItems: 'center', justifyContent: 'center' },
   mitad: { flex: 1 },
-  proximo: { borderWidth: 2, borderRadius: 14, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
-  calendario: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.m, gap: espacio.m },
-  historial: { gap: espacio.s },
-  registro: { borderLeftWidth: 2, paddingLeft: espacio.m, gap: espacio.xs },
+  rotulo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  proximo: { borderWidth: 1.5, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
+  calendario: { borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m, gap: espacio.m },
+  registro: { flexDirection: 'row', gap: espacio.m },
+  riel: { width: 10, alignItems: 'center' },
+  punto: { width: 10, height: 10, borderRadius: 5, marginTop: 4 },
+  linea: { width: 2, flex: 1, marginTop: 4 },
+  registroTexto: { flex: 1, gap: 2, paddingBottom: espacio.m },
 });

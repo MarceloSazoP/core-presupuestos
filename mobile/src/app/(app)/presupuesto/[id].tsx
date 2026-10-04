@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
@@ -11,13 +11,13 @@ import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { Boton, Pastilla, Texto } from '@/components/ui';
+import { Boton, Icono, Pastilla, Tarjeta, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
 import { clp } from '@/lib/formato';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
 import { asegurarSincronizado, guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
-import { espacio, useTema } from '@/theme';
+import { espacio, MONO, radio, useTema } from '@/theme';
 
 // Detalle del presupuesto. Lo central de este hito: el código que se escribe en la web para completar o cerrar el
 // presupuesto desde el computador (CLAUDE.md §16). Se muestra con letras grandes y se copia o comparte con un toque.
@@ -99,7 +99,7 @@ export default function Detalle() {
         ])
       : void generar();
 
-  const compartir = () => Share.share({ message: `Código de tu presupuesto en CorePresupuesto: ${codigo}` });
+  const compartir = () => Share.share({ message: `Código de tu presupuesto en CORE Presupuestos: ${codigo}` });
 
   if (!q) {
     return (
@@ -115,31 +115,44 @@ export default function Detalle() {
       <Stack.Screen options={{ title: codigo ?? q.code_id ?? 'Presupuesto' }} />
       <Sincronizacion />
 
+      {/* Cabecera: estado y cliente. El servicio y la dirección de uno pendiente se editan más abajo, en «El trabajo». */}
       <View style={e.bloque}>
-        <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
-        {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
+        <View style={e.pastillas}>
+          <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
+          {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
+        </View>
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
         <ContactoCliente key={`${q.customer.name}|${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} nombreEditable={!cerrado} />
-        {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
-        {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
+        {cerrado ? (
+          <>
+            {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
+            {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
+          </>
+        ) : null}
       </View>
 
       {nuevo === '1' ? (
-        <View style={[e.exito, { borderColor: t.ok, backgroundColor: t.tarjeta }]}>
-          <Texto fuerte color="ok">Presupuesto creado</Texto>
-          <Texto variante="chico" suave>Ya puedes seguir en esta app o terminarlo en el computador con el código de abajo.</Texto>
+        <View style={[e.exito, { backgroundColor: `${t.ok}1A`, borderColor: `${t.ok}66` }]}>
+          <Icono nombre="listo" tamano={22} color={t.ok} />
+          <View style={e.flex}>
+            <Texto fuerte color="ok">Presupuesto creado</Texto>
+            <Texto variante="chico" suave>Ya puedes seguir en esta app o terminarlo en el computador con el código de abajo.</Texto>
+          </View>
         </View>
       ) : null}
 
-      <View style={[e.tarjeta, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-        <Texto variante="chico" suave fuerte>CÓDIGO DEL PRESUPUESTO</Texto>
+      {/* El código es la llave para abrir este presupuesto en la web: va como un ticket, en letra que se dicta sin confundir. */}
+      <Tarjeta>
+        <Texto variante="chico" suave fuerte>Código del presupuesto</Texto>
         {codigo ? (
           <>
-            <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
+            <View style={[e.ticket, { backgroundColor: t.campo, borderColor: t.bordeCampo }]}>
+              <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
+            </View>
             <Texto variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web para completar, editar o cerrar este presupuesto. No se lo des a tu cliente: a él se le envía el enlace del PDF.</Texto>
             <View style={e.fila}>
-              <Boton titulo={copiado ? 'Copiado' : 'Copiar'} variante="secundario" onPress={copiar} style={e.mitad} />
-              <Boton titulo="Compartir" variante="secundario" onPress={() => void compartir()} style={e.mitad} />
+              <Boton titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={copiar} style={e.mitad} />
+              <Boton titulo="Compartir" icono="compartir" variante="secundario" onPress={() => void compartir()} style={e.mitad} />
             </View>
             <Boton titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} />
           </>
@@ -157,9 +170,9 @@ export default function Detalle() {
         )}
         <View style={[e.separador, { borderTopColor: t.borde }]}>
           <Texto variante="chico" suave>¿Sin escribir el código? Abre este presupuesto en la web escaneando el QR de su portada.</Texto>
-          <Boton titulo="Ver en la web (leer QR)" variante="secundario" onPress={() => router.push({ pathname: '/escanear', params: { id, titulo: `${q.number ?? 'Este presupuesto'} de ${q.customer.name}` } })} />
+          <Boton titulo="Ver en la web (leer QR)" icono="qr" variante="secundario" onPress={() => router.push({ pathname: '/escanear', params: { id, titulo: `${q.number ?? 'Este presupuesto'} de ${q.customer.name}` } })} />
         </View>
-      </View>
+      </Tarjeta>
 
       {cerrado && q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
       {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento key={`levantamiento-${vista.levantamiento}`} q={q} cambiar={cambiar} />}
@@ -167,32 +180,32 @@ export default function Detalle() {
       {cerrado ? null : <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} />}
 
       {cerrado && q.items.length ? (
-        <View style={e.bloque}>
-          <Texto variante="subtitulo">Ítems</Texto>
+        <Tarjeta>
+          <Texto variante="subtitulo" accessibilityRole="header">Detalle</Texto>
           {q.items.map((i) => (
-            <View key={i.id} style={e.item}>
-              <View style={e.itemTexto}>
+            <View key={i.id} style={[e.item, { borderBottomColor: t.borde }]}>
+              <View style={e.flex}>
                 <Texto>{i.description}</Texto>
                 {i.kind === 'TASK' ? (
                   <Texto variante="chico" suave>Tarea</Texto>
                 ) : (
-                  <Texto variante="chico" suave>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
+                  <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
                 )}
               </View>
               <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : clp(i.line_total)}</Texto>
             </View>
           ))}
           {q.include_vat ? (
-            <View style={e.item}>
+            <View style={e.filaTotal}>
               <Texto suave>IVA (19%)</Texto>
               <Texto suave style={e.monto}>{clp(q.vat)}</Texto>
             </View>
           ) : null}
-          <View style={[e.item, { borderTopColor: t.borde, borderTopWidth: 1, paddingTop: espacio.m }]}>
+          <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
             <Texto fuerte>Total</Texto>
-            <Texto variante="subtitulo" style={e.monto}>{clp(q.total)}</Texto>
+            <Texto variante="titulo" style={e.monto}>{clp(q.total)}</Texto>
           </View>
-        </View>
+        </Tarjeta>
       ) : null}
     </ScrollView>
   );
@@ -200,16 +213,19 @@ export default function Detalle() {
 
 const e = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
-  contenido: { padding: espacio.l, gap: espacio.xl },
+  contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.xl },
   bloque: { gap: espacio.s },
-  exito: { borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
-  tarjeta: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.xl, gap: espacio.m },
-  // El alto de línea va con la letra: Texto trae uno de 22 pt y con letra de 26 recortaba la parte de arriba.
-  codigo: { fontSize: 26, lineHeight: 36, fontWeight: '600', letterSpacing: 0.5, fontVariant: ['tabular-nums'] },
+  pastillas: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
+  flex: { flex: 1 },
+  exito: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l },
+  ticket: { borderWidth: 1, borderStyle: 'dashed', borderRadius: radio.m, borderCurve: 'continuous', paddingVertical: espacio.l, paddingHorizontal: espacio.m, alignItems: 'center' },
+  // El alto de línea va con la letra: con 26 pt y el alto de 22 del cuerpo se recortaba la parte de arriba.
+  codigo: { fontFamily: Platform.select(MONO), fontSize: 24, lineHeight: 32, fontWeight: '600', letterSpacing: 1.5 },
   fila: { flexDirection: 'row', gap: espacio.m },
   separador: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m, gap: espacio.s },
   mitad: { flex: 1 },
-  item: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: espacio.m },
-  itemTexto: { flex: 1 },
+  item: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: espacio.m, paddingBottom: espacio.m, borderBottomWidth: StyleSheet.hairlineWidth },
+  filaTotal: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
+  total: { borderTopWidth: 2, paddingTop: espacio.m },
   monto: { fontVariant: ['tabular-nums'] },
 });

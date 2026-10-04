@@ -5,10 +5,10 @@ import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { api, ApiError, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Texto } from '@/components/ui';
+import { Boton, Icono, Texto } from '@/components/ui';
 import { guardarCodigo } from '@/lib/codigos';
 import { guardarBorrador } from '@/sync/cola';
-import { espacio, useTema } from '@/theme';
+import { espacio, radio, useTema } from '@/theme';
 
 // Un presupuesto rechazado se puede rehacer como 2.ª, 3.ª… versión (Contrato API §6). Lo que se envió no cambia: la versión
 // nueva es otro presupuesto, con sus ítems y condiciones copiados, su propio código y su propio número. Requiere conexión.
@@ -43,8 +43,11 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
     ]);
 
   return (
-    <View style={[e.tarjeta, { backgroundColor: t.tarjeta, borderColor: t.error }]}>
-      <Texto fuerte color="error">Presupuesto rechazado</Texto>
+    <View style={[e.tarjeta, { backgroundColor: `${t.error}14`, borderColor: `${t.error}66` }]}>
+      <View style={e.rotulo}>
+        <Icono nombre="alerta" tamano={18} color={t.error} />
+        <Texto fuerte color="error">Presupuesto rechazado</Texto>
+      </View>
       {q.next_version_id ? (
         <>
           <Texto variante="chico" suave>Ya lo rehiciste como una versión nueva.</Texto>
@@ -61,5 +64,6 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
 }
 
 const e = StyleSheet.create({
-  tarjeta: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
+  tarjeta: { borderWidth: 1, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
+  rotulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
 });

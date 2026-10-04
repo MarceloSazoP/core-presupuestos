@@ -8,11 +8,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, TECLADO_ID, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Nota, Seccion, Tarjeta, TECLADO_ID, Texto, type NombreIcono } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
 import { guardarArchivo } from '@/sync/archivos';
 import { descartarSubida, encolar } from '@/sync/cola';
-import { espacio, letra, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, letra, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Etapa 2 del wizard (CLAUDE.md §10): lo que se ve en terreno. Notas, medidas, fotos y voz. Todo es interno: nada de esto
 // sale en el PDF. Funciona sin conexión: cada cambio se guarda en el teléfono y la cola de envío (sync/cola.ts) lo sube después.
@@ -35,13 +35,29 @@ const conSurvey = (q: Presupuesto, s: Partial<Presupuesto['survey']>): Presupues
 
 export function Levantamiento({ q, cambiar }: Props) {
   return (
-    <View style={e.seccion}>
-      <Texto variante="subtitulo">Visita en terreno</Texto>
-      <Trabajo q={q} cambiar={cambiar} />
-      <Notas q={q} cambiar={cambiar} />
-      <Medidas q={q} cambiar={cambiar} />
-      <Fotos q={q} cambiar={cambiar} />
-      <Voz q={q} cambiar={cambiar} />
+    <>
+      <Seccion titulo="El trabajo" descripcion="Sale en el PDF del cliente.">
+        <Tarjeta>
+          <Trabajo q={q} cambiar={cambiar} />
+        </Tarjeta>
+      </Seccion>
+      <Nota titulo="De la visita">
+        <Notas q={q} cambiar={cambiar} />
+        <Medidas q={q} cambiar={cambiar} />
+        <Fotos q={q} cambiar={cambiar} />
+        <Voz q={q} cambiar={cambiar} />
+      </Nota>
+    </>
+  );
+}
+
+// Rótulo de cada parte de la nota: un ícono y el nombre, con la cuenta cuando hay un máximo.
+function Rotulo({ icono, texto }: { icono: NombreIcono; texto: string }) {
+  const t = useTema();
+  return (
+    <View style={e.rotulo}>
+      <Icono nombre={icono} tamano={16} color={t.notaSello} />
+      <Texto variante="chico" fuerte>{texto}</Texto>
     </View>
   );
 }
@@ -70,7 +86,7 @@ function Trabajo({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <Campo etiqueta="Servicio" value={servicio} onChangeText={setServicio} onBlur={guardar} multiline maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Sale en el PDF. Es obligatorio para terminar el presupuesto." error={error} />
+      <Campo etiqueta="Servicio" value={servicio} onChangeText={setServicio} onBlur={guardar} multiline maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
       <Campo etiqueta="Dirección del trabajo (opcional)" value={direccion} onChangeText={setDireccion} onBlur={guardar} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
     </View>
   );
@@ -78,6 +94,7 @@ function Trabajo({ q, cambiar }: Props) {
 
 // ── Notas ─────────────────────────────────────────────────────────────────────────────────────
 function Notas({ q, cambiar }: Props) {
+  const t = useTema();
   const [notas, setNotas] = useState(q.survey.notes ?? '');
   const guardado = useRef(q.survey.notes ?? '');
   const [estado, setEstado] = useState<string | null>(null);
@@ -95,7 +112,7 @@ function Notas({ q, cambiar }: Props) {
   }
 
   return (
-    <Campo etiqueta="Notas" value={notas} onChangeText={(v) => { setNotas(v); setEstado(null); }} onBlur={guardar} multiline placeholder="Qué viste, qué pidió el cliente, lo que no puedes olvidar" error={estado && estado !== 'Guardado' ? estado : null} ayuda={estado === 'Guardado' ? 'Guardado' : 'Son internas: no salen en el PDF.'} />
+    <Campo etiqueta="Notas" value={notas} onChangeText={(v) => { setNotas(v); setEstado(null); }} onBlur={guardar} multiline placeholder="Qué viste, qué pidió el cliente, lo que no puedes olvidar" error={estado && estado !== 'Guardado' ? estado : null} ayuda={estado === 'Guardado' ? 'Guardado' : undefined} style={{ backgroundColor: t.tarjeta }} />
   );
 }
 
@@ -128,18 +145,18 @@ function Medidas({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <Texto variante="chico" fuerte>Medidas</Texto>
+      <Rotulo icono="regla" texto="Medidas" />
       {filas.map((f) => (
         <View key={f.clave} style={e.filaMedida}>
-          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
-          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Quitar medida" onPress={() => quitar(f.clave)} hitSlop={4} style={e.quitar}>
-            <Texto color="suave" variante="subtitulo">×</Texto>
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Quitar medida" onPress={() => quitar(f.clave)} hitSlop={4} style={({ pressed }) => [e.quitar, { opacity: pressed ? 0.5 : 1 }]}>
+            <Icono nombre="cerrar" tamano={18} color={t.suave} />
           </Pressable>
         </View>
       ))}
       {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-      <Boton titulo="+ Agregar medida" variante="secundario" disabled={filas.length >= MAX_MEDIDAS} onPress={() => { const id = randomUUID(); setFilas((fs) => [...fs, { clave: id, id, label: '', value: '' }]); }} />
+      <Boton titulo="Agregar medida" icono="mas" variante="secundario" disabled={filas.length >= MAX_MEDIDAS} onPress={() => { const id = randomUUID(); setFilas((fs) => [...fs, { clave: id, id, label: '', value: '' }]); }} />
     </View>
   );
 }
@@ -191,7 +208,7 @@ function Fotos({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <Texto variante="chico" fuerte>Fotos ({fotos.length}/{MAX_FOTOS})</Texto>
+      <Rotulo icono="camara" texto={`Fotos (${fotos.length}/${MAX_FOTOS})`} />
       {fotos.length ? (
         <View style={e.tira}>
           <FlashList
@@ -215,8 +232,8 @@ function Fotos({ q, cambiar }: Props) {
         </View>
       ) : null}
       <View style={e.fila}>
-        <Boton titulo="Tomar foto" variante="secundario" onPress={() => void agregar('camara')} style={e.mitad} />
-        <Boton titulo="Galería" variante="secundario" onPress={() => void agregar('galeria')} style={e.mitad} />
+        <Boton titulo="Tomar foto" icono="camara" variante="secundario" onPress={() => void agregar('camara')} style={e.mitad} />
+        <Boton titulo="Galería" icono="galeria" variante="secundario" onPress={() => void agregar('galeria')} style={e.mitad} />
       </View>
     </View>
   );
@@ -270,14 +287,14 @@ function Voz({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <Texto variante="chico" fuerte>Notas de voz ({notas.length}/{MAX_VOCES})</Texto>
+      <Rotulo icono="microfono" texto={`Notas de voz (${notas.length}/${MAX_VOCES})`} />
       {notas.map((n) => (
         <NotaDeVoz key={n.id} nota={n} alBorrar={async () => {
           cambiar((p) => conSurvey(p, { voice_notes: p.survey.voice_notes.filter((v) => v.id !== n.id) }));
           if (!(await descartarSubida(q.id, n.id))) await encolar({ quote_id: q.id, method: 'DELETE', path: `/quotes/${q.id}/voice-notes/${n.id}` });
         }} />
       ))}
-      <Boton titulo={grabando ? `Detener · ${mmss(segundos)}` : 'Grabar nota de voz'} variante={grabando ? 'primario' : 'secundario'} cargando={guardando} onPress={() => void (grabando ? detener() : empezar())} />
+      <Boton titulo={grabando ? `Detener · ${mmss(segundos)}` : 'Grabar nota de voz'} icono={grabando ? 'detener' : 'microfono'} variante={grabando ? 'primario' : 'secundario'} cargando={guardando} onPress={() => void (grabando ? detener() : empezar())} />
     </View>
   );
 }
@@ -303,20 +320,23 @@ function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_note
 
   return (
     <View style={[e.nota, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={playing ? 'Pausar nota de voz' : 'Escuchar nota de voz'} onPress={() => void alternar()} hitSlop={4} style={e.reproducir}>
-        <Texto color="acento" fuerte>{playing ? 'Pausar' : 'Escuchar'}</Texto>
+      <Pressable accessibilityRole="button" accessibilityLabel={playing ? 'Pausar nota de voz' : 'Escuchar nota de voz'} onPress={() => void alternar()} hitSlop={4} style={({ pressed }) => [e.reproducir, { opacity: pressed ? 0.6 : 1 }]}>
+        <View style={[e.botonPlay, { backgroundColor: t.acento }]}>
+          <Icono nombre={playing ? 'pausar' : 'reproducir'} tamano={16} color={t.sobreAcento} />
+        </View>
+        <Texto fuerte>{playing ? 'Reproduciendo' : 'Nota de voz'}</Texto>
       </Pressable>
       <Texto suave style={e.duracion}>{mmss(nota.duration_seconds)}</Texto>
-      <Pressable accessibilityRole="button" accessibilityLabel="Quitar nota de voz" onPress={quitar} hitSlop={4} style={e.quitar}>
-        <Texto color="suave" variante="subtitulo">×</Texto>
+      <Pressable accessibilityRole="button" accessibilityLabel="Quitar nota de voz" onPress={quitar} hitSlop={4} style={({ pressed }) => [e.quitar, { opacity: pressed ? 0.5 : 1 }]}>
+        <Icono nombre="cerrar" tamano={18} color={t.suave} />
       </Pressable>
     </View>
   );
 }
 
 const e = StyleSheet.create({
-  seccion: { gap: espacio.xl },
   bloque: { gap: espacio.s },
+  rotulo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   fila: { flexDirection: 'row', gap: espacio.m },
   mitad: { flex: 1 },
   filaMedida: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
@@ -325,9 +345,10 @@ const e = StyleSheet.create({
   valorMedida: { flex: 2 },
   quitar: { width: MIN_TOQUE, height: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' },
   tira: { height: 96 },
-  miniatura: { width: 96, height: 96, borderRadius: 12, borderCurve: 'continuous' },
+  miniatura: { width: 96, height: 96, borderRadius: radio.m, borderCurve: 'continuous' },
   subiendo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  nota: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', paddingLeft: espacio.l, minHeight: MIN_TOQUE },
-  reproducir: { flex: 1, minHeight: MIN_TOQUE, justifyContent: 'center' },
+  nota: { flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', paddingLeft: espacio.s, minHeight: 56 },
+  reproducir: { flex: 1, minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', gap: espacio.m },
+  botonPlay: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   duracion: { fontVariant: ['tabular-nums'] },
 });

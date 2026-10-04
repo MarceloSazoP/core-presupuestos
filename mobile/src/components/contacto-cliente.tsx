@@ -1,10 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -59,7 +58,9 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
           <Texto variante="chico" suave>{q.customer.email ?? 'Sin correo'}</Texto>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Corregir los datos del cliente" onPress={empezar} hitSlop={8} style={e.lapiz}>
-          <SymbolView name="pencil" size={20} tintColor={t.acento} fallback={<View />} />
+          <View style={[e.circulo, { backgroundColor: `${t.acento}1A` }]}>
+            <Icono nombre="lapiz" tamano={18} color={t.acento} />
+          </View>
         </Pressable>
       </View>
     );
@@ -84,4 +85,5 @@ const e = StyleSheet.create({
   form: { gap: espacio.m },
   mitad: { flex: 1 },
   lapiz: { minWidth: MIN_TOQUE, minHeight: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' },
+  circulo: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
 });
