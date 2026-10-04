@@ -151,7 +151,7 @@ export default function Detalle() {
             <View key={i.id} style={e.item}>
               <View style={e.itemTexto}>
                 <Texto>{i.description}</Texto>
-                <Texto variante="chico" suave>{i.quantity} {i.unit} × {clp(i.unit_price)}</Texto>
+                <Texto variante="chico" suave>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
               </View>
               <Texto fuerte style={e.monto}>{clp(i.line_total)}</Texto>
             </View>
