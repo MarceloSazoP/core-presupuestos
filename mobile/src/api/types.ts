@@ -35,6 +35,8 @@ export type Presupuesto = {
   items: { id: string; description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
   subtotal: number;
   discount: number;
+  include_vat: boolean;
+  vat: number;
   total: number;
   warranty: { kind: string; text: string | null };
   validity_days: number | null;

@@ -1,11 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Pastilla, Texto } from '@/components/ui';
 import { clp } from '@/lib/formato';
+import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
@@ -44,6 +45,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
   const contador = useRef(0);
   const [filas, setFilas] = useState<Fila[]>(() => q.items.map((i) => ({ clave: i.id, description: i.description, quantity: String(i.quantity), unit: i.unit, unit_price: String(i.unit_price) })));
   const [descuento, setDescuento] = useState(String(q.discount || ''));
+  const [conIva, setConIva] = useState(q.include_vat);
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
   const [garantia, setGarantia] = useState<string>(q.warranty.kind === 'CUSTOM' ? 'NONE' : q.warranty.kind);
   const [obs, setObs] = useState(q.observations ?? '');
@@ -52,7 +54,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
 
   const cambiar = (clave: string, campo: keyof Fila, v: string) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, [campo]: v } : f)));
   const subtotal = filas.reduce((s, f) => s + Math.round(numero(f.quantity) * entero(f.unit_price) || 0), 0); // vista previa; manda el servidor
-  const total = Math.max(0, subtotal - entero(descuento));
+  const { iva, total } = totalesDe(subtotal, entero(descuento), conIva);
 
   async function guardar() {
     const items = filas.filter((f) => f.description.trim()).map((f) => ({ description: f.description.trim(), quantity: numero(f.quantity), unit: f.unit, unit_price: entero(f.unit_price) }));
@@ -60,7 +62,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
     await api(`/quotes/${q.id}/items`, { method: 'PUT', body: { items } });
     await api(`/quotes/${q.id}`, {
       method: 'PATCH',
-      body: { discount: entero(descuento), validity_days: Math.min(365, Math.max(1, entero(dias))), warranty: { kind: garantia }, observations: obs.trim() || null },
+      body: { discount: entero(descuento), include_vat: conIva, validity_days: Math.min(365, Math.max(1, entero(dias))), warranty: { kind: garantia }, observations: obs.trim() || null },
     });
   }
 
@@ -115,13 +117,17 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
       <Boton titulo="+ Agregar ítem" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => setFilas((fs) => [...fs, { clave: `n${++contador.current}`, description: '', quantity: '1', unit: 'un', unit_price: '' }])} />
 
       <Campo etiqueta="Descuento (opcional)" value={descuento} onChangeText={(v) => setDescuento(v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" />
+      <View style={e.filaIva}>
+        <Texto style={e.textoIva}>Agregar IVA (19%)</Texto>
+        <Switch accessibilityLabel="Agregar IVA (19%)" value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
+      </View>
       <Texto variante="chico" fuerte>Garantía</Texto>
       <Chips etiqueta="Garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={setGarantia} />
       <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
       <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={setObs} multiline maxLength={5000} placeholder="Condiciones, plazos, forma de pago…" />
 
       <View style={[e.total, { borderColor: t.borde }]}>
-        <Texto>Total</Texto>
+        <Texto>{conIva ? `Total (IVA ${clp(iva)})` : 'Total'}</Texto>
         <Texto variante="subtitulo" style={e.monto}>{clp(total)}</Texto>
       </View>
 
@@ -193,6 +199,8 @@ const e = StyleSheet.create({
   item: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   mitad: { flex: 1 },
+  filaIva: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  textoIva: { flex: 1 },
   chips: { gap: espacio.s },
   chip: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: 999, paddingHorizontal: espacio.l, alignItems: 'center', justifyContent: 'center' },
   total: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, paddingTop: espacio.m },

@@ -82,7 +82,7 @@ const borradorNuevo = (id: string, customer: { name: string; phone: string; emai
   id, code_id: '', number: null, doc_status: 'DRAFT', commercial_status: 'NONE',
   customer: { id: '', ...customer }, service_description: servicio, address: direccion,
   survey: { notes: null, measurements: [], photos: [], voice_notes: [] },
-  items: [], subtotal: 0, discount: 0, total: 0, warranty: { kind: 'NONE', text: null }, validity_days: null, next_contact_date: null, observations: null, public_url: null,
+  items: [], subtotal: 0, discount: 0, include_vat: false, vat: 0, total: 0, warranty: { kind: 'NONE', text: null }, validity_days: null, next_contact_date: null, observations: null, public_url: null,
 });
 
 const e = StyleSheet.create({

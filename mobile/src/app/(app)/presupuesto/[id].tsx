@@ -157,6 +157,12 @@ export default function Detalle() {
               <Texto fuerte style={e.monto}>{clp(i.line_total)}</Texto>
             </View>
           ))}
+          {q.include_vat ? (
+            <View style={e.item}>
+              <Texto suave>IVA (19%)</Texto>
+              <Texto suave style={e.monto}>{clp(q.vat)}</Texto>
+            </View>
+          ) : null}
           <View style={[e.item, { borderTopColor: t.borde, borderTopWidth: 1, paddingTop: espacio.m }]}>
             <Texto fuerte>Total</Texto>
             <Texto variante="subtitulo" style={e.monto}>{clp(q.total)}</Texto>
