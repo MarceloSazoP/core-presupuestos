@@ -5,7 +5,7 @@ import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Switch, View 
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Pastilla, Texto } from '@/components/ui';
-import { clp } from '@/lib/formato';
+import { clp, montoEscrito, soloDigitos } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -118,7 +118,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
         <View key={f.clave} style={[e.item, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
           <Pastilla texto="Tarea" tono="suave" />
           <Campo etiqueta={`Tarea (línea ${n + 1})`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Por ejemplo: botar escombros" maxLength={300} />
-          <Campo etiqueta="Valor (opcional)" value={f.unit_price} onChangeText={(v) => cambiar(f.clave, 'unit_price', v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" ayuda="Si lo dejas vacío, la tarea va incluida en el presupuesto." />
+          <Campo etiqueta="Valor (opcional)" value={montoEscrito(f.unit_price)} onChangeText={(v) => cambiar(f.clave, 'unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" ayuda="Si lo dejas vacío, la tarea va incluida en el presupuesto." />
           <View style={e.fila}>
             <Texto fuerte style={e.monto}>{f.unit_price ? clp(entero(f.unit_price)) : 'Incluido'}</Texto>
             <Boton titulo="Quitar" variante="texto" onPress={() => setFilas((fs) => fs.filter((x) => x.clave !== f.clave))} />
@@ -129,7 +129,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
           <Campo etiqueta={`Ítem (línea ${n + 1})`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Qué vas a hacer o vender" maxLength={300} />
           <View style={e.fila}>
             <View style={e.mitad}><Campo etiqueta="Cantidad" value={f.quantity} onChangeText={(v) => cambiar(f.clave, 'quantity', v.replace(/[^\d.,]/g, ''))} keyboardType="decimal-pad" /></View>
-            <View style={e.mitad}><Campo etiqueta="Precio unitario" value={f.unit_price} onChangeText={(v) => cambiar(f.clave, 'unit_price', v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" /></View>
+            <View style={e.mitad}><Campo etiqueta="Precio unitario" value={montoEscrito(f.unit_price)} onChangeText={(v) => cambiar(f.clave, 'unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" /></View>
           </View>
           <Chips etiqueta="Unidad" opciones={UNIDADES.map((u) => ({ id: u, texto: u === 'm2' ? 'm²' : u }))} valor={f.unit} alElegir={(u) => cambiar(f.clave, 'unit', u)} />
           <View style={e.fila}>
@@ -143,7 +143,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
         <Boton titulo="+ Agregar tarea" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
       </View>
 
-      <Campo etiqueta="Descuento (opcional)" value={descuento} onChangeText={(v) => setDescuento(v.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="$ 0" />
+      <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
       <View style={e.filaIva}>
         <Texto style={e.textoIva}>Agregar IVA (19%)</Texto>
         <Switch accessibilityLabel="Agregar IVA (19%)" value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
