@@ -207,22 +207,22 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
       {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-3">
-        <h2 className="text-2xl font-bold uppercase tracking-wide">Presupuesto</h2>
+        <h2 className="text-2xl font-semibold leading-tight">Presupuesto de {inicial.cliente.nombre}</h2>
         <span className="estado estado-pendiente">Borrador{inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}</span>
         {inicial.numeroAnterior && <p className="basis-full text-sm font-normal normal-case text-muted">Reemplaza al presupuesto {inicial.numeroAnterior}</p>}
       </div>
 
       <div className="grid gap-6 @3xl:grid-cols-2">
         <section aria-labelledby="cliente" className="flex flex-col gap-1">
-          <h3 id="cliente" className="etiqueta uppercase tracking-wide text-muted">
+          <h3 id="cliente" className="seccion">
             Cliente
           </h3>
           <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
         </section>
 
         <section aria-labelledby="levantamiento" className="flex flex-col gap-1">
-          <h3 id="levantamiento" className="etiqueta uppercase tracking-wide text-muted">
-            Notas de la visita <span className="font-normal normal-case">(internas, no salen en el PDF)</span>
+          <h3 id="levantamiento" className="seccion">
+            Notas de la visita <span className="ayuda">(internas, no salen en el PDF)</span>
           </h3>
           <NotasVisita notas={inicial.levantamiento.notas} />
           {inicial.levantamiento.medidas.length > 0 && (
@@ -234,7 +234,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       </div>
 
       <section className="flex flex-col gap-1">
-        <label htmlFor="descripcion" className="etiqueta uppercase tracking-wide text-muted">
+        <label htmlFor="descripcion" className="etiqueta">
           Servicio
         </label>
         <textarea
@@ -251,8 +251,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       </section>
 
       <section className="flex flex-col gap-1">
-        <label htmlFor="direccion" className="etiqueta uppercase tracking-wide text-muted">
-          Dirección del trabajo <span className="font-normal normal-case">(opcional, aparece en el PDF)</span>
+        <label htmlFor="direccion" className="etiqueta">
+          Dirección del trabajo <span className="ayuda">(opcional, aparece en el PDF)</span>
         </label>
         <input
           id="direccion"
@@ -268,7 +268,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       </section>
 
       <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
-        <h3 id="titulo-items" className="etiqueta uppercase tracking-wide text-muted">
+        <h3 id="titulo-items" className="seccion">
           Ítems y tareas
         </h3>
         <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />
@@ -285,7 +285,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
 
       <div className="grid gap-8 @3xl:grid-cols-[minmax(0,1fr)_22rem] @3xl:items-start">
         <section aria-labelledby="titulo-condiciones" className="flex flex-col gap-4">
-          <h3 id="titulo-condiciones" className="etiqueta uppercase tracking-wide text-muted">
+          <h3 id="titulo-condiciones" className="seccion">
             Condiciones
           </h3>
           <div className="grid gap-4 @xl:grid-cols-2">
@@ -375,7 +375,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
               </div>
             )}
             <div className="flex items-baseline justify-between gap-3 border-t-2 border-foreground pt-3">
-              <dt className="font-bold uppercase">Total</dt>
+              <dt className="text-lg font-semibold">Total</dt>
               <dd className={`text-3xl font-bold ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">
                 {clp(totales.total)}
               </dd>
