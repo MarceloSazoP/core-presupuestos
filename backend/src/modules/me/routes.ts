@@ -16,7 +16,8 @@ type Row = { id: string; name: string; phone: string; email: string; contact_pho
 const perfil = (u: Row) => ({
   id: u.id, name: u.name, phone: u.phone, email: u.email, contact_phone: u.contact_phone, contact_email: u.contact_email,
   has_logo: u.logo_file_id !== null, has_signature: u.signature_file_id !== null,
-  logo_id: u.logo_file_id, // cambia con cada logo nuevo: las apps lo usan en la dirección de la imagen para no mostrar uno guardado en caché
+  // cambian con cada imagen nueva: las apps los usan en la dirección de la imagen para no mostrar una guardada en caché
+  logo_id: u.logo_file_id, signature_id: u.signature_file_id,
 });
 
 const COLS = 'id, name, phone, email, contact_phone, contact_email, logo_file_id, signature_file_id';

@@ -191,7 +191,7 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 
 | Método y ruta | Descripción |
 |---------------|-------------|
-| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature, logo_id }`. `logo_id` cambia con cada logo nuevo (o es `null`): se usa en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre un logo viejo guardado en caché. |
+| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature, logo_id, signature_id }`. `logo_id` y `signature_id` cambian con cada imagen nueva (o son `null`): se usan en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre una imagen vieja guardada en caché. |
 | `PUT /me` | Parcial: `{ "name"?, "contact_phone"?, "contact_email"? }` (al menos uno). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `GET /me/logo` | Descarga el logo propio (404 si no hay). Es lo que muestra «Configurar». |
@@ -199,6 +199,8 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 | `PUT /me/signature` | Igual que el logo. |
 | `GET /me/signature` | Igual que el logo. |
 | `DELETE /me/signature` | **204** |
+
+**Firma en el PDF (decisión del 2026-10-04).** Con `include_signature = true` el PDF cierra con un bloque de firma: la imagen de la firma del usuario (si la subió), una **línea**, y debajo **«Firma:» seguido del nombre o negocio** configurado (`name`) y, en otra línea, el **teléfono y el correo de contacto**. Sirve para cualquier país: no lleva identificadores tributarios ni nada propio de un país (el teléfono va en formato internacional); lo único que depende de la región es la moneda y el IVA del presupuesto, que hoy son los de Chile. La firma es una imagen comercial: no es una firma electrónica avanzada.
 
 **Datos de contacto (decisión del 2026-10-04).** `phone` y `email` son la identidad de la cuenta (con ellos se ingresa) y no cambian. `contact_phone` y `contact_email` son los datos que salen en los presupuestos, el PDF, la vista pública y el correo al cliente; el usuario los configura desde «Configurar» en la app y valen `null` mientras no los cambie (entonces se usan `phone` y `email`). `name` es el nombre que sale en los presupuestos: puede ser el de un negocio («Instalaciones R. Sazo»). Al terminar un presupuesto sus datos de contacto, su nombre y su logo **quedan fijados** en el snapshot: cambiarlos después no altera lo ya enviado. `contact_phone` va en formato internacional como `phone`; `null` vuelve a usar el de la cuenta.
 
