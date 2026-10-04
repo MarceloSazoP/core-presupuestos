@@ -6,6 +6,7 @@ import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
 import { completarPresupuestoAction, salirAction, type EstadoEdicion } from "../actions";
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
+import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
 import { GrillaItems, type Fila } from "./grilla-items";
 import { Multimedia } from "./multimedia";
@@ -141,8 +142,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             Cliente
           </h3>
           <p className="text-lg font-semibold">{inicial.cliente.nombre}</p>
-          <p className="text-muted">{inicial.cliente.telefono}</p>
-          <p className="text-muted">{inicial.cliente.correo ?? "Sin correo"}</p>
+          <ContactoCliente telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
         </section>
 
         <section aria-labelledby="levantamiento" className="flex flex-col gap-1">

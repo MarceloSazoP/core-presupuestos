@@ -64,8 +64,8 @@ CREATE TABLE users (
   contact_email  text CHECK (contact_email IS NULL OR (contact_email = lower(contact_email) AND length(contact_email) <= 254)),  -- idem (null = usar email)
   logo_file_id      uuid,   -- FK a files, se agrega abajo
   signature_file_id uuid,
-  include_signature boolean NOT NULL DEFAULT false,   -- v0.4: opción del perfil; imprime la firma en todos los presupuestos
-  CHECK (NOT include_signature OR signature_file_id IS NOT NULL),
+  use_logo          boolean NOT NULL DEFAULT false,   -- v0.4: interruptor del logo (apagado: no se usa en ningún presupuesto)
+  include_signature boolean NOT NULL DEFAULT false,   -- v0.4: interruptor de la firma (apagado: no se imprime en ninguno)
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
@@ -521,7 +521,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0009` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0010` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -656,3 +656,23 @@ ALTER TABLE quotes DROP COLUMN include_signature;
 - Borrar la firma apaga la opción en la misma sentencia (`DELETE /me/signature`), para no romper la restricción.
 - Al terminar un presupuesto, `snapshot.include_signature` y `professional.signature_file_id` salen del perfil de ese momento.
 - **Pruebas que acompañan:** no se puede activar sin firma subida (422); borrar la firma apaga la opción; con la opción activa el snapshot lleva la firma en todos los presupuestos y con ella apagada en ninguno; cambiarla no altera uno ya terminado; el esquema rechaza `include_signature` sin firma.
+
+
+---
+
+## 18. Migración `0009` (un interruptor por imagen del perfil, decisión del 2026-10-04)
+
+El usuario pidió que el logo y la firma tengan cada uno su interruptor en «Configurar»: encendido habilita subir la foto y la usa en todos los presupuestos; apagado no la usa. Reemplaza la regla de §17 «no se activa sin firma subida». Detalle en `Contrato de API.md` §4.
+
+```sql
+ALTER TABLE users DROP CONSTRAINT users_signature_check;           -- se puede encender antes de subir la imagen
+ALTER TABLE users ADD COLUMN use_logo boolean NOT NULL DEFAULT false;
+
+-- Quien ya tenía imagen la sigue usando.
+UPDATE users SET use_logo = true WHERE logo_file_id IS NOT NULL;
+UPDATE users SET include_signature = true WHERE signature_file_id IS NOT NULL;
+```
+
+- Subir una imagen enciende su interruptor (`PUT /me/logo` → `use_logo`, `PUT /me/signature` → `include_signature`); borrarla no lo apaga.
+- Al terminar un presupuesto, el logo y la firma salen del snapshot solo si su interruptor está encendido **y** hay imagen; el bloque de firma (línea, «Firma:», nombre, teléfono y correo) sale siempre.
+- **Pruebas que acompañan:** encender sin imagen es válido; subir una imagen enciende su interruptor; con el interruptor apagado la imagen subida no entra al snapshot ni al PDF y se conserva; encendido entra en todos; cambiarlo no altera un presupuesto ya terminado.

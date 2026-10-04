@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { clp, cant, enmascararCorreo } from "@/lib/formato";
+import { clp, cant } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
 import { cargarPresupuesto, esFinalizado } from "@/lib/presupuesto";
 import { totalLinea } from "@/lib/totales";
@@ -9,6 +9,7 @@ import { salirAction } from "../actions";
 import { Editor } from "./editor";
 import { Encabezado } from "./encabezado";
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
+import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
 import { Multimedia } from "./multimedia";
 
@@ -41,7 +42,7 @@ export default async function PresupuestoPage() {
             validezDias: p.validezDias,
             observaciones: p.observaciones,
             levantamiento: p.levantamiento,
-            cliente: { nombre: p.cliente.nombre, correo: p.cliente.correo && enmascararCorreo(p.cliente.correo), telefono: p.cliente.telefono },
+            cliente: { nombre: p.cliente.nombre, correo: p.cliente.correo, telefono: p.cliente.telefono },
           }}
         />
       </main>
@@ -149,12 +150,19 @@ export default async function PresupuestoPage() {
             {p.observaciones && <p className="border-t border-borde pt-2">{p.observaciones}</p>}
           </section>
 
+          <section aria-labelledby="cliente-cerrado" className="tarjeta flex flex-col gap-2 text-sm">
+            <h2 id="cliente-cerrado" className="seccion">
+              Contacto del cliente
+            </h2>
+            <ContactoCliente telefono={p.cliente.telefono} correo={p.cliente.correo} />
+          </section>
+
           <div className="flex flex-col gap-3">
             <a href="/presupuesto/pdf" download className="boton">
               Descargar PDF
             </a>
             <EnlaceWhatsApp href={whatsappUrl} className="boton-secundario" />
-            <EnviarCorreo destino={p.cliente.correo && enmascararCorreo(p.cliente.correo)} />
+            <EnviarCorreo destino={p.cliente.correo} />
             <form action={salirAction}>
               <button type="submit" className="boton-texto w-full">
                 Consultar otro presupuesto

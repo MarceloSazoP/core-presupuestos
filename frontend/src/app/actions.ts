@@ -6,6 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { clp } from '@/lib/formato';
 import { codigoGarantia, mensajesDeError, type QuoteApi } from '@/lib/mapeo';
 import { abrirSesion, cerrarSesion, sesionActual } from '@/lib/sesion';
+import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { enlaceWhatsApp, mensajePresupuesto } from '@/lib/whatsapp';
 
 // La web no tiene reglas propias: valida lo mínimo para dar buenos mensajes y deja que la API decida (CLAUDE.md §6).
@@ -74,6 +75,25 @@ export type EstadoEdicion = {
     whatsappUrl: string;
   };
 };
+
+// Corregir el teléfono y el correo del cliente (Contrato API §6). Siempre se puede, también con el presupuesto terminado: no están
+// en el PDF ni en el snapshot. El correo vacío significa «sin correo».
+export async function corregirClienteAction(telefono: string, correo: string): Promise<{ error?: string }> {
+  const s = await sesionActual();
+  if (!s) return { error: 'La sesión venció. Vuelve al inicio y escribe el código de nuevo.' };
+  const tel = normalizarTelefono(telefono);
+  if (!tel) return { error: 'Escribe un teléfono válido, por ejemplo 9 1234 5678.' };
+  const mail = correo.trim().toLowerCase();
+  if (mail && !esCorreo(mail)) return { error: 'Revisa el correo: parece incompleto.' };
+  try {
+    await api(`/quotes/${s.quoteId}/customer`, { token: s.token, method: 'PATCH', body: { phone: tel, email: mail || null } });
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    return { error: mensajesDeError(e.details, e.message).join(' ') };
+  }
+  revalidatePath('/presupuesto');
+  return {};
+}
 
 // Quitar una foto o una nota de voz del levantamiento (Contrato API §6). Solo mientras el presupuesto se puede editar.
 export async function eliminarArchivoAction(tipo: 'foto' | 'audio', id: string): Promise<{ error?: string }> {

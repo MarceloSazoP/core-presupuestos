@@ -13,8 +13,3 @@ export const milesConDecimal = (crudo: string) => {
 
 export const enmascararTelefono = (telefono: string) =>
   telefono.length < 4 ? "" : `${telefono.slice(0, 3)} ••• ${telefono.slice(-2)}`;
-
-export function enmascararCorreo(correo: string): string {
-  const [local = '', dominio = ''] = correo.split('@');
-  return local.length <= 2 ? `${local[0] ?? ''}***@${dominio}` : `${local[0]}***${local.slice(-1)}@${dominio}`;
-}
