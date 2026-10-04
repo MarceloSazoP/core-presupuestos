@@ -97,22 +97,26 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
       <Seccion titulo="Ítems y tareas" descripcion="Lo que cobras. Sale en el PDF.">
         {filas.length ? (
           <Tarjeta style={e.lista}>
+            {/* Grilla: encabezado fijo y una fila por ítem o tarea; tocar una fila abre su hoja. */}
+            <View style={[e.filaLista, e.encabezado, { backgroundColor: t.campo, borderBottomColor: t.borde }]}>
+              <Texto variante="chico" suave fuerte style={e.colDesc}>Descripción</Texto>
+              <Texto variante="chico" suave fuerte style={e.colCant}>Cant.</Texto>
+              <Texto variante="chico" suave fuerte style={e.colMonto}>Total</Texto>
+            </View>
             {filas.map((f, n) => (
               <Presionable
                 key={f.clave}
                 accessibilityRole="button"
                 accessibilityLabel={`${f.tipo === 'tarea' ? 'Tarea' : 'Ítem'} ${n + 1}: ${f.description || 'sin descripción'}. Editar`}
                 onPress={() => setAbierta({ fila: f, nueva: false })}
-                estilo={[e.filaLista, n > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
+                estilo={[e.filaLista, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
               >
-                <View style={e.flex}>
+                <View style={e.colDesc}>
                   <Texto numberOfLines={2} suave={!f.description.trim()}>{f.description.trim() || (f.tipo === 'tarea' ? 'Tarea sin descripción' : 'Ítem sin descripción')}</Texto>
-                  <Texto variante="chico" suave style={e.monto}>
-                    {f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${f.unit === 'm2' ? 'm²' : f.unit} × ${clp(entero(f.unit_price))}`}
-                  </Texto>
+                  {f.tipo === 'item' ? <Texto variante="chico" suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.monto}>{clp(entero(f.unit_price))} c/u</Texto> : null}
                 </View>
-                <Texto fuerte style={e.monto}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</Texto>
-                <Icono nombre="despliegue" tamano={12} color={t.suave} />
+                <Texto suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${f.unit === 'm2' ? 'm²' : f.unit}`}</Texto>
+                <Texto fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.monto]}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</Texto>
               </Presionable>
             ))}
           </Tarjeta>
@@ -256,8 +260,12 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 const e = StyleSheet.create({
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   flex: { flex: 1 },
+  encabezado: { minHeight: 36, paddingVertical: espacio.s, borderBottomWidth: StyleSheet.hairlineWidth },
+  colDesc: { flex: 1 },
+  colCant: { width: 72, textAlign: 'right' },
+  colMonto: { width: 104, textAlign: 'right' },
   lista: { padding: 0, gap: 0, overflow: 'hidden' },
-  filaLista: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingVertical: espacio.m, paddingHorizontal: espacio.l },
+  filaLista: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingVertical: espacio.m, paddingHorizontal: espacio.l },
   mitad: { flex: 1 },
   grupo: { gap: espacio.s },
   filaIva: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
