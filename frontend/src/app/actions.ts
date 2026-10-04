@@ -105,17 +105,19 @@ export type EstadoEdicion = {
   };
 };
 
-// Corregir el teléfono y el correo del cliente (Contrato API §6). Siempre se puede, también con el presupuesto terminado: no están
-// en el PDF ni en el snapshot. El correo vacío significa «sin correo».
-export async function corregirClienteAction(telefono: string, correo: string): Promise<{ error?: string }> {
+// Corregir el nombre, el teléfono y el correo del cliente (Contrato API §6). Teléfono y correo siempre se pueden, también con el presupuesto
+// terminado (no están en el PDF ni en el snapshot); el nombre solo mientras se edita, y por eso solo llega desde el editor. El correo vacío significa «sin correo».
+export async function corregirClienteAction(telefono: string, correo: string, nombre?: string): Promise<{ error?: string }> {
   const s = await sesionActual();
   if (!s) return { error: 'La sesión venció. Vuelve al inicio y escribe el código de nuevo.' };
   const tel = normalizarTelefono(telefono);
   if (!tel) return { error: 'Escribe un teléfono válido, por ejemplo 9 1234 5678.' };
   const mail = correo.trim().toLowerCase();
+  const nom = nombre?.trim();
+  if (nombre !== undefined && !nom) return { error: 'Escribe el nombre del cliente.' };
   if (mail && !esCorreo(mail)) return { error: 'Revisa el correo: parece incompleto.' };
   try {
-    await api(`/quotes/${s.quoteId}/customer`, { token: s.token, method: 'PATCH', body: { phone: tel, email: mail || null } });
+    await api(`/quotes/${s.quoteId}/customer`, { token: s.token, method: 'PATCH', body: { phone: tel, email: mail || null, ...(nom && { name: nom }) } });
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     return { error: mensajesDeError(e.details, e.message).join(' ') };

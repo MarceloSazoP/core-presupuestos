@@ -154,8 +154,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           <h3 id="cliente" className="etiqueta uppercase tracking-wide text-muted">
             Cliente
           </h3>
-          <p className="text-lg font-semibold">{inicial.cliente.nombre}</p>
-          <ContactoCliente telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
+          <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
         </section>
 
         <section aria-labelledby="levantamiento" className="flex flex-col gap-1">
