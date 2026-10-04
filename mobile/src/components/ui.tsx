@@ -115,11 +115,12 @@ export function Boton({ titulo, variante = 'primario', icono, cargando = false, 
 // trae tecla para cerrarse, así que sin esto un campo de precio dejaba el teclado abierto.
 export const TECLADO_ID = 'barraTeclado';
 
-export function BarraTeclado() {
+// Una hoja (Modal) es otra ventana nativa: la barra de la raíz no llega ahí, así que cada hoja monta la suya con su propio id.
+export function BarraTeclado({ id = TECLADO_ID }: { id?: string }) {
   const t = useTema();
   if (Platform.OS !== 'ios') return null; // en Android el gesto o el botón atrás ya ocultan el teclado
   return (
-    <InputAccessoryView nativeID={TECLADO_ID}>
+    <InputAccessoryView nativeID={id}>
       <View style={[e.barraTeclado, { backgroundColor: t.tarjeta, borderTopColor: t.borde }]}>
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarreTeclado, { backgroundColor: t.suave }]} />
         <Pressable accessibilityRole="button" accessibilityLabel="Ocultar teclado" onPress={() => Keyboard.dismiss()} hitSlop={8} style={e.listo}>
