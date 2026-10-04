@@ -83,6 +83,29 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     });
     return () => es.close();
   }, [router]);
+  const formulario = useRef<HTMLFormElement>(null);
+  const ventana = useRef<Window | null>(null);
+  const [sinVentana, setSinVentana] = useState(false); // el navegador bloqueó la pestaña nueva: se ofrece un enlace
+  // La vista previa se abre en otra pestaña que se crea al hacer clic (si no, el navegador la bloquea) y se completa cuando el guardado termina.
+  useEffect(() => {
+    const w = ventana.current;
+    if (!w) return;
+    ventana.current = null;
+    if (estado.vistaPrevia) w.location.href = `/presupuesto/vista-previa?t=${estado.vistaPrevia}`;
+    else w.close(); // el guardado falló (faltan datos): los errores se ven aquí
+  }, [estado]);
+  const previsualizar = () => {
+    const f = formulario.current;
+    if (!f) return;
+    const w = window.open("", "_blank");
+    w?.document.write('<p style="font-family:sans-serif;padding:2rem">Generando la vista previa…</p>');
+    ventana.current = w;
+    setSinVentana(!w);
+    vivo.current.ignorarHasta = Date.now() + 30_000;
+    const datos = new FormData(f);
+    datos.set("accion", "previsualizar");
+    enTransicion(() => accion(datos));
+  };
   const modal = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = modal.current;
@@ -181,7 +204,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </button>
         </p>
       )}
-    <form method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
+    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
       {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-3">
         <h2 className="text-2xl font-bold uppercase tracking-wide">Presupuesto</h2>
@@ -375,6 +398,14 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             Agrega al menos un ítem con descripción y precio.
           </p>
         )}
+        {sinVentana && estado.vistaPrevia && (
+          <p role="status" className="text-sm">
+            El navegador bloqueó la pestaña nueva.{" "}
+            <a href={`/presupuesto/vista-previa?t=${estado.vistaPrevia}`} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">
+              Abrir la vista previa
+            </a>
+          </p>
+        )}
         {estado.guardado && (
           <p role="status" className="text-sm text-ok">
             {estado.guardado}
@@ -407,6 +438,9 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           <div className="flex flex-col gap-3 sm:flex-row">
             <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
               Guardar y seguir después
+            </button>
+            <button type="button" onClick={previsualizar} className="boton-secundario" disabled={pendiente}>
+              Previsualizar presupuesto
             </button>
             <button type="button" onClick={intentarTerminar} className="boton" disabled={pendiente}>
               {pendiente && <span className="spinner" aria-hidden="true" />}

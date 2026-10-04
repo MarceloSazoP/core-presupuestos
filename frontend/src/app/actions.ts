@@ -98,6 +98,7 @@ const aEntero = (s: string) => Number(s.replace(/[^\d]/g, ''));
 export type EstadoEdicion = {
   errores?: string[];
   guardado?: string;
+  vistaPrevia?: number; // el editor guardó y puede abrir la vista previa (marca de tiempo para distinguir cada pedido)
   terminado?: {
     numero: string;
     total: string;
@@ -165,6 +166,7 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
   const s = await sesionActual();
   if (!s) return { errores: ['La sesión venció. Vuelve al inicio y escribe el código de nuevo.'] };
   const terminar = datos.get('accion') === 'terminar';
+  const previsualizar = datos.get('accion') === 'previsualizar'; // guarda igual que «Guardar» y deja abrir la vista previa
 
   const tipos = datos.getAll('item_tipo').map(String);
   const descripciones = datos.getAll('item_descripcion').map(String);
@@ -215,7 +217,7 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
     });
     if (!terminar) {
       await api(base + '/save', { token, method: 'POST', body: {} });
-      return { guardado: 'Guardado como pendiente. Puedes seguir después con el mismo código.' };
+      return previsualizar ? { vistaPrevia: Date.now() } : { guardado: 'Guardado como pendiente. Puedes seguir después con el mismo código.' };
     }
     const q = await api<QuoteApi & { public_url: string }>(base + '/finalize', { token, method: 'POST', body: {} });
     // Terminar también envía el PDF por correo cuando el cliente tiene correo; si falla, el presupuesto queda cerrado igual.
