@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { BotonTema } from "../boton-tema";
 import { Reloj } from "../reloj";
 
@@ -9,9 +8,11 @@ export function Encabezado({ profesional, logoSrc }: { profesional: Profesional;
   const telefono = profesional.telefono.replace(/[^\d+]/g, "");
   return (
     <header className="tarjeta flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 flex-col gap-3">
+        {/* El logo va en su propia fila, encima del nombre: un logo horizontal se ve entero y sin deformarse. */}
         {logoSrc && (
-          <Image src={logoSrc} alt={`Logo de ${profesional.nombre}`} width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl object-contain" />
+          // eslint-disable-next-line @next/next/no-img-element -- archivo privado servido por el BFF; su proporción es la del logo
+          <img src={logoSrc} alt={`Logo de ${profesional.nombre}`} className="h-16 w-auto max-w-full self-start object-contain object-left" />
         )}
         <div className="flex min-w-0 flex-col">
           <p className="truncate text-xl font-semibold leading-tight">{profesional.nombre}</p>

@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { clp } from '@/lib/formato';
@@ -73,6 +74,23 @@ export type EstadoEdicion = {
     whatsappUrl: string;
   };
 };
+
+// Quitar una foto o una nota de voz del levantamiento (Contrato API §6). Solo mientras el presupuesto se puede editar.
+export async function eliminarArchivoAction(tipo: 'foto' | 'audio', id: string): Promise<{ error?: string }> {
+  const s = await sesionActual();
+  if (!s) return { error: 'La sesión venció. Vuelve al inicio y escribe el código de nuevo.' };
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { error: 'Ese archivo no es válido.' };
+  try {
+    await api(`/quotes/${s.quoteId}/${tipo === 'foto' ? 'photos' : 'voice-notes'}/${id}`, { token: s.token, method: 'DELETE' });
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    if (e.status === 409) return { error: 'El presupuesto ya está cerrado y no se puede modificar.' };
+    if (e.status === 404) return {}; // ya no estaba: el resultado es el mismo
+    return { error: e.message };
+  }
+  revalidatePath('/presupuesto');
+  return {};
+}
 
 export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: FormData): Promise<EstadoEdicion> {
   const s = await sesionActual();

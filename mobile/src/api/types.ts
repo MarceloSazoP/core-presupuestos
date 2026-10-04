@@ -1,5 +1,5 @@
 // Tipos del Contrato de API §2 que usa la app. Se declaran aquí y no en un paquete compartido (Arquitectura A16).
-export type Usuario = { id: string; name: string; phone: string; email: string; contact_phone?: string | null; contact_email?: string | null; has_logo: boolean; has_signature: boolean };
+export type Usuario = { id: string; name: string; phone: string; email: string; contact_phone?: string | null; contact_email?: string | null; has_logo: boolean; has_signature: boolean; logo_id?: string | null };
 
 export type Estado = 'DRAFT' | 'PENDING' | 'FINALIZED';
 export type EstadoComercial = 'NONE' | 'SENT' | 'FOLLOW_UP' | 'ACCEPTED' | 'REJECTED';

@@ -155,7 +155,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           )}
         </section>
 
-        <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} />
+        <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} editable />
       </div>
 
       <section className="flex flex-col gap-1">

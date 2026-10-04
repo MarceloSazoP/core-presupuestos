@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import { migrate } from '../scripts/migrate';
 import { config } from '../src/config';
+import { clp } from '../src/lib/pdf';
 import { pool } from '../src/db';
 import { assertTestDb, resetDb, startApp } from './helpers';
 
@@ -152,6 +153,15 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     const logo = await fetch(`${app.base}/public/quotes/${token}/assets/logo`);
     assert.equal(logo.status, 200, 'el logo original sigue disponible para ese presupuesto');
     assert.equal(logo.headers.get('content-type'), 'image/png');
+  });
+
+  it('los montos del PDF llevan punto de miles', () => {
+    assert.equal(clp(0), '$0');
+    assert.equal(clp(999), '$999');
+    assert.equal(clp(1234), '$1.234');
+    assert.equal(clp(85000), '$85.000');
+    assert.equal(clp(1234567), '$1.234.567');
+    assert.equal(clp(1999.6), '$2.000');
   });
 
   it('con IVA: el snapshot, la vista pública y el PDF llevan el IVA y la tasa con que se calculó', async () => {

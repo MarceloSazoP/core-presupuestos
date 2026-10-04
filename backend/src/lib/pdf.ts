@@ -27,8 +27,8 @@ function pdfmake(): Pdfmake {
 }
 
 // Puntos de miles y coma decimal, sin depender del ICU del servidor (es-CL no agrupa los miles de 4 cifras).
-const miles = (digits: string) => digits.replace(/B(?=(d{3})+(?!d))/g, '.');
-const clp = (n: number) => `$${miles(String(Math.round(n)))}`;
+const miles = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+export const clp = (n: number) => `$${miles(String(Math.round(n)))}`;
 const qty = (n: number) => {
   const [int = '0', dec] = String(n).split('.');
   return miles(int) + (dec ? `,${dec}` : '');
@@ -54,10 +54,11 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
     defaultStyle: { font: 'Roboto', fontSize: 10 },
     info: { title: `Presupuesto ${s.number}${(s.version ?? 1) > 1 ? ` · Versión ${s.version}` : ''}` },
     content: [
+      // El logo va en su propia fila, encima del nombre: así un logo horizontal se ve entero (cabe en 240 × 70 pt sin deformarse).
+      ...(img.logo ? [{ image: dataUrl(img.logo), fit: [240, 70], margin: [0, 0, 0, 10] } as Content] : []),
       {
         columnGap: 10,
         columns: [
-          ...(img.logo ? [{ image: dataUrl(img.logo), fit: [48, 48] } as Content] : []),
           {
             width: '*',
             stack: [

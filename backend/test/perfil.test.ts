@@ -72,6 +72,9 @@ describe('API: perfil y datos de contacto (Contrato API §4 y BD §16)', () => {
     const subida = await app.upload('PUT', '/me/logo', { token: a.token, file: png });
     assert.equal(subida.status, 200);
     assert.equal(subida.json.has_logo, true);
+    assert.match(subida.json.logo_id, /^[0-9a-f-]{36}$/);
+    const otra = await app.upload('PUT', '/me/logo', { token: a.token, file: png });
+    assert.notEqual(otra.json.logo_id, subida.json.logo_id, 'cada logo nuevo cambia logo_id (para romper la caché de las apps)');
     const bajada = await fetch(`${app.base}/me/logo`, { headers: { Authorization: `Bearer ${a.token}` } });
     assert.equal(bajada.status, 200);
     assert.equal(bajada.headers.get('content-type'), 'image/png');

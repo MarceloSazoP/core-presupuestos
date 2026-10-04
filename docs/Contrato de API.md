@@ -191,7 +191,7 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 
 | Método y ruta | Descripción |
 |---------------|-------------|
-| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature }`. |
+| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature, logo_id }`. `logo_id` cambia con cada logo nuevo (o es `null`): se usa en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre un logo viejo guardado en caché. |
 | `PUT /me` | Parcial: `{ "name"?, "contact_phone"?, "contact_email"? }` (al menos uno). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `GET /me/logo` | Descarga el logo propio (404 si no hay). Es lo que muestra «Configurar». |

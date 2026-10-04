@@ -49,9 +49,11 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
       <article className="flex flex-col gap-6 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8">
         <header className="flex flex-col gap-4 border-b-2 border-foreground pb-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 flex-col gap-3">
+            {/* El logo va en su propia fila, encima del nombre: un logo horizontal se ve entero y sin deformarse. */}
             {q.professional.has_logo && (
-              <Image src={`${base}/logo`} alt={`Logo de ${q.professional.name}`} width={56} height={56} unoptimized className="size-14 shrink-0 rounded-xl object-contain" />
+              // eslint-disable-next-line @next/next/no-img-element -- imagen del profesional servida por el BFF; su proporción es la del logo
+              <img src={`${base}/logo`} alt={`Logo de ${q.professional.name}`} className="h-16 w-auto max-w-full self-start object-contain object-left" />
             )}
             <div className="flex min-w-0 flex-col">
               <p className="text-xl font-semibold leading-tight">{q.professional.name}</p>

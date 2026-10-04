@@ -22,7 +22,6 @@ export default function Configurar() {
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [version, setVersion] = useState(0); // cambia al subir un logo nuevo, para que se vuelva a descargar
   const [logoOcupado, setLogoOcupado] = useState(false);
 
   // Al abrir se traen los datos frescos del servidor (los guardados en el teléfono pueden venir de otra sesión).
@@ -69,9 +68,8 @@ export default function Configurar() {
     setLogoOcupado(true);
     try {
       const uri = await prepararLogo(a.uri, a.width, a.height);
-      await subir('/me/logo', { uri, name: 'logo.png', type: 'image/png' }, {}, 'PUT');
-      setVersion((v) => v + 1);
-      await actualizar({ ...usuario, has_logo: true });
+      // La respuesta trae el perfil con el `logo_id` nuevo, que cambia la dirección de la imagen y rompe la caché.
+      await actualizar(await subir<Usuario>('/me/logo', { uri, name: 'logo.png', type: 'image/png' }, {}, 'PUT'));
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       Alert.alert('No se pudo guardar el logo', mensajeDe(err));
@@ -89,7 +87,7 @@ export default function Configurar() {
         onPress: () => {
           setLogoOcupado(true);
           api('/me/logo', { method: 'DELETE' })
-            .then(() => usuario && actualizar({ ...usuario, has_logo: false }))
+            .then(() => usuario && actualizar({ ...usuario, has_logo: false, logo_id: null }))
             .catch((err) => Alert.alert('No se pudo quitar el logo', mensajeDe(err)))
             .finally(() => setLogoOcupado(false));
         },
@@ -119,7 +117,7 @@ export default function Configurar() {
         <Texto variante="chico" suave>Sale arriba en tus presupuestos. PNG o JPEG; se ajusta solo a un tamaño liviano.</Texto>
         {usuario?.has_logo ? (
           <View style={[e.vista, { backgroundColor: '#FFFFFF', borderColor: t.borde }]}>
-            <Image source={fuenteDeArchivo(`/me/logo?v=${version}`)} contentFit="contain" accessibilityLabel="Tu logo" style={e.logo} />
+            <Image source={fuenteDeArchivo(`/me/logo?v=${usuario.logo_id ?? 'sin-id'}`)} contentFit="contain" accessibilityLabel="Tu logo" style={e.logo} />
           </View>
         ) : (
           <View style={[e.vista, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>

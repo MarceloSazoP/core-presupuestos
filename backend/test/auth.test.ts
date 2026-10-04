@@ -70,10 +70,8 @@ describe('API: autenticación (Contrato API §3 y §14)', () => {
     const sms = await start({ phone: '+56988880000', email: 'pedro@test.cl', channel: 'SMS' });
     assert.equal(app.sent[2]!.destination, PHONE);
     assert.equal(sms.json.destination_masked, '+56*******11', 'enmascara el teléfono guardado, no el escrito');
-    // y el teléfono guardado con otro correo también es ingreso (como antes)
-    const porTelefono = await start({ email: 'otro@test.cl' });
-    assert.equal(app.sent[3]!.destination, 'pedro@test.cl');
-    assert.equal(porTelefono.status, 202);
+    // el límite de 3 códigos por hora cuenta por la cuenta real, no por el teléfono que se escribe
+    assert.equal((await start({ phone: '+56988881111', email: 'pedro@test.cl' })).status, 429);
   });
 
   it('el código es de un solo uso y el intento 6 falla aunque sea el correcto', async () => {
