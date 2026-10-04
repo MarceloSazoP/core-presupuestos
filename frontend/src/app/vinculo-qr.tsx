@@ -8,7 +8,7 @@ import { crearVinculoAction, esperarVinculoAction, type Vinculo } from "./action
 // La app, ya logueada, lo escanea desde «Ver en la web» dentro de cada presupuesto.
 const CADA_MS = 2000;
 
-type Fase = { tipo: "cargando" } | { tipo: "error" } | { tipo: "activo"; v: Vinculo; listo: boolean };
+type Fase = { tipo: "cargando" } | { tipo: "error"; mensaje: string } | { tipo: "activo"; v: Vinculo; listo: boolean };
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -21,7 +21,7 @@ export function VinculoQr() {
   const generar = useCallback(async () => {
     const r = await crearVinculoAction();
     setAhora(Date.now());
-    setFase("error" in r ? { tipo: "error" } : { tipo: "activo", v: r, listo: false });
+    setFase("error" in r ? { tipo: "error", mensaje: r.error } : { tipo: "activo", v: r, listo: false });
   }, []);
 
   // Un teléfono o una tablet no pueden escanearse a sí mismos: ahí no se pide un QR.
@@ -106,7 +106,7 @@ export function VinculoQr() {
 
       <p role="status" aria-live="polite" className="min-h-5 text-sm text-muted">
         {fase.tipo === "cargando" && "Preparando el QR…"}
-        {fase.tipo === "error" && "No pudimos generar el QR. Escribe el código."}
+        {fase.tipo === "error" && `${fase.mensaje} Escribe el código.`}
         {esperando && `Vence en ${mmss(restante)}`}
         {vencido && "Este QR venció."}
         {activo?.listo && "Listo, abriendo tu presupuesto…"}

@@ -72,7 +72,7 @@ export default function Landing() {
             <p className="text-sm font-medium">Próximamente en Android y iPhone.</p>
           </div>
 
-          <div className="flex flex-col gap-10 lg:block lg:pb-28 lg:static">
+          <div className="relative flex flex-col gap-10 lg:block lg:pb-28 xl:static">
             <section
               id="consulta"
               aria-labelledby="consultar"

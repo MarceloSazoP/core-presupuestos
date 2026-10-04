@@ -44,6 +44,7 @@ export async function crearVinculoAction(): Promise<Vinculo | { error: string }>
     const qr = await QRCode.toDataURL(`corepresupuesto://web/${r.code}`, { margin: 1, width: 320, errorCorrectionLevel: 'M', color: { dark: '#1a1a1a', light: '#ffffff' } });
     return { id: r.id, secret: r.secret, qr, expiraEn: r.expires_at };
   } catch (e) {
+    if (e instanceof ApiError && e.status === 429) return { error: 'Generaste muchos QR seguidos. Espera unos minutos o usa el código.' };
     if (e instanceof ApiError || e instanceof TypeError) return { error: 'No pudimos generar el QR.' };
     throw e;
   }

@@ -66,7 +66,7 @@ export function accessRoutes(ipLimit = 10) {
   // ── Vínculo por QR (Contrato API §9): la web muestra un QR por visita y la app, logueada, lo escanea. ──
   const pairLimit = (limit: number) => rateLimit({ windowMs: 3_600_000, limit, standardHeaders: false, legacyHeaders: false, handler: limited });
 
-  r.post('/pair', pairLimit(30), async (_req, res) => {
+  r.post('/pair', pairLimit(120), async (_req, res) => {
     await query('DELETE FROM web_pairings WHERE expires_at < now() - interval \'1 hour\'');
     const code = randomToken();
     const secret = randomToken();
