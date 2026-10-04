@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable as Toque } from 'react-native-gesture-handler';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
@@ -50,6 +51,20 @@ export function FilaPresupuesto({
 }) {
   const t = useTema();
   const swipe = useRef<SwipeableMethods>(null);
+  const abierto = useRef(false); // el botón rojo está a la vista
+  const ultimoArrastre = useRef(0); // cuándo empezó o terminó el último deslizado
+  // FlashList recicla las filas: el estado del deslizado de una no debe pasar a otro presupuesto.
+  useEffect(() => {
+    swipe.current?.reset();
+    abierto.current = false;
+  }, [q.id]);
+  // Solo un toque limpio abre el presupuesto: con el botón abierto el toque lo cierra, y soltar el dedo después de un deslizado
+  // no cuenta como toque.
+  const abrir = () => {
+    if (abierto.current) return swipe.current?.close();
+    if (Date.now() - ultimoArrastre.current < 400) return;
+    router.push({ pathname: '/presupuesto/[id]', params: { id: q.id } });
+  };
   const puedeEliminar = !!onEliminar && q.doc_status !== 'FINALIZED';
   const posibles = onCambiarEstado ? estadosPosibles(q) : [];
   const cambiar = (s: EstadoElegible) => {
@@ -68,8 +83,10 @@ export function FilaPresupuesto({
   const titulo = sinCliente ? (q.number ?? 'Sin número todavía') : q.customer.name;
   // El ID corto es con lo que la persona nombra cada presupuesto; el número CP aparece al terminarlo.
   const identificador = [q.code_id, (q.version ?? 1) > 1 ? `Versión ${q.version}` : null, sinCliente ? null : q.number].filter(Boolean).join(' · ');
+  // La tarjeta es un botón de gesture-handler (no el de React Native): así comparte los gestos con el deslizado y, si el dedo
+  // arrastra, el toque se cancela. Con el de RN, soltar después de deslizar abría el presupuesto.
   const fila = (
-    <Pressable
+    <Toque
       accessibilityRole="button"
       accessibilityLabel={`${titulo}, ${estado.texto}`}
       accessibilityActions={puedeEliminar ? [{ name: 'delete', label: 'Eliminar' }] : posibles.map((s) => ({ name: s.id, label: `Pasar a ${s.texto}` }))}
@@ -77,7 +94,7 @@ export function FilaPresupuesto({
         if (a.nativeEvent.actionName === 'delete') confirmar();
         else cambiar(a.nativeEvent.actionName as EstadoElegible);
       }}
-      onPress={() => router.push({ pathname: '/presupuesto/[id]', params: { id: q.id } })}
+      onPress={abrir}
       onLongPress={puedeEliminar ? () => { void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); confirmar(); } : undefined}
       style={({ pressed }) => [e.fila, { backgroundColor: t.tarjeta, borderColor: t.borde, opacity: pressed ? 0.7 : 1 }]}
     >
@@ -89,7 +106,7 @@ export function FilaPresupuesto({
         {q.next_contact_date ? <Texto variante="chico" suave>Contactar el {diaCorto(q.next_contact_date)}</Texto> : null}
       </View>
       <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
-    </Pressable>
+    </Toque>
   );
   if (!puedeEliminar) {
     if (posibles.length === 0) return fila;
@@ -119,9 +136,18 @@ export function FilaPresupuesto({
     <ReanimatedSwipeable
       ref={swipe}
       friction={2}
+      dragOffsetFromRightEdge={16} // un arrastre corto o casi vertical no abre el botón
       rightThreshold={40}
       overshootRight={false}
       containerStyle={e.contenedor}
+      onSwipeableOpenStartDrag={() => (ultimoArrastre.current = Date.now())}
+      onSwipeableCloseStartDrag={() => (ultimoArrastre.current = Date.now())}
+      onSwipeableWillOpen={() => (ultimoArrastre.current = Date.now())}
+      onSwipeableOpen={() => (abierto.current = true)}
+      onSwipeableClose={() => {
+        abierto.current = false;
+        ultimoArrastre.current = Date.now();
+      }}
       renderRightActions={(progreso) => <AccionEliminar progreso={progreso} onPress={confirmar} />}
     >
       {fila}
