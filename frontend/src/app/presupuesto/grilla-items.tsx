@@ -36,12 +36,12 @@ const tema = themeQuartz.withParams({
 const MAX_CANTIDAD = 1_000_000;
 const MAX_PRECIO = 999_999_999;
 // Cantidad: dígitos con una coma decimal (los puntos son solo de miles y se ignoran), hasta 3 decimales. Precio: solo dígitos.
-const limpiarCantidad = (v: string) => {
+export const limpiarCantidad = (v: string) => {
   const [entera = "", ...dec] = v.replace(/[^\d,]/g, "").split(",");
   const n = dec.length ? `${entera || "0"},${dec.join("").slice(0, 3)}` : entera;
   return aNumero(n) > MAX_CANTIDAD ? String(MAX_CANTIDAD) : n;
 };
-const limpiarPrecio = (v: string) => String(Math.min(aEntero(v), MAX_PRECIO) || "");
+export const limpiarPrecio = (v: string) => String(Math.min(aEntero(v), MAX_PRECIO) || "");
 const CARACTERES_VALIDOS: Record<string, RegExp> = { cantidad: /^[\d,]*$/, precio: /^\d*$/ };
 
 const EDITABLES: readonly string[] = ["descripcion", "cantidad", "unidad", "precio"]; // orden de avance con Enter
@@ -269,7 +269,14 @@ export function GrillaItems({
         onCellValueChanged={(e) => onChange(filas.map((f) => (f.clave === e.data?.clave ? { ...e.data } : f)))}
         onCellEditingStopped={alTerminarEdicion}
       />
-      {/* La grilla no son <input>: el formulario recibe los ítems por estos campos ocultos. */}
+    </div>
+  );
+}
+
+// La grilla y la lista del teléfono no usan <input> propios para el formulario: este recibe los ítems por campos ocultos.
+export function CamposItems({ filas }: { filas: Fila[] }) {
+  return (
+    <>
       {filas.map((f) => (
         <span key={f.clave} hidden>
           <input type="hidden" name="item_tipo" value={f.tipo} readOnly />
@@ -279,6 +286,6 @@ export function GrillaItems({
           <input type="hidden" name="item_precio" value={f.precio} readOnly />
         </span>
       ))}
-    </div>
+    </>
   );
 }

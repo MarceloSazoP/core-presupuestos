@@ -10,7 +10,8 @@ import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
 import { NotasVisita } from "./notas-visita";
-import { GrillaItems, type Fila } from "./grilla-items";
+import { CamposItems, GrillaItems, type Fila } from "./grilla-items";
+import { ListaItemsMovil, useEsAngosto } from "./lista-items-movil";
 import { Multimedia } from "./multimedia";
 
 type Inicial = {
@@ -60,6 +61,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   const [confirmando, setConfirmando] = useState(false);
   const [intentoTerminar, setIntentoTerminar] = useState(false);
   const router = useRouter();
+  const esAngosto = useEsAngosto(); // en el teléfono los ítems se editan como tarjetas (la grilla esconde el precio)
   const [hayNovedad, setHayNovedad] = useState(false);
   // En vivo: cuando alguien cambia el presupuesto desde otro lugar (la app), se recarga solo; si aquí hay cambios sin guardar no se
   // pisa nada y se avisa. Los avisos de nuestro propio guardado se ignoran.
@@ -270,7 +272,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         <h3 id="titulo-items" className="seccion">
           Ítems y tareas
         </h3>
-        <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />
+        {esAngosto ? <ListaItemsMovil filas={filas} onChange={setFilas} /> : <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
+        <CamposItems filas={filas} />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <button type="button" onClick={() => agregar("item")} className="boton-secundario">
             + Agregar ítem
