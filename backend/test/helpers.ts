@@ -5,6 +5,7 @@ import { createApp } from '../src/app';
 import { afinarServidor } from '../src/http/servidor';
 import { pool } from '../src/db';
 import { AppError } from '../src/errors';
+import { cerrarAvisos } from '../src/lib/events';
 import type { Channel } from '../src/lib/deliver';
 import type { QuoteMail } from '../src/lib/mail';
 
@@ -67,5 +68,9 @@ export async function startApp(opts: { ipStartLimit?: number; ipExchangeLimit?: 
     return { token: v.json.token as string, user: v.json.user as { id: string } };
   }
 
-  return { base, api, upload, sent, mails, mailState, login, close: () => new Promise<void>((r) => server.close(() => r())) };
+  return { base, api, upload, sent, mails, mailState, login, close: async () => {
+    server.closeAllConnections(); // los avisos en vivo dejan conexiones abiertas
+    await cerrarAvisos();
+    await new Promise<void>((r) => server.close(() => r()));
+  } };
 }

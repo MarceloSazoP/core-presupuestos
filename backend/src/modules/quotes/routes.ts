@@ -15,6 +15,7 @@ import { addEmissionRoutes } from './emission';
 import { addFollowUpRoutes } from './followups';
 import { addMediaRoutes } from './media';
 import { CreateQuote, Items, ListQuotes, Measurements, PatchQuote, Survey } from './schemas';
+import { suscribir } from '../../lib/events';
 import { quoteDetail, type QuoteRow } from './serialize';
 import { FOLLOW_UP, SUMMARY_COLS, SUMMARY_FROM, toSummary } from './summary';
 import { lineTotal, sumTotals } from './totals';
@@ -224,6 +225,21 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
       [q.customer_id, q.user_id, 'name' in b, b.name ?? null, 'phone' in b, b.phone ?? null, 'email' in b, b.email ?? null]);
     await audit(req, 'CUSTOMER_CONTACT_UPDATED', { userId: q.user_id, quoteId: q.id });
     res.json(await quoteDetail(await loadQuote(req, q.id)));
+  });
+
+  // Avisos en vivo (Contrato API §6): `changed` cada vez que algo del presupuesto cambia, desde cualquier cliente.
+  r.get('/:id/events', allow('USER', 'QUOTE_CODE'), async (req, res) => {
+    const q = await loadQuote(req, req.params.id);
+    res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.flushHeaders();
+    res.write('retry: 3000\n\n');
+    const avisar = () => res.write(`event: changed\ndata: ${JSON.stringify({ quote_id: q.id })}\n\n`);
+    const baja = await suscribir(q.id, avisar);
+    const latido = setInterval(() => res.write(': ping\n\n'), 25_000);
+    req.on('close', () => {
+      clearInterval(latido);
+      baja();
+    });
   });
 
   // ── Rehacer un presupuesto rechazado como nueva versión (Contrato API §6) ───────────────────

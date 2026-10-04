@@ -270,6 +270,8 @@ Un presupuesto terminado sigue siendo inmutable: lo que se envió al cliente no 
 
 ### Corregir el teléfono o el correo del cliente (decisión del 2026-10-04)
 
+**`GET /quotes/{id}/events`** (sesión `USER` o `QUOTE_CODE` del presupuesto) → `text/event-stream`. Avisa en vivo que **algo del presupuesto cambió** (ítems, IVA, notas, fotos, datos del cliente, estado…) hecho desde cualquier cliente (app o web). Cada aviso es `event: changed` con `data: {"quote_id":"uuid"}`; no trae los datos nuevos: el cliente vuelve a pedir `GET /quotes/{id}`. Un comentario `: ping` cada 25 s mantiene viva la conexión y `retry: 3000` fija la reconexión. Ajeno o inexistente ⇒ 404. El navegador no se conecta directo a la API (no tiene el token): la web lo reenvía desde su servidor (Arquitectura §6).
+
 **`PATCH /quotes/{id}/customer`** (sesión `USER` o `QUOTE_CODE` del presupuesto) → **200** `Quote`. Cuerpo parcial, al menos un campo: `{ "phone"?, "email"? (puede ser null), "name"? }`.
 - El teléfono y el correo se pueden corregir **siempre, también con el presupuesto terminado ni enviado**: normalmente el cliente se equivoca al dárselos y los confirma después. No cambian el PDF ni el snapshot (solo llevan el nombre del cliente), y el siguiente envío por correo o WhatsApp usa los datos corregidos.
 - El `name` solo se cambia mientras el presupuesto se puede editar (**409 `INVALID_STATE`** si ya está terminado: el nombre sale en el PDF).

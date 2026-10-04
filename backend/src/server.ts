@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { config } from './config';
 import { pool } from './db';
+import { cerrarAvisos } from './lib/events';
 import { afinarServidor } from './http/servidor';
 
 const server = afinarServidor(
@@ -10,8 +11,9 @@ const server = afinarServidor(
 );
 
 function shutdown() {
+  server.closeAllConnections(); // las conexiones de avisos en vivo no terminan solas
   server.close(() => {
-    void pool.end().then(() => process.exit(0));
+    void cerrarAvisos().then(() => pool.end()).then(() => process.exit(0));
   });
 }
 process.on('SIGTERM', shutdown);

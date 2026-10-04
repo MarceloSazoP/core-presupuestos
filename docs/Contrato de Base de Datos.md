@@ -521,7 +521,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0011` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0012` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -704,3 +704,30 @@ CREATE INDEX web_pairings_expires_idx ON web_pairings (expires_at);
 - Vida corta: un vínculo no sirve después de `expires_at` y se entrega **una sola vez** (`session_token` se pone en `NULL` al entregarlo). Los vencidos se borran al crear uno nuevo (sin tarea programada).
 - El `session_token` en claro dura, como máximo, el tiempo que tarda la web en consultar (segundos) y nunca más allá de los 2 minutos.
 - **Pruebas que acompañan:** crear → esperar → vincular → recoger una vez (la segunda, 404); secreto equivocado y vínculo vencido responden 404; no se puede vincular un presupuesto ajeno; la sesión recogida solo sirve para ese presupuesto; el QR (`code`) no permite recoger la sesión.
+
+
+---
+
+## 20. Migración `0011` (avisos de cambio en vivo, decisión del 2026-10-04)
+
+Para que lo que se guarda en la app aparezca al instante en la web (y al revés) sin que nadie recargue, Postgres avisa cuando cambia un presupuesto (`GET /quotes/{id}/events`, `Contrato de API.md` §6).
+
+```sql
+CREATE FUNCTION notify_quote_change() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE r record; q uuid;
+BEGIN
+  r := CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+  IF TG_TABLE_NAME = 'quotes' THEN PERFORM pg_notify('quote_changed', r.id::text);
+  ELSIF TG_TABLE_NAME = 'customers' THEN
+    FOR q IN SELECT id FROM quotes WHERE customer_id = r.id LOOP PERFORM pg_notify('quote_changed', q::text); END LOOP;
+  ELSE PERFORM pg_notify('quote_changed', r.quote_id::text);
+  END IF;
+  RETURN NULL;
+END $$;
+-- AFTER INSERT OR UPDATE OR DELETE ... FOR EACH ROW en: quotes, customers, quote_items, quote_surveys,
+-- survey_measurements, survey_photos, survey_voice_notes.
+```
+
+- Canal `quote_changed`; el mensaje es solo el id del presupuesto (nada sensible). Postgres junta los avisos iguales de una misma transacción.
+- La API mantiene **una** conexión `LISTEN` y reparte los avisos a quienes tienen abierto `events` de ese presupuesto. Funciona con varias instancias de la API (cada una escucha el canal).
+- **Pruebas que acompañan:** cambiar ítems, notas o datos del cliente emite `changed` al suscriptor de ese presupuesto y a nadie más; un presupuesto ajeno responde 404; sin sesión, 401.
