@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'r
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
+import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
@@ -117,6 +118,7 @@ export default function Detalle() {
       </View>
 
       {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento q={q} recargar={recargar} />}
+      {cerrado && q.commercial_status !== 'NONE' ? <Seguimiento q={q} recargar={recargar} /> : null}
       {cerrado ? null : <Cierre q={q} recargar={recargar} />}
 
       {cerrado && q.items.length ? (

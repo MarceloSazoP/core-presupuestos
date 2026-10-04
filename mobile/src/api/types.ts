@@ -37,6 +37,7 @@ export type Presupuesto = {
   total: number;
   warranty: { kind: string; text: string | null };
   validity_days: number | null;
+  next_contact_date: string | null;
   observations: string | null;
   public_url: string | null;
 };

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
 import { Boton, Pastilla, Texto } from '@/components/ui';
+import { diaCorto } from '@/lib/fechas';
 import { clp } from '@/lib/formato';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
@@ -30,6 +31,7 @@ function Fila({ q }: { q: ResumenPresupuesto }) {
         <Texto fuerte numberOfLines={1}>{q.customer.name}</Texto>
         <Texto variante="chico" suave numberOfLines={2}>{q.service_description || 'Sin descripción todavía'}</Texto>
         <Pastilla texto={estado.texto} tono={estado.tono} />
+        {q.next_contact_date ? <Texto variante="chico" suave>Contactar el {diaCorto(q.next_contact_date)}</Texto> : null}
       </View>
       <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
     </Pressable>
