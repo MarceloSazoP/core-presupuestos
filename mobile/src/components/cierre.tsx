@@ -91,7 +91,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       await recargar();
-      // «Guardar para después» deja el presupuesto pendiente y vuelve a la lista; «Terminar» se queda para mostrar el envío.
+      // «Guardar y volver» deja el presupuesto pendiente (ya visible en la web) y vuelve a la lista; «Terminar» se queda para mostrar el envío.
       if (que === 'guardar') {
         if (router.canGoBack()) router.back();
         else router.replace('/');
@@ -160,7 +160,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
 
       {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
       <Boton titulo="Terminar presupuesto" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} />
-      <Boton titulo="Guardar para después" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} />
+      <Boton titulo="Guardar y volver" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} />
     </View>
   );
 }
