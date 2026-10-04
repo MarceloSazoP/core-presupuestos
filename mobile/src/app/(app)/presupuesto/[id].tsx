@@ -1,8 +1,6 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
@@ -11,13 +9,13 @@ import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { Boton, Icono, Pastilla, Tarjeta, Texto } from '@/components/ui';
-import { guardarCodigo, leerCodigo } from '@/lib/codigos';
+import { Boton, Icono, Pastilla, Segmentos, Tarjeta, Texto } from '@/components/ui';
+import { leerCodigo } from '@/lib/codigos';
 import { clp } from '@/lib/formato';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
-import { asegurarSincronizado, guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
-import { espacio, MONO, radio, useTema } from '@/theme';
+import { guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
+import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Detalle del presupuesto. Lo central de este hito: el código que se escribe en la web para completar o cerrar el
 // presupuesto desde el computador (CLAUDE.md §16). Se muestra con letras grandes y se copia o comparte con un toque.
@@ -27,8 +25,7 @@ export default function Detalle() {
   const [q, setQ] = useState<Presupuesto | null>(null);
   const [codigo, setCodigo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copiado, setCopiado] = useState(false);
-  const [generando, setGenerando] = useState(false);
+  const [parte, setParte] = useState<string | null>(null); // pestaña elegida; null = la primera de su estado
   const [vista, setVista] = useState({ cierre: 0, levantamiento: 0 }); // sube cuando el servidor trae cambios de otro lugar (la web)
   const actual = useRef<Presupuesto | null>(null);
   useEffect(() => {
@@ -67,40 +64,6 @@ export default function Detalle() {
     if (q) void guardarBorrador(q);
   }, [q]);
 
-  const copiar = useCallback(async () => {
-    if (!codigo) return;
-    await Clipboard.setStringAsync(codigo);
-    void Haptics.selectionAsync();
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 2000);
-  }, [codigo]);
-
-  async function generar() {
-    setGenerando(true);
-    try {
-      await asegurarSincronizado(id);
-      const r = await api<{ code: string }>(`/quotes/${id}/access-code`, { method: 'POST', body: {} });
-      await guardarCodigo(id, r.code);
-      setCodigo(r.code);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err) {
-      Alert.alert('No se pudo generar el código', mensajeDe(err));
-    } finally {
-      setGenerando(false);
-    }
-  }
-
-  // Un código nuevo deja sin efecto el anterior: se pide confirmación solo si ya hay uno.
-  const pedirGenerar = () =>
-    codigo
-      ? Alert.alert('¿Generar un código nuevo?', 'El código actual dejará de funcionar y se cerrarán las sesiones abiertas con él.', [
-          { text: 'Cancelar', style: 'cancel' },
-          { text: 'Generar', style: 'destructive', onPress: () => void generar() },
-        ])
-      : void generar();
-
-  const compartir = () => Share.share({ message: `Código de tu presupuesto en CORE Presupuestos: ${codigo}` });
-
   if (!q) {
     return (
       <View style={[e.centro, { backgroundColor: t.fondo }]}>
@@ -110,12 +73,30 @@ export default function Detalle() {
   }
 
   const cerrado = q.doc_status === 'FINALIZED';
+
+  // Qué pestañas tiene: uno pendiente se trabaja en dos partes; uno cerrado se envía, se le hace seguimiento y se revisa.
+  const partes = cerrado
+    ? [{ id: 'enviar', texto: 'Enviar' }, ...(q.commercial_status !== 'NONE' ? [{ id: 'seguimiento', texto: 'Seguimiento' }] : []), { id: 'detalle', texto: 'Detalle' }]
+    : [{ id: 'visita', texto: 'Visita' }, { id: 'presupuesto', texto: 'Presupuesto' }];
+  const actualId = partes.some((x) => x.id === parte) ? parte! : partes[0]!.id;
+  // Las partes de un presupuesto pendiente se quedan montadas aunque no se vean: lo que se está escribiendo no se pierde al cambiar.
+  const oculta = (id: string) => (actualId === id ? null : e.oculta);
+
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <Stack.Screen options={{ title: codigo ?? q.code_id ?? 'Presupuesto' }} />
+      <Stack.Screen
+        options={{
+          title: codigo ?? q.code_id ?? 'Presupuesto',
+          headerRight: () => (
+            <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={8} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
+              <Icono nombre="qr" tamano={22} color={t.acento} />
+            </Pressable>
+          ),
+        }}
+      />
       <Sincronizacion />
 
-      {/* Cabecera: estado y cliente. El servicio y la dirección de uno pendiente se editan más abajo, en «El trabajo». */}
+      {/* Cabecera: quién es el cliente y en qué va. Lo demás vive en las pestañas de abajo. */}
       <View style={e.bloque}>
         <View style={e.pastillas}>
           <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
@@ -123,12 +104,6 @@ export default function Detalle() {
         </View>
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
         <ContactoCliente key={`${q.customer.name}|${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} nombreEditable={!cerrado} />
-        {cerrado ? (
-          <>
-            {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
-            {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
-          </>
-        ) : null}
       </View>
 
       {nuevo === '1' ? (
@@ -136,94 +111,86 @@ export default function Detalle() {
           <Icono nombre="listo" tamano={22} color={t.ok} />
           <View style={e.flex}>
             <Texto fuerte color="ok">Presupuesto creado</Texto>
-            <Texto variante="chico" suave>Ya puedes seguir en esta app o terminarlo en el computador con el código de abajo.</Texto>
+            <Texto variante="chico" suave>Sigue con la visita y después arma el precio. El código para abrirlo en la web está arriba, en el ícono QR.</Texto>
           </View>
         </View>
       ) : null}
 
-      {/* El código es la llave para abrir este presupuesto en la web: va como un ticket, en letra que se dicta sin confundir. */}
-      <Tarjeta>
-        <Texto variante="chico" suave fuerte>Código del presupuesto</Texto>
-        {codigo ? (
-          <>
-            <View style={[e.ticket, { backgroundColor: t.campo, borderColor: t.bordeCampo }]}>
-              <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
-            </View>
-            <Texto variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web para completar, editar o cerrar este presupuesto. No se lo des a tu cliente: a él se le envía el enlace del PDF.</Texto>
-            <View style={e.fila}>
-              <Boton titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={copiar} style={e.mitad} />
-              <Boton titulo="Compartir" icono="compartir" variante="secundario" onPress={() => void compartir()} style={e.mitad} />
-            </View>
-            <Boton titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} />
-          </>
-        ) : (
-          <>
-            {q.code_id ? (
-              <>
-                <Texto suave>El código solo se muestra una vez, y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</Texto>
-                <Boton titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
-              </>
-            ) : (
-              <Texto suave>Este presupuesto se creó sin conexión. Su código aparece aquí en cuanto se sincronice con el servidor.</Texto>
-            )}
-          </>
-        )}
-        <View style={[e.separador, { borderTopColor: t.borde }]}>
-          <Texto variante="chico" suave>¿Sin escribir el código? Abre este presupuesto en la web escaneando el QR de su portada.</Texto>
-          <Boton titulo="Ver en la web (leer QR)" icono="qr" variante="secundario" onPress={() => router.push({ pathname: '/escanear', params: { id, titulo: `${q.number ?? 'Este presupuesto'} de ${q.customer.name}` } })} />
-        </View>
-      </Tarjeta>
+      <Segmentos opciones={partes} valor={actualId} alElegir={setParte} etiqueta="Partes del presupuesto" />
 
-      {cerrado && q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
-      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento key={`levantamiento-${vista.levantamiento}`} q={q} cambiar={cambiar} />}
-      {cerrado && q.commercial_status !== 'NONE' ? <Seguimiento q={q} recargar={recargar} /> : null}
-      {cerrado ? null : <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} />}
-
-      {cerrado && q.items.length ? (
-        <Tarjeta>
-          <Texto variante="subtitulo" accessibilityRole="header">Detalle</Texto>
-          {q.items.map((i) => (
-            <View key={i.id} style={[e.item, { borderBottomColor: t.borde }]}>
-              <View style={e.flex}>
-                <Texto>{i.description}</Texto>
-                {i.kind === 'TASK' ? (
-                  <Texto variante="chico" suave>Tarea</Texto>
-                ) : (
-                  <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
-                )}
-              </View>
-              <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : clp(i.line_total)}</Texto>
-            </View>
-          ))}
-          {q.include_vat ? (
-            <View style={e.filaTotal}>
-              <Texto suave>IVA (19%)</Texto>
-              <Texto suave style={e.monto}>{clp(q.vat)}</Texto>
+      {cerrado ? (
+        <>
+          <View style={[e.parte, oculta('enviar')]}>
+            {q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
+            <Envio q={q} recargar={recargar} />
+          </View>
+          {q.commercial_status !== 'NONE' ? (
+            <View style={[e.parte, oculta('seguimiento')]}>
+              <Seguimiento q={q} recargar={recargar} />
             </View>
           ) : null}
-          <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
-            <Texto fuerte>Total</Texto>
-            <Texto variante="titulo" style={e.monto}>{clp(q.total)}</Texto>
+          <View style={[e.parte, oculta('detalle')]}>
+            {q.service_description || q.address ? (
+              <Tarjeta>
+                {q.service_description ? <Texto>{q.service_description}</Texto> : null}
+                {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
+              </Tarjeta>
+            ) : null}
+            {q.items.length ? (
+              <Tarjeta>
+                <Texto variante="subtitulo" accessibilityRole="header">Ítems</Texto>
+                {q.items.map((i) => (
+                  <View key={i.id} style={[e.item, { borderBottomColor: t.borde }]}>
+                    <View style={e.flex}>
+                      <Texto>{i.description}</Texto>
+                      {i.kind === 'TASK' ? (
+                        <Texto variante="chico" suave>Tarea</Texto>
+                      ) : (
+                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
+                      )}
+                    </View>
+                    <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : clp(i.line_total)}</Texto>
+                  </View>
+                ))}
+                {q.include_vat ? (
+                  <View style={e.filaTotal}>
+                    <Texto suave>IVA (19%)</Texto>
+                    <Texto suave style={e.monto}>{clp(q.vat)}</Texto>
+                  </View>
+                ) : null}
+                <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
+                  <Texto fuerte>Total</Texto>
+                  <Texto variante="titulo" style={e.monto}>{clp(q.total)}</Texto>
+                </View>
+              </Tarjeta>
+            ) : null}
           </View>
-        </Tarjeta>
-      ) : null}
+        </>
+      ) : (
+        <>
+          <View style={[e.parte, oculta('visita')]}>
+            <Levantamiento key={`levantamiento-${vista.levantamiento}`} q={q} cambiar={cambiar} />
+            <Boton titulo="Seguir con el presupuesto" onPress={() => setParte('presupuesto')} />
+          </View>
+          <View style={[e.parte, oculta('presupuesto')]}>
+            <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} />
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
 
 const e = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
-  contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.xl },
+  contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.l },
   bloque: { gap: espacio.s },
   pastillas: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
   flex: { flex: 1 },
+  parte: { gap: espacio.xl },
+  oculta: { display: 'none' },
+  cabeceraBoton: { minWidth: MIN_TOQUE - 8, minHeight: MIN_TOQUE - 8, alignItems: 'center', justifyContent: 'center' },
   exito: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l },
-  ticket: { borderWidth: 1, borderStyle: 'dashed', borderRadius: radio.m, borderCurve: 'continuous', paddingVertical: espacio.l, paddingHorizontal: espacio.m, alignItems: 'center' },
-  // El alto de línea va con la letra: con 26 pt y el alto de 22 del cuerpo se recortaba la parte de arriba.
-  codigo: { fontFamily: Platform.select(MONO), fontSize: 24, lineHeight: 32, fontWeight: '600', letterSpacing: 1.5 },
-  fila: { flexDirection: 'row', gap: espacio.m },
-  separador: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m, gap: espacio.s },
-  mitad: { flex: 1 },
   item: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: espacio.m, paddingBottom: espacio.m, borderBottomWidth: StyleSheet.hairlineWidth },
   filaTotal: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
   total: { borderTopWidth: 2, paddingTop: espacio.m },

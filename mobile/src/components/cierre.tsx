@@ -1,50 +1,29 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Pastilla, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
+import { Boton, Campo, Icono, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { clp, montoEscrito, soloDigitos } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
-import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
 // el número y el PDF los calcula el servidor; aquí solo se captura y se muestra.
-const UNIDADES = ['un', 'm', 'm2', 'ml', 'kg', 'hr', 'jornada', 'servicio', 'gl'] as const; // las más usadas; el servidor acepta más (Contrato API §12.1)
 const GARANTIAS = [
   { kind: 'NONE', texto: 'Sin garantía' }, { kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' },
   { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' },
 ] as const;
 const MAX_ITEMS = 100;
 
-// `tipo`: un ítem es cantidad × precio; una tarea (botar escombros, limpiar bodega) no tiene cantidad ni unidad y su valor
-// es opcional: vacío = incluida en el presupuesto.
-type Fila = { clave: string; tipo: 'item' | 'tarea'; description: string; quantity: string; unit: string; unit_price: string };
-
-const numero = (s: string) => Number(s.replace(',', '.'));
-const entero = (s: string) => Number(s.replace(/\D/g, '') || 0);
-
-function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }: { opciones: readonly { id: T; texto: string }[]; valor: string; alElegir: (v: T) => void; etiqueta: string }) {
-  const t = useTema();
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={etiqueta} contentContainerStyle={e.chips}>
-      {opciones.map((o) => {
-        const elegido = o.id === valor;
-        return (
-          <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ selected: elegido }} onPress={() => alElegir(o.id)} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? t.acento : t.campo, opacity: pressed ? 0.7 : 1 }]}>
-            <Texto color={elegido ? 'sobreAcento' : 'texto'} fuerte={elegido}>{o.texto}</Texto>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
 export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
   const t = useTema();
   const contador = useRef(0);
+  // Ítem o tarea abierto en la hoja: `nueva` si todavía no está en la lista (se agrega al guardar).
+  const [abierta, setAbierta] = useState<{ fila: Fila; nueva: boolean } | null>(null);
   const [filas, setFilas] = useState<Fila[]>(() =>
     q.items.map((i) => {
       const tarea = i.kind === 'TASK';
@@ -59,10 +38,13 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<'guardar' | 'terminar' | null>(null);
 
-  const cambiar = (clave: string, campo: keyof Fila, v: string) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, [campo]: v } : f)));
-  const valorDe = (f: Fila) => (f.tipo === 'tarea' ? entero(f.unit_price) : Math.round(numero(f.quantity) * entero(f.unit_price)) || 0);
   const subtotal = filas.reduce((s, f) => s + valorDe(f), 0); // vista previa; manda el servidor
-  const agregar = (tipo: Fila['tipo']) => setFilas((fs) => [...fs, { clave: `n${++contador.current}`, tipo, description: '', quantity: '1', unit: 'un', unit_price: '' }]);
+  const agregar = (tipo: Fila['tipo']) => setAbierta({ nueva: true, fila: { clave: `n${++contador.current}`, tipo, description: '', quantity: '1', unit: 'un', unit_price: '' } });
+  const guardarFila = (f: Fila) => {
+    setFilas((fs) => (fs.some((x) => x.clave === f.clave) ? fs.map((x) => (x.clave === f.clave ? f : x)) : [...fs, f]));
+    void Haptics.selectionAsync();
+    setAbierta(null);
+  };
   const { iva, total } = totalesDe(subtotal, entero(descuento), conIva);
 
   async function guardar() {
@@ -113,79 +95,104 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
   return (
     <>
       <Seccion titulo="Ítems y tareas" descripcion="Lo que cobras. Sale en el PDF.">
-        {filas.map((f, n) => f.tipo === 'tarea' ? (
-          <Tarjeta key={f.clave}>
-            <Pastilla texto="Tarea" tono="suave" />
-            <Campo etiqueta={`Tarea (línea ${n + 1})`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Por ejemplo: botar escombros" maxLength={300} />
-            <Campo etiqueta="Valor (opcional)" value={montoEscrito(f.unit_price)} onChangeText={(v) => cambiar(f.clave, 'unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" ayuda="Si lo dejas vacío, la tarea va incluida en el presupuesto." />
-            <View style={[e.pie, { borderTopColor: t.borde }]}>
-              <Texto fuerte style={e.monto}>{f.unit_price ? clp(entero(f.unit_price)) : 'Incluido'}</Texto>
-              <Boton titulo="Quitar" icono="cerrar" variante="texto" onPress={() => setFilas((fs) => fs.filter((x) => x.clave !== f.clave))} />
-            </View>
+        {filas.length ? (
+          <Tarjeta style={e.lista}>
+            {filas.map((f, n) => (
+              <Presionable
+                key={f.clave}
+                accessibilityRole="button"
+                accessibilityLabel={`${f.tipo === 'tarea' ? 'Tarea' : 'Ítem'} ${n + 1}: ${f.description || 'sin descripción'}. Editar`}
+                onPress={() => setAbierta({ fila: f, nueva: false })}
+                estilo={[e.filaLista, n > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
+              >
+                <View style={e.flex}>
+                  <Texto numberOfLines={2} suave={!f.description.trim()}>{f.description.trim() || (f.tipo === 'tarea' ? 'Tarea sin descripción' : 'Ítem sin descripción')}</Texto>
+                  <Texto variante="chico" suave style={e.monto}>
+                    {f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${f.unit === 'm2' ? 'm²' : f.unit} × ${clp(entero(f.unit_price))}`}
+                  </Texto>
+                </View>
+                <Texto fuerte style={e.monto}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</Texto>
+                <Icono nombre="despliegue" tamano={12} color={t.suave} />
+              </Presionable>
+            ))}
           </Tarjeta>
         ) : (
-          <Tarjeta key={f.clave}>
-            <Campo etiqueta={`Ítem (línea ${n + 1})`} value={f.description} onChangeText={(v) => cambiar(f.clave, 'description', v)} placeholder="Qué vas a hacer o vender" maxLength={300} />
-            <View style={e.fila}>
-              <View style={e.mitad}><Campo etiqueta="Cantidad" value={f.quantity} onChangeText={(v) => cambiar(f.clave, 'quantity', v.replace(/[^\d.,]/g, ''))} keyboardType="decimal-pad" /></View>
-              <View style={e.mitad}><Campo etiqueta="Precio unitario" value={montoEscrito(f.unit_price)} onChangeText={(v) => cambiar(f.clave, 'unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" /></View>
-            </View>
-            <Chips etiqueta="Unidad" opciones={UNIDADES.map((u) => ({ id: u, texto: u === 'm2' ? 'm²' : u }))} valor={f.unit} alElegir={(u) => cambiar(f.clave, 'unit', u)} />
-            <View style={[e.pie, { borderTopColor: t.borde }]}>
-              <Texto fuerte style={e.monto}>{clp(Math.round(numero(f.quantity) * entero(f.unit_price)) || 0)}</Texto>
-              <Boton titulo="Quitar" icono="cerrar" variante="texto" onPress={() => setFilas((fs) => fs.filter((x) => x.clave !== f.clave))} />
-            </View>
+          <Tarjeta>
+            <Texto suave>Aún no agregas nada. Toca «Ítem» para lo que vendes (con cantidad y precio) o «Tarea» para algo que haces sin cantidad, como botar escombros.</Texto>
           </Tarjeta>
-        ))}
+        )}
         <View style={e.fila}>
-          <Boton titulo="Ítem" accessibilityLabel="Agregar ítem" icono="mas" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
+          <Boton titulo="Ítem" accessibilityLabel="Agregar ítem" icono="mas" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
           <Boton titulo="Tarea" accessibilityLabel="Agregar tarea" icono="mas" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
         </View>
       </Seccion>
 
-      <Seccion titulo="Condiciones">
+      {/* Primero el dinero: descuento, IVA y los totales, con el total grande. */}
+      <Seccion titulo="Resumen">
         <Tarjeta>
           <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Agregar IVA (19%)</Texto>
             <Switch accessibilityLabel="Agregar IVA (19%)" value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
           </View>
+          <View style={[e.totales, { borderTopColor: t.borde }]}>
+            <View style={e.filaTotal}>
+              <Texto suave>Subtotal</Texto>
+              <Texto suave style={e.monto}>{clp(subtotal)}</Texto>
+            </View>
+            {entero(descuento) > 0 ? (
+              <View style={e.filaTotal}>
+                <Texto suave>Descuento</Texto>
+                <Texto suave style={e.monto}>−{clp(entero(descuento))}</Texto>
+              </View>
+            ) : null}
+            {conIva ? (
+              <View style={e.filaTotal}>
+                <Texto suave>IVA (19%)</Texto>
+                <Texto suave style={e.monto}>{clp(iva)}</Texto>
+              </View>
+            ) : null}
+            <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
+              <Texto fuerte>Total</Texto>
+              <Texto variante="titulo" style={e.monto}>{clp(total)}</Texto>
+            </View>
+          </View>
+        </Tarjeta>
+      </Seccion>
+
+      {/* Después, lo que se acuerda con el cliente: en su propia tarjeta. */}
+      <Seccion titulo="Condiciones">
+        <Tarjeta>
           <View style={e.grupo}>
             <Texto variante="chico" fuerte>Garantía</Texto>
             <Chips etiqueta="Garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={setGarantia} />
           </View>
           <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
-          <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={setObs} multiline maxLength={5000} placeholder="Condiciones, plazos, forma de pago…" />
+          <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={setObs} multiline maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
         </Tarjeta>
       </Seccion>
 
-      {/* Resumen: el total manda, y la acción de terminar va justo debajo, en la zona del pulgar. */}
-      <Tarjeta>
-        <View style={e.filaTotal}>
-          <Texto suave>Subtotal</Texto>
-          <Texto suave style={e.monto}>{clp(subtotal)}</Texto>
-        </View>
-        {entero(descuento) > 0 ? (
-          <View style={e.filaTotal}>
-            <Texto suave>Descuento</Texto>
-            <Texto suave style={e.monto}>−{clp(entero(descuento))}</Texto>
-          </View>
-        ) : null}
-        {conIva ? (
-          <View style={e.filaTotal}>
-            <Texto suave>IVA (19%)</Texto>
-            <Texto suave style={e.monto}>{clp(iva)}</Texto>
-          </View>
-        ) : null}
-        <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
-          <Texto fuerte>Total</Texto>
-          <Texto variante="titulo" style={e.monto}>{clp(total)}</Texto>
-        </View>
+      {/* Las acciones van fuera de las tarjetas, separadas, en la zona del pulgar. */}
+      <View style={e.acciones}>
         {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
         <Boton titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} />
         <Boton titulo="Guardar y volver" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} />
         <Texto variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</Texto>
-      </Tarjeta>
+      </View>
+
+      {abierta ? (
+        <ModalItem
+          key={abierta.fila.clave}
+          fila={abierta.fila}
+          nueva={abierta.nueva}
+          alGuardar={guardarFila}
+          alQuitar={() => {
+            setFilas((fs) => fs.filter((x) => x.clave !== abierta.fila.clave));
+            setAbierta(null);
+          }}
+          alCerrar={() => setAbierta(null)}
+        />
+      ) : null}
     </>
   );
 }
@@ -248,15 +255,17 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 
 const e = StyleSheet.create({
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
-  pie: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.s },
+  flex: { flex: 1 },
+  lista: { padding: 0, gap: 0, overflow: 'hidden' },
+  filaLista: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingVertical: espacio.m, paddingHorizontal: espacio.l },
   mitad: { flex: 1 },
   grupo: { gap: espacio.s },
   filaIva: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   textoIva: { flex: 1 },
-  chips: { gap: espacio.s },
-  chip: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.l, alignItems: 'center', justifyContent: 'center' },
   filaTotal: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
+  totales: { gap: espacio.s, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m },
   total: { borderTopWidth: 2, paddingTop: espacio.m, marginTop: espacio.xs },
+  acciones: { gap: espacio.m, paddingTop: espacio.s },
   monto: { fontVariant: ['tabular-nums'] },
   centrado: { textAlign: 'center' },
 });

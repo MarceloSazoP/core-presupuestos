@@ -1,0 +1,106 @@
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Alert, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { api, mensajeDe } from '@/api/client';
+import { Boton, Texto } from '@/components/ui';
+import { guardarCodigo, leerCodigo } from '@/lib/codigos';
+import { asegurarSincronizado } from '@/sync/cola';
+import { espacio, MONO, radio, useTema } from '@/theme';
+
+// Hoja del código del presupuesto (CLAUDE.md §16). El código es la llave para abrir este presupuesto en la web: se usa una vez por
+// presupuesto, así que vive en una hoja aparte y no ocupa la pantalla principal. Se escribe en la web o se abre leyendo su QR.
+export default function Codigo() {
+  const t = useTema();
+  const { id, titulo, codeId } = useLocalSearchParams<{ id: string; titulo: string; codeId?: string }>();
+  const [codigo, setCodigo] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [generando, setGenerando] = useState(false);
+
+  useEffect(() => void leerCodigo(id).then(setCodigo), [id]);
+
+  async function copiar() {
+    if (!codigo) return;
+    await Clipboard.setStringAsync(codigo);
+    void Haptics.selectionAsync();
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  async function generar() {
+    setGenerando(true);
+    try {
+      await asegurarSincronizado(id);
+      const r = await api<{ code: string }>(`/quotes/${id}/access-code`, { method: 'POST', body: {} });
+      await guardarCodigo(id, r.code);
+      setCodigo(r.code);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      Alert.alert('No se pudo generar el código', mensajeDe(err));
+    } finally {
+      setGenerando(false);
+    }
+  }
+
+  // Un código nuevo deja sin efecto el anterior: se pide confirmación solo si ya hay uno.
+  const pedirGenerar = () =>
+    codigo
+      ? Alert.alert('¿Generar un código nuevo?', 'El código actual dejará de funcionar y se cerrarán las sesiones abiertas con él.', [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'Generar', style: 'destructive', onPress: () => void generar() },
+        ])
+      : void generar();
+
+  return (
+    <ScrollView style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido} contentInsetAdjustmentBehavior="automatic">
+      <View style={e.cabecera}>
+        <Texto variante="subtitulo" accessibilityRole="header">Abrir en la web</Texto>
+        <Texto variante="chico" suave numberOfLines={1}>{titulo}</Texto>
+      </View>
+
+      {codigo ? (
+        <>
+          <View style={[e.ticket, { backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]}>
+            <Texto variante="chico" suave fuerte>Código</Texto>
+            <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
+          </View>
+          <View style={e.fila}>
+            <Boton titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={() => void copiar()} style={e.mitad} />
+            <Boton titulo="Compartir" icono="compartir" variante="secundario" onPress={() => void Share.share({ message: `Código de tu presupuesto en CORE Presupuestos: ${codigo}` })} style={e.mitad} />
+          </View>
+          <Texto variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web. No se lo des a tu cliente: a él se le envía el enlace del PDF.</Texto>
+        </>
+      ) : codeId ? (
+        <View style={[e.aviso, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+          <Texto>El código solo se muestra una vez y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</Texto>
+          <Boton titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
+        </View>
+      ) : (
+        <View style={[e.aviso, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+          <Texto suave>Este presupuesto se creó sin conexión. Su código aparece aquí en cuanto se sincronice con el servidor.</Texto>
+        </View>
+      )}
+
+      <View style={[e.separador, { borderTopColor: t.borde }]}>
+        <Texto variante="subtitulo">Sin escribir el código</Texto>
+        <Texto variante="chico" suave>Abre este presupuesto en el computador escaneando el QR de la portada de la web.</Texto>
+        <Boton titulo="Leer el QR de la web" icono="qr" onPress={() => router.replace({ pathname: '/escanear', params: { id, titulo } })} />
+      </View>
+
+      {codigo ? <Boton titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} /> : null}
+    </ScrollView>
+  );
+}
+
+const e = StyleSheet.create({
+  contenido: { padding: espacio.xl, gap: espacio.l },
+  cabecera: { gap: 2, paddingTop: espacio.s },
+  ticket: { borderWidth: 1, borderStyle: 'dashed', borderRadius: radio.m, borderCurve: 'continuous', paddingVertical: espacio.l, paddingHorizontal: espacio.m, alignItems: 'center', gap: espacio.xs },
+  // El alto de línea va con la letra: con 24 pt y el alto de 22 del cuerpo se recortaba la parte de arriba.
+  codigo: { fontFamily: Platform.select(MONO), fontSize: 26, lineHeight: 34, fontWeight: '600', letterSpacing: 1.5 },
+  fila: { flexDirection: 'row', gap: espacio.m },
+  mitad: { flex: 1 },
+  aviso: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
+  separador: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.l, gap: espacio.s },
+});

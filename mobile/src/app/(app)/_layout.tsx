@@ -33,6 +33,7 @@ export default function AppLayout() {
         }}
       />
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} /> {/* la pantalla trae su propia cabecera con «Cancelar» */}
+      <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
       <Stack.Screen name="escanear" options={{ presentation: 'modal', title: 'Ver en la web', headerBackTitle: 'Atrás' }} />
       <Stack.Screen name="configurar" options={{ title: 'Configurar', headerBackTitle: 'Atrás' }} />
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
