@@ -36,7 +36,7 @@ const qty = (n: number) => {
 const dayMonthYear = (iso: string) => iso.split('-').reverse().join('-'); // YYYY-MM-DD → DD-MM-YYYY
 const issued = (iso: string) => new Date(iso).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
 
-const GENERADO_POR = 'Generado por CORE Presupuestos v1.0 · CORE Tecnología Empresarial SpA · RUT 78.496.567-8';
+const GENERADO_POR = 'Generado por CORE Presupuestos v1.0';
 
 export type Image = { data: Buffer; mime: string };
 const dataUrl = (i: Image) => `data:${i.mime};base64,${i.data.toString('base64')}`;
