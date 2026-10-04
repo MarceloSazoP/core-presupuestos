@@ -58,6 +58,9 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 | `POST /auth/start` | 3 por teléfono/hora y 10 por IP/hora |
 | `POST /auth/verify` | 5 intentos por desafío |
 | `POST /access/code/exchange` | 10 por IP/hora y, por código, 5 fallos seguidos bloquean ese código 15 min (responde 429) |
+| `POST /access/pair` | 30 por IP/hora |
+| `POST /access/pair/poll` | 600 por IP/hora (cada computador consulta cada 2 s mientras muestra el QR) |
+| `POST /access/pair/claim` | 30 por usuario/hora |
 | `GET /public/*` | 60 por IP/minuto |
 | `POST /quotes/{id}/send-email` | 10 por usuario/hora |
 
@@ -400,6 +403,18 @@ Todo lo demás responde **403 `INSUFFICIENT_SCOPE`**: borrar el presupuesto, est
 ### Cómo lo usa la web
 
 La caja "Consultar presupuesto" llama a `/access/code/exchange`, guarda el token en una cookie `httpOnly` y la pantalla decide con `doc_status`: pendiente ⇒ completar o editar (`Guardar` o `Terminar y enviar`); finalizado ⇒ solo ver, descargar el PDF y reenviar por correo o WhatsApp.
+
+### Abrir el presupuesto en la web escaneando un QR (decisión del 2026-10-04)
+
+Alternativa a escribir el código: la portada muestra un QR **por visita** y la app, ya logueada, lo escanea para abrir **ese presupuesto en el computador**. Detalle de pantallas y seguridad en `Mecanismo de consulta web mediante QR fijo.md` (v1.3).
+
+| Método y ruta | Quién | Descripción |
+|---------------|-------|-------------|
+| `POST /access/pair` | anónimo (la web) | Crea un vínculo de **2 minutos**. Responde `{ "id": "uuid", "code": "<para el QR>", "secret": "<para esperar>", "expires_at": "…" }`. `code` y `secret` son aleatorios de 128 bits y se guardan solo como hash. |
+| `POST /access/pair/poll` | anónimo (la web) | `{ "id", "secret" }` → `{ "status": "WAITING" }` mientras nadie lo escanee; al escanearse, **una sola vez**, `{ "status": "CLAIMED", "token": "<sesión QUOTE_CODE>", "quote_id": "uuid", "doc_status": "PENDING", "expires_at": "…" }` (30 min, igual que `/access/code/exchange`). Vencido, ya entregado, inexistente o con secreto equivocado ⇒ el mismo **404 `NOT_FOUND`**. |
+| `POST /access/pair/claim` | `USER` | `{ "code": "<del QR>", "quote_id": "uuid" }` → **204**. Exige que el presupuesto sea del usuario (si no, 404, como en el resto de la API) y crea la sesión `QUOTE_CODE` que recogerá la web. Código inexistente, vencido o ya usado ⇒ **404**. |
+
+El `secret` nunca viaja en el QR: quien fotografíe el QR no puede recibir la sesión. La web hace `poll` desde el servidor de Next (la sesión nunca llega al JavaScript de la página) y la guarda en la misma cookie `httpOnly` del canje por código. Auditoría: `ACCESS_PAIR_USED` (usuario y presupuesto).
 
 ### Advertencia de seguridad (decisión abierta, §15 n.º 6)
 

@@ -418,7 +418,7 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 
 ### Eventos de auditoría (`audit_events.event`)
 
-`AUTH_CODE_SENT`, `LOGIN`, `LOGOUT`, `QUOTE_CREATED`, `QUOTE_FINALIZED`, `QUOTE_SENT` (metadata: canal), `COMMERCIAL_STATUS_CHANGED` (metadata: de/a), `QUOTE_DELETED`, `ACCESS_CODE_CREATED` (incluye la rotación), `ACCESS_CODE_USED`, `ACCESS_CODE_FAILED` (metadata: ID corto), `ACCESS_CODE_REVOKED`, `PUBLIC_LINK_REVOKED`.
+`AUTH_CODE_SENT`, `LOGIN`, `LOGOUT`, `QUOTE_CREATED`, `QUOTE_FINALIZED`, `QUOTE_SENT` (metadata: canal), `COMMERCIAL_STATUS_CHANGED` (metadata: de/a), `QUOTE_DELETED`, `ACCESS_CODE_CREATED` (incluye la rotación), `ACCESS_CODE_USED`, `ACCESS_CODE_FAILED` (metadata: ID corto), `ACCESS_CODE_REVOKED`, `ACCESS_PAIR_USED`, `PUBLIC_LINK_REVOKED`.
 
 ---
 
@@ -521,7 +521,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0010` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0011` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -676,3 +676,31 @@ UPDATE users SET include_signature = true WHERE signature_file_id IS NOT NULL;
 - Subir una imagen enciende su interruptor (`PUT /me/logo` → `use_logo`, `PUT /me/signature` → `include_signature`); borrarla no lo apaga.
 - Al terminar un presupuesto, el logo y la firma salen del snapshot solo si su interruptor está encendido **y** hay imagen; el bloque de firma (línea, «Firma:», nombre, teléfono y correo) sale siempre.
 - **Pruebas que acompañan:** encender sin imagen es válido; subir una imagen enciende su interruptor; con el interruptor apagado la imagen subida no entra al snapshot ni al PDF y se conserva; encendido entra en todos; cambiarlo no altera un presupuesto ya terminado.
+
+
+---
+
+## 19. Migración `0010` (vínculo de la web con la app por QR, decisión del 2026-10-04)
+
+La portada de la web muestra un QR por visita; la app lo escanea para abrir un presupuesto en ese computador (`Contrato de API.md` §9, «Abrir el presupuesto en la web escaneando un QR»).
+
+```sql
+CREATE TABLE web_pairings (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code_hash    text NOT NULL UNIQUE,          -- sha256 del código que va en el QR
+  secret_hash  text NOT NULL,                 -- sha256 del secreto con que la web espera
+  expires_at   timestamptz NOT NULL,          -- 2 minutos desde la creación
+  quote_id     uuid REFERENCES quotes(id) ON DELETE CASCADE,
+  user_id      uuid REFERENCES users(id) ON DELETE CASCADE,
+  session_token text,                         -- sesión QUOTE_CODE en claro SOLO hasta que la web la recoge; luego NULL
+  claimed_at   timestamptz,
+  delivered_at timestamptz,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CHECK ((claimed_at IS NULL) = (quote_id IS NULL))
+);
+CREATE INDEX web_pairings_expires_idx ON web_pairings (expires_at);
+```
+
+- Vida corta: un vínculo no sirve después de `expires_at` y se entrega **una sola vez** (`session_token` se pone en `NULL` al entregarlo). Los vencidos se borran al crear uno nuevo (sin tarea programada).
+- El `session_token` en claro dura, como máximo, el tiempo que tarda la web en consultar (segundos) y nunca más allá de los 2 minutos.
+- **Pruebas que acompañan:** crear → esperar → vincular → recoger una vez (la segunda, 404); secreto equivocado y vínculo vencido responden 404; no se puede vincular un presupuesto ajeno; la sesión recogida solo sirve para ese presupuesto; el QR (`code`) no permite recoger la sesión.
