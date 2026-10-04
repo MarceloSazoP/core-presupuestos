@@ -1,9 +1,10 @@
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
-import { Boton, Campo, Icono, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Campo, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -82,9 +83,7 @@ export default function Ingresar() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <View style={e.encabezado}>
-        <View style={[e.marca, { backgroundColor: t.acento }]}>
-          <Icono nombre="documento" tamano={26} color={t.sobreAcento} />
-        </View>
+        <Image source={require('../../assets/images/marca.png')} accessibilityLabel="Logo de CORE Presupuestos" style={e.marca} contentFit="contain" />
         <Texto variante="titulo">CORE Presupuestos</Texto>
         <Texto suave>No olvides nada de lo que viste en terreno.</Texto>
       </View>
@@ -165,7 +164,7 @@ export default function Ingresar() {
 const e = StyleSheet.create({
   contenido: { padding: espacio.l, gap: espacio.xl },
   encabezado: { gap: espacio.xs, paddingTop: espacio.xl, paddingHorizontal: espacio.s },
-  marca: { width: 52, height: 52, borderRadius: radio.m, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', marginBottom: espacio.m },
+  marca: { width: 72, height: 64, marginBottom: espacio.m },
   pasos: { flexDirection: 'row', gap: espacio.s, paddingHorizontal: espacio.s },
   paso: { flex: 1, height: 4, borderRadius: 2 },
   bloque: { gap: espacio.l, padding: espacio.xl },
