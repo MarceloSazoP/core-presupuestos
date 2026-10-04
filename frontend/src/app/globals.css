@@ -10,8 +10,8 @@
   --borde: oklch(0.87 0.011 262);
   --campo-fondo: var(--background);
   --borde-campo: oklch(0.62 0.014 262); /* borde de campos: ≥ 3:1 contra su fondo (WCAG 1.4.11); --borde es para divisiones */
-  --acento: oklch(0.5 0.19 262);
-  --acento-texto: oklch(0.5 0.19 262);
+  --acento: oklch(0.5 0.16 262); /* menos saturado que antes (0,19): el azul se mezcla mejor con los neutros */
+  --acento-texto: oklch(0.5 0.16 262);
   --error: oklch(0.5 0.19 27);
   --ok: oklch(0.48 0.12 150);
   --aviso: oklch(0.5 0.11 70);

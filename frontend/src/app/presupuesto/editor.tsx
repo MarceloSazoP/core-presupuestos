@@ -215,7 +215,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </button>
         </p>
       )}
-    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 sm:p-8 lg:p-10">
+    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-10 rounded-xl border border-borde bg-card p-5 sm:p-8 lg:p-10">
       {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
       <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-borde pb-3">
         <h2 className="text-2xl font-semibold leading-tight">Presupuesto de {inicial.cliente.nombre}</h2>
@@ -244,39 +244,42 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} editable />
       </div>
 
-      <section className="flex flex-col gap-1">
-        <label htmlFor="descripcion" className="etiqueta">
-          Servicio
-        </label>
-        <textarea
-          id="descripcion"
-          name="descripcion"
-          rows={2}
-          maxLength={2000}
-          autoFocus={!servicio.trim()}
-          placeholder="Qué trabajo se va a hacer (aparece en el PDF)"
-          value={servicio}
-          onChange={(e) => setServicio(e.target.value)}
-          className="campo"
-        />
-      </section>
+      {/* Servicio y dirección son un solo grupo: más cerca entre sí que del resto. */}
+      <div className="flex flex-col gap-5">
+        <section className="flex flex-col gap-1">
+          <label htmlFor="descripcion" className="etiqueta">
+            Servicio
+          </label>
+          <textarea
+            id="descripcion"
+            name="descripcion"
+            rows={2}
+            maxLength={2000}
+            autoFocus={!servicio.trim()}
+            placeholder="Qué trabajo se va a hacer (aparece en el PDF)"
+            value={servicio}
+            onChange={(e) => setServicio(e.target.value)}
+            className="campo"
+          />
+        </section>
 
-      <section className="flex flex-col gap-1">
-        <label htmlFor="direccion" className="etiqueta">
-          Dirección del trabajo <span className="ayuda">(opcional, aparece en el PDF)</span>
-        </label>
-        <input
-          id="direccion"
-          name="direccion"
-          type="text"
-          maxLength={300}
-          autoComplete="off"
-          placeholder="Calle, número y comuna"
-          value={direccion}
-          onChange={(e) => setDireccion(e.target.value)}
-          className="campo"
-        />
-      </section>
+        <section className="flex flex-col gap-1">
+          <label htmlFor="direccion" className="etiqueta">
+            Dirección del trabajo <span className="ayuda">(opcional, aparece en el PDF)</span>
+          </label>
+          <input
+            id="direccion"
+            name="direccion"
+            type="text"
+            maxLength={300}
+            autoComplete="off"
+            placeholder="Calle, número y comuna"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+            className="campo"
+          />
+        </section>
+      </div>
 
       <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
         <h3 id="titulo-items" className="seccion">
