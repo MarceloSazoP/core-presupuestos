@@ -64,6 +64,8 @@ CREATE TABLE users (
   contact_email  text CHECK (contact_email IS NULL OR (contact_email = lower(contact_email) AND length(contact_email) <= 254)),  -- idem (null = usar email)
   logo_file_id      uuid,   -- FK a files, se agrega abajo
   signature_file_id uuid,
+  include_signature boolean NOT NULL DEFAULT false,   -- v0.4: opción del perfil; imprime la firma en todos los presupuestos
+  CHECK (NOT include_signature OR signature_file_id IS NOT NULL),
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
@@ -114,7 +116,6 @@ CREATE TABLE quotes (
   warranty_text       text CHECK (length(warranty_text) <= 500),
   validity_days       int  CHECK (validity_days BETWEEN 1 AND 365),
   observations        text CHECK (length(observations) <= 5000),   -- aparecen en el PDF
-  include_signature   boolean NOT NULL DEFAULT false,
   include_qr          boolean NOT NULL DEFAULT false,
 
   -- Seguimiento
@@ -520,7 +521,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0008` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0009` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -635,3 +636,23 @@ ALTER TABLE users
 - Los usuarios existentes quedan con `NULL` (siguen usando su teléfono y correo de cuenta).
 - Sin `UNIQUE`: son datos de presentación, no identidad.
 - **Pruebas que acompañan:** `PUT /me` cambia nombre y contacto sin tocar `phone` ni `email`; `null` vuelve a los de la cuenta; un teléfono o correo inválido da 422; el snapshot, el PDF y la vista pública usan el contacto configurado; un presupuesto ya terminado no cambia si después se cambia el contacto.
+
+
+---
+
+## 17. Migración `0008` (la firma es del perfil, decisión del 2026-10-04)
+
+El usuario decidió que incluir la firma **no** debe ser opcional por presupuesto (le quita seriedad): la opción vive en el perfil, junto a la imagen de la firma, y vale para todos. Detalle en `Contrato de API.md` §4.
+
+```sql
+ALTER TABLE users
+  ADD COLUMN include_signature boolean NOT NULL DEFAULT false,
+  ADD CONSTRAINT users_signature_check CHECK (NOT include_signature OR signature_file_id IS NOT NULL);
+
+ALTER TABLE quotes DROP COLUMN include_signature;
+```
+
+- Los snapshots ya creados conservan su `include_signature` (la firma que llevaron queda como estaba).
+- Borrar la firma apaga la opción en la misma sentencia (`DELETE /me/signature`), para no romper la restricción.
+- Al terminar un presupuesto, `snapshot.include_signature` y `professional.signature_file_id` salen del perfil de ese momento.
+- **Pruebas que acompañan:** no se puede activar sin firma subida (422); borrar la firma apaga la opción; con la opción activa el snapshot lleva la firma en todos los presupuestos y con ella apagada en ninguno; cambiarla no altera uno ya terminado; el esquema rechaza `include_signature` sin firma.

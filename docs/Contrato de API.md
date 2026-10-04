@@ -96,7 +96,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
   "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "total": 0,
   "warranty": { "kind": "NONE", "text": null },
   "validity_days": null, "observations": null,
-  "include_signature": false, "include_qr": false,
+  "include_qr": false,
   "next_contact_date": null,
   "finalized_at": null, "sent_at": null, "accepted_at": null,
   "public_url": null,
@@ -191,8 +191,8 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 
 | Método y ruta | Descripción |
 |---------------|-------------|
-| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature, logo_id, signature_id }`. `logo_id` y `signature_id` cambian con cada imagen nueva (o son `null`): se usan en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre una imagen vieja guardada en caché. |
-| `PUT /me` | Parcial: `{ "name"?, "contact_phone"?, "contact_email"? }` (al menos uno). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
+| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature, include_signature, logo_id, signature_id }`. `logo_id` y `signature_id` cambian con cada imagen nueva (o son `null`): se usan en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre una imagen vieja guardada en caché. |
+| `PUT /me` | Parcial: `{ "name"?, "contact_phone"?, "contact_email"?, "include_signature"? }` (al menos uno). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `GET /me/logo` | Descarga el logo propio (404 si no hay). Es lo que muestra «Configurar». |
 | `DELETE /me/logo` | **204** |
@@ -200,7 +200,7 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 | `GET /me/signature` | Igual que el logo. |
 | `DELETE /me/signature` | **204** |
 
-**Firma en el PDF (decisión del 2026-10-04).** El PDF siempre cierra con un bloque de firma: una **línea** y, debajo, **«Firma:» seguido del nombre o negocio** configurado (`name`) y, en otra línea, el **teléfono y el correo de contacto** (así también sirve para firmar a mano). Con `include_signature = true` la **imagen de la firma** del usuario se imprime sobre la línea. Sirve para cualquier país: no lleva identificadores tributarios ni nada propio de un país (el teléfono va en formato internacional); lo único que depende de la región es la moneda y el IVA del presupuesto, que hoy son los de Chile. La firma es una imagen comercial: no es una firma electrónica avanzada.
+**Firma en el PDF (decisión del 2026-10-04).** El PDF siempre cierra con un bloque de firma: una **línea** y, debajo, **«Firma:» seguido del nombre o negocio** configurado (`name`) y, en otra línea, el **teléfono y el correo de contacto** (así también sirve para firmar a mano). La **imagen de la firma** se imprime sobre la línea cuando el usuario activa `include_signature` en su perfil (el interruptor está junto a la foto de la firma, en «Configurar»). Es una opción **del perfil, no de cada presupuesto**: o va en todos o en ninguno, porque una firma que unas veces está y otras no le resta seriedad al documento. `PUT /me { include_signature: true }` responde **422** si el usuario aún no subió su firma, y `DELETE /me/signature` apaga la opción. El valor vigente al terminar un presupuesto queda **fijado en su snapshot**: cambiarlo después no altera lo ya enviado. Sirve para cualquier país: no lleva identificadores tributarios ni nada propio de un país (el teléfono va en formato internacional); lo único que depende de la región es la moneda y el IVA del presupuesto, que hoy son los de Chile. La firma es una imagen comercial: no es una firma electrónica avanzada.
 
 **Datos de contacto (decisión del 2026-10-04).** `phone` y `email` son la identidad de la cuenta (con ellos se ingresa) y no cambian. `contact_phone` y `contact_email` son los datos que salen en los presupuestos, el PDF, la vista pública y el correo al cliente; el usuario los configura desde «Configurar» en la app y valen `null` mientras no los cambie (entonces se usan `phone` y `email`). `name` es el nombre que sale en los presupuestos: puede ser el de un negocio («Instalaciones R. Sazo»). Al terminar un presupuesto sus datos de contacto, su nombre y su logo **quedan fijados** en el snapshot: cambiarlos después no altera lo ya enviado. `contact_phone` va en formato internacional como `phone`; `null` vuelve a usar el de la cuenta.
 
@@ -246,7 +246,7 @@ Todo se escribe solo si `doc_status ∈ {DRAFT, PENDING}`; en `FINALIZED` respon
 Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, email?, address? }` crea el cliente y el presupuesto en una sola transacción.
 
 **`PATCH /quotes/{id}`** — campos parciales; solo los enviados cambian.
-`customer_id, service_description, address, latitude, longitude, discount, include_vat, warranty {kind, text}, validity_days, observations, include_signature, include_qr`.
+`customer_id, service_description, address, latitude, longitude, discount, include_vat, warranty {kind, text}, validity_days, observations, include_qr`. La firma ya no se elige por presupuesto: sigue el perfil (§4).
 `latitude` y `longitude` van juntas o ninguna. El backend recalcula `vat` y `total` cuando cambian `discount` o `include_vat`.
 
 **IVA (decisión del 2026-10-04).** `include_vat = true` agrega el IVA al presupuesto. Los precios que se escriben son **netos** (sin IVA). El IVA es el 19 % de `subtotal − discount` (el descuento va antes del IVA), redondeado al peso con `.5` hacia arriba, y `total = subtotal − discount + vat`. Con `include_vat = false`, `vat = 0` y `total = subtotal − discount`, como antes. Es una línea informativa de un presupuesto comercial: **no** emite documentos tributarios (el pie del PDF sigue diciéndolo). La tasa vive solo en el servidor; los clientes pueden mostrar una vista previa pero siempre muestran lo que devuelve el servidor.
@@ -262,6 +262,14 @@ Un presupuesto terminado sigue siendo inmutable: lo que se envió al cliente no 
 - La versión original queda como estaba (`REJECTED`) y su detalle trae `next_version_id`. Cada versión se numera `CP-AAAA-NNNN` como cualquier presupuesto al terminarla.
 - **Se ve en todas partes:** `version` y `previous_number` aparecen en el detalle, el listado (`version`), el snapshot, la vista pública y el PDF («Presupuesto CP-2026-0007 · Versión 2», y debajo «Reemplaza al presupuesto CP-2026-0003»). La versión 1 no muestra nada extra.
 - Requiere conexión (necesita el presupuesto original en el servidor).
+
+### Corregir el teléfono o el correo del cliente (decisión del 2026-10-04)
+
+**`PATCH /quotes/{id}/customer`** (sesión `USER` o `QUOTE_CODE` del presupuesto) → **200** `Quote`. Cuerpo parcial, al menos un campo: `{ "phone"?, "email"? (puede ser null), "name"? }`.
+- El teléfono y el correo se pueden corregir **siempre, también con el presupuesto terminado ni enviado**: normalmente el cliente se equivoca al dárselos y los confirma después. No cambian el PDF ni el snapshot (solo llevan el nombre del cliente), y el siguiente envío por correo o WhatsApp usa los datos corregidos.
+- El `name` solo se cambia mientras el presupuesto se puede editar (**409 `INVALID_STATE`** si ya está terminado: el nombre sale en el PDF).
+- Modifica al **cliente**, así que el cambio se ve en todos sus presupuestos. Solo toca al cliente de ese presupuesto (nunca a otro). `phone` va en formato internacional como en `POST /customers`; un dato inválido da **422**.
+- Queda en la auditoría (`CUSTOMER_CONTACT_UPDATED`).
 
 ### Etapa 2 — levantamiento
 
@@ -313,7 +321,6 @@ Valida (422 con `details`):
 - `discount ≤ subtotal`.
 - `validity_days` definido.
 - `warranty.kind = CUSTOM` ⇒ `warranty.text` presente.
-- `include_signature = true` ⇒ el usuario tiene firma guardada.
 
 En **una transacción**: asigna `number` (`CP-AAAA-NNNN`), construye el snapshot, genera el PDF (con QR si `include_qr`), crea el enlace público, pone `FINALIZED` con `commercial_status = NONE`. Si algo falla, no queda nada a medias.
 
@@ -503,6 +510,7 @@ El código es lo que se guarda y se envía; el símbolo es lo que se muestra en 
 | Crear presupuesto | ✔ | ✘ | ✘ |
 | Leer / editar presupuesto editable | ✔ (propio) | ✔ (el suyo) | ✘ |
 | Subir / borrar fotos y voz | ✔ | ✔ | ✘ |
+| Corregir teléfono o correo del cliente (`PATCH /quotes/{id}/customer`) | ✔ (propio) | ✔ (el suyo) | ✘ |
 | Guardar | ✔ | ✔ | ✘ |
 | Finalizar y enviar (`send-email`, `mark-sent`) | ✔ | ✔ (el suyo) | ✘ |
 | Estado comercial y seguimiento | ✔ | ✘ | ✘ |
