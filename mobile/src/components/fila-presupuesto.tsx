@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useRef } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
 import { Pastilla, Texto } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
@@ -18,6 +19,20 @@ function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 
 }
 
 // `sinCliente`: en la ficha del cliente su nombre sobra y se muestra el número del presupuesto.
+// Botón rojo de eliminar: nace de la orilla al deslizar (su opacidad sigue el avance del gesto), así nunca se asoma por los
+// bordes redondeados de la tarjeta ni se queda a la vista al volver.
+function AccionEliminar({ progreso, onPress }: { progreso: SharedValue<number>; onPress: () => void }) {
+  const t = useTema();
+  const estilo = useAnimatedStyle(() => ({ opacity: interpolate(progreso.get(), [0, 0.2, 1], [0, 1, 1], Extrapolation.CLAMP) }));
+  return (
+    <Animated.View style={[e.accion, { backgroundColor: t.error }, estilo]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Eliminar presupuesto" onPress={onPress} style={e.accionToque}>
+        <Texto fuerte color="sobreAcento">Eliminar</Texto>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 // - `onEliminar`: un presupuesto pendiente se elimina deslizando la fila hacia la izquierda o manteniéndola apretada (los
 //   terminados no, Contrato API §6). Siempre con confirmación.
 // - `onCambiarEstado`: uno ya enviado muestra bajo la tarjeta mini pestañas con los demás estados (nunca el actual); un
@@ -106,11 +121,8 @@ export function FilaPresupuesto({
       friction={2}
       rightThreshold={40}
       overshootRight={false}
-      renderRightActions={() => (
-        <Pressable accessibilityRole="button" accessibilityLabel="Eliminar presupuesto" onPress={confirmar} style={[e.accion, { backgroundColor: t.error }]}>
-          <Texto fuerte color="sobreAcento">Eliminar</Texto>
-        </Pressable>
-      )}
+      containerStyle={e.contenedor}
+      renderRightActions={(progreso) => <AccionEliminar progreso={progreso} onPress={confirmar} />}
     >
       {fila}
     </ReanimatedSwipeable>
@@ -122,7 +134,9 @@ const e = StyleSheet.create({
   filaTexto: { flex: 1, gap: espacio.xs },
   monto: { fontVariant: ['tabular-nums'] },
   id: { fontVariant: ['tabular-nums'], letterSpacing: 1 },
-  accion: { width: 96, marginLeft: espacio.s, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
+  contenedor: { borderRadius: 16, borderCurve: 'continuous', overflow: 'hidden' }, // recorta lo que sale por las esquinas redondeadas
+  accion: { width: 96, borderRadius: 16, borderCurve: 'continuous' },
+  accionToque: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   // Las mini pestañas se pegan al borde de abajo de la tarjeta (marginTop negativo) con las esquinas de abajo redondeadas.
   mini: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs, marginTop: -1, paddingLeft: espacio.l },
   miniEtiqueta: { marginRight: espacio.xs },

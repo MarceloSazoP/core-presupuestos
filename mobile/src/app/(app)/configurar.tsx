@@ -1,12 +1,10 @@
 import * as Haptics from 'expo-haptics';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Alert, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
-import { api, fuenteDeArchivo, mensajeDe, subir } from '@/api/client';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { ImagenPerfil } from '@/components/imagen-perfil';
 import { Boton, Campo, Texto } from '@/components/ui';
-import { prepararLogo } from '@/lib/foto';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
@@ -22,7 +20,6 @@ export default function Configurar() {
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [logoOcupado, setLogoOcupado] = useState(false);
 
   // Al abrir se traen los datos frescos del servidor (los guardados en el teléfono pueden venir de otra sesión).
   useEffect(() => {
@@ -60,40 +57,6 @@ export default function Configurar() {
     }
   }
 
-  async function elegirLogo() {
-    Keyboard.dismiss(); // primero se oculta el teclado: abrir el selector con él abierto descuadra el espacio de abajo
-    const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
-    if (r.canceled || !usuario) return;
-    const a = r.assets[0]!;
-    setLogoOcupado(true);
-    try {
-      const uri = await prepararLogo(a.uri, a.width, a.height);
-      // La respuesta trae el perfil con el `logo_id` nuevo, que cambia la dirección de la imagen y rompe la caché.
-      await actualizar(await subir<Usuario>('/me/logo', { uri, name: 'logo.png', type: 'image/png' }, {}, 'PUT'));
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (err) {
-      Alert.alert('No se pudo guardar el logo', mensajeDe(err));
-    } finally {
-      setLogoOcupado(false);
-    }
-  }
-
-  const quitarLogo = () =>
-    Alert.alert('¿Quitar tu logo?', 'Los presupuestos que ya enviaste lo conservan; los nuevos saldrán sin logo.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Quitar',
-        style: 'destructive',
-        onPress: () => {
-          setLogoOcupado(true);
-          api('/me/logo', { method: 'DELETE' })
-            .then(() => usuario && actualizar({ ...usuario, has_logo: false, logo_id: null }))
-            .catch((err) => Alert.alert('No se pudo quitar el logo', mensajeDe(err)))
-            .finally(() => setLogoOcupado(false));
-        },
-      },
-    ]);
-
   const confirmarSalida = () =>
     Alert.alert('Cerrar sesión', `Saldrás de la cuenta de ${usuario?.name ?? 'tu usuario'}. Tus presupuestos quedan guardados.`, [
       { text: 'Cancelar', style: 'cancel' },
@@ -112,21 +75,9 @@ export default function Configurar() {
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />
       </View>
 
-      <View style={e.seccion}>
-        <Texto variante="subtitulo">Logo</Texto>
-        <Texto variante="chico" suave>Sale arriba en tus presupuestos. PNG o JPEG; se ajusta solo a un tamaño liviano.</Texto>
-        {usuario?.has_logo ? (
-          <View style={[e.vista, { backgroundColor: '#FFFFFF', borderColor: t.borde }]}>
-            <Image source={fuenteDeArchivo(`/me/logo?v=${usuario.logo_id ?? 'sin-id'}`)} contentFit="contain" accessibilityLabel="Tu logo" style={e.logo} />
-          </View>
-        ) : (
-          <View style={[e.vista, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-            <Texto variante="chico" suave>Todavía no subes un logo</Texto>
-          </View>
-        )}
-        <Boton titulo={usuario?.has_logo ? 'Cambiar logo' : 'Elegir logo'} variante="secundario" onPress={() => void elegirLogo()} cargando={logoOcupado} />
-        {usuario?.has_logo ? <Boton titulo="Quitar logo" variante="texto" onPress={quitarLogo} disabled={logoOcupado} /> : null}
-      </View>
+      <ImagenPerfil ruta="logo" titulo="Logo" nombre="el logo" ayuda="Sale arriba en tus presupuestos, en su propia fila: sirve un logo horizontal. PNG o JPEG; se ajusta solo a un tamaño liviano." vacio="Todavía no subes un logo" />
+
+      <ImagenPerfil ruta="signature" titulo="Firma" nombre="la firma" ayuda="Se imprime sobre la línea de firma del PDF cuando activas «Incluir mi firma» en un presupuesto. Mejor sobre fondo blanco o transparente." vacio="Todavía no subes tu firma" />
 
       <View style={e.seccion}>
         <Texto variante="subtitulo">Tu cuenta</Texto>
@@ -140,6 +91,4 @@ export default function Configurar() {
 const e = StyleSheet.create({
   contenido: { padding: espacio.xl, gap: espacio.xxl },
   seccion: { gap: espacio.m },
-  vista: { height: 120, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  logo: { width: '100%', height: '100%' },
 });
