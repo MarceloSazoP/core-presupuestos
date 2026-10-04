@@ -79,14 +79,28 @@ export default async function PresupuestoPage() {
           <ul>
             {p.items.map((item, i) => (
               <li key={i} className="fila-lectura">
-                <p className="min-w-0">{item.descripcion}</p>
-                <p className="solo-estrecho text-sm text-muted">
-                  {cant(item.cantidad)} {simboloUnidad(item.unidad)} × {clp(item.precioUnitario)}
+                <p className="min-w-0">
+                  {item.tipo === "tarea" && <span className="mr-2 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>}
+                  {item.descripcion}
                 </p>
-                <p className="solo-ancho text-right tabular-nums">{cant(item.cantidad)}</p>
-                <p className="solo-ancho">{simboloUnidad(item.unidad)}</p>
-                <p className="solo-ancho text-right tabular-nums">{clp(item.precioUnitario)}</p>
-                <p className="text-right font-medium tabular-nums">{clp(totalLinea(item.cantidad, item.precioUnitario))}</p>
+                {item.tipo === "tarea" ? (
+                  <>
+                    <p className="solo-ancho" />
+                    <p className="solo-ancho" />
+                    <p className="solo-ancho" />
+                    <p className="text-right font-medium tabular-nums">{item.precioUnitario > 0 ? clp(item.precioUnitario) : "Incluido"}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="solo-estrecho text-sm text-muted">
+                      {cant(item.cantidad)} {simboloUnidad(item.unidad)} × {clp(item.precioUnitario)}
+                    </p>
+                    <p className="solo-ancho text-right tabular-nums">{cant(item.cantidad)}</p>
+                    <p className="solo-ancho">{simboloUnidad(item.unidad)}</p>
+                    <p className="solo-ancho text-right tabular-nums">{clp(item.precioUnitario)}</p>
+                    <p className="text-right font-medium tabular-nums">{clp(totalLinea(item.cantidad, item.precioUnitario))}</p>
+                  </>
+                )}
               </li>
             ))}
           </ul>

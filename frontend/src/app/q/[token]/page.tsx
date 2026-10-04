@@ -17,7 +17,7 @@ type Publico = {
   customer: { name: string };
   service_description: string;
   service_address: string | null;
-  items: { description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
+  items: { kind?: "ITEM" | "TASK"; description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
   subtotal: number;
   discount: number;
   include_vat: boolean;
@@ -91,12 +91,17 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             {q.items.map((i, n) => (
               <li key={n} className="flex items-start justify-between gap-4 py-3">
                 <div className="min-w-0">
-                  <p>{i.description}</p>
-                  <p className="text-sm text-muted tabular-nums">
-                    {cant(i.quantity)} {simboloUnidad(i.unit)} × {clp(i.unit_price)}
+                  <p>
+                    {i.kind === "TASK" && <span className="mr-2 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>}
+                    {i.description}
                   </p>
+                  {i.kind !== "TASK" && (
+                    <p className="text-sm text-muted tabular-nums">
+                      {cant(i.quantity)} {simboloUnidad(i.unit)} × {clp(i.unit_price)}
+                    </p>
+                  )}
                 </div>
-                <p className="shrink-0 font-medium tabular-nums">{clp(i.line_total)}</p>
+                <p className="shrink-0 font-medium tabular-nums">{i.kind === "TASK" && i.line_total === 0 ? "Incluido" : clp(i.line_total)}</p>
               </li>
             ))}
           </ul>

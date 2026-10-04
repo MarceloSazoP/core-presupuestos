@@ -79,6 +79,7 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
   if (!s) return { errores: ['La sesión venció. Vuelve al inicio y escribe el código de nuevo.'] };
   const terminar = datos.get('accion') === 'terminar';
 
+  const tipos = datos.getAll('item_tipo').map(String);
   const descripciones = datos.getAll('item_descripcion').map(String);
   const cantidades = datos.getAll('item_cantidad').map(String);
   const unidades = datos.getAll('item_unidad').map(String);
@@ -86,12 +87,14 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
 
   // Al guardar se ignoran las filas totalmente vacías; al terminar, todas cuentan.
   const filas = descripciones
-    .map((descripcion, i) => ({ descripcion, cantidad: cantidades[i] ?? '', unidad: unidades[i] ?? '', precio: precios[i] ?? '' }))
+    .map((descripcion, i) => ({ tarea: tipos[i] === 'tarea', descripcion, cantidad: cantidades[i] ?? '', unidad: unidades[i] ?? '', precio: precios[i] ?? '' }))
     .filter((f) => terminar || f.descripcion.trim() !== '' || f.precio.trim() !== '');
-  if (filas.some((f) => !f.descripcion.trim() || !f.cantidad.trim() || !f.precio.trim())) {
-    return { errores: ['Completa la descripción, la cantidad y el precio de cada ítem.'] };
+  // Una tarea (actividad sin cantidad ni unidad) solo necesita descripción; su precio es opcional (vacío = incluida).
+  if (filas.some((f) => !f.descripcion.trim() || (!f.tarea && (!f.cantidad.trim() || !f.precio.trim())))) {
+    return { errores: ['Completa la descripción, la cantidad y el precio de cada ítem, y la descripción de cada tarea.'] };
   }
-  if (filas.some((f) => !/^\d+([.,]\d{1,3})?$/.test(f.cantidad.trim()) || !/^[\d.\s$]*\d[\d.\s$]*$/.test(f.precio))) {
+  const precioValido = (p: string) => /^[\d.\s$]*\d[\d.\s$]*$/.test(p);
+  if (filas.some((f) => (f.tarea ? f.precio.trim() !== '' && !precioValido(f.precio) : !/^\d+([.,]\d{1,3})?$/.test(f.cantidad.trim()) || !precioValido(f.precio)))) {
     return { errores: ['Revisa cantidades (hasta 3 decimales) y precios (solo números).'] };
   }
   const garantia = codigoGarantia(String(datos.get('garantia') ?? ''));
@@ -115,7 +118,13 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
     });
     await api(base + '/items', {
       token, method: 'PUT',
-      body: { items: filas.map((f) => ({ description: f.descripcion, quantity: aDecimal(f.cantidad), unit: f.unidad, unit_price: aEntero(f.precio) })) },
+      body: {
+        items: filas.map((f) =>
+          f.tarea
+            ? { kind: 'TASK', description: f.descripcion, unit_price: aEntero(f.precio) }
+            : { kind: 'ITEM', description: f.descripcion, quantity: aDecimal(f.cantidad), unit: f.unidad, unit_price: aEntero(f.precio) },
+        ),
+      },
     });
     if (!terminar) {
       await api(base + '/save', { token, method: 'POST', body: {} });

@@ -9,7 +9,9 @@ import { totalLinea } from "@/lib/totales";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export type Fila = { clave: number; descripcion: string; cantidad: string; unidad: string; precio: string };
+// `tipo`: un ítem se calcula como cantidad × precio; una tarea («botar escombros») no tiene cantidad ni unidad y su precio
+// es opcional (vacío = incluida).
+export type Fila = { clave: number; tipo: "item" | "tarea"; descripcion: string; cantidad: string; unidad: string; precio: string };
 
 // Mismo parseo que el editor: solo vista previa, el servidor vuelve a validar.
 const aNumero = (s: string) => Number(s.trim().replace(",", ".")) || 0;
@@ -42,7 +44,8 @@ const limpiarCantidad = (v: string) => {
 const limpiarPrecio = (v: string) => String(Math.min(aEntero(v), MAX_PRECIO) || "");
 const CARACTERES_VALIDOS: Record<string, RegExp> = { cantidad: /^[\d,]*$/, precio: /^\d*$/ };
 
-const EDITABLES = ["descripcion", "cantidad", "unidad", "precio"] as const; // orden de avance con Enter
+const EDITABLES: readonly string[] = ["descripcion", "cantidad", "unidad", "precio"]; // orden de avance con Enter
+const EDITABLES_TAREA: readonly string[] = ["descripcion", "precio"];
 
 // Editor numérico: muestra el valor con puntos de miles mientras se escribe y guarda solo el valor limpio.
 // Mantiene su propio estado: así el campo responde al teclear sin depender del ciclo de props de la grilla.
@@ -136,24 +139,42 @@ export function GrillaItems({
 
   const columnas = useMemo<ColDef<Fila>[]>(
     () => [
-      { field: "descripcion", headerName: "Descripción", flex: 1, minWidth: 140, cellEditorParams: { maxLength: 300 } },
+      {
+        field: "descripcion",
+        headerName: "Descripción",
+        flex: 1,
+        minWidth: 140,
+        cellEditorParams: { maxLength: 300 },
+        // La etiqueta distingue las tareas de los ítems de un vistazo.
+        cellRenderer: (p: { data?: Fila; value?: string }) =>
+          p.data?.tipo === "tarea" ? (
+            <span className="flex items-center gap-2">
+              <span className="shrink-0 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>
+              <span className="truncate">{p.value}</span>
+            </span>
+          ) : (
+            p.value
+          ),
+      },
       {
         field: "cantidad",
         headerName: "Cant.",
         width: 100,
         type: "rightAligned",
+        editable: (p) => p.data?.tipo !== "tarea", // una tarea no lleva cantidad
         cellEditor: EditorNumero,
         cellEditorParams: { formatear: milesConDecimal, limpiar: limpiarCantidad },
-        valueFormatter: (p) => milesConDecimal(p.value ?? ""),
+        valueFormatter: (p) => (p.data?.tipo === "tarea" ? "—" : milesConDecimal(p.value ?? "")),
         valueParser: (p) => limpiarCantidad(String(p.newValue ?? "")),
-        cellClassRules: { "text-error": (p) => aNumero(p.value ?? "") <= 0 }, // la cantidad debe ser mayor que 0
+        cellClassRules: { "text-error": (p) => p.data?.tipo !== "tarea" && aNumero(p.value ?? "") <= 0 }, // la cantidad de un ítem debe ser mayor que 0
       },
       {
         field: "unidad",
         headerName: "Unidad",
         width: 120,
+        editable: (p) => p.data?.tipo !== "tarea", // ni unidad
         cellEditor: EditorUnidad,
-        valueFormatter: (p) => simboloUnidad(p.value ?? ""),
+        valueFormatter: (p) => (p.data?.tipo === "tarea" ? "—" : simboloUnidad(p.value ?? "")),
       },
       {
         field: "precio",
@@ -163,7 +184,8 @@ export function GrillaItems({
         cellEditor: EditorNumero,
         cellEditorParams: { formatear: miles, limpiar: limpiarPrecio },
         valueParser: (p) => limpiarPrecio(String(p.newValue ?? "")),
-        valueFormatter: (p) => (p.value ? clp(aEntero(p.value)) : "$0"),
+        // En una tarea el precio es opcional: vacío significa que va incluida en el presupuesto.
+        valueFormatter: (p) => (p.value ? clp(aEntero(p.value)) : p.data?.tipo === "tarea" ? "Incluido" : "$0"),
       },
       {
         headerName: "Total",
@@ -171,7 +193,11 @@ export function GrillaItems({
         type: "rightAligned",
         editable: false,
         cellClass: ["ag-right-aligned-cell", "font-medium"],
-        valueGetter: (p) => (p.data ? clp(totalLinea(aNumero(p.data.cantidad), aEntero(p.data.precio))) : ""),
+        valueGetter: (p) => {
+          if (!p.data) return "";
+          if (p.data.tipo === "tarea") return aEntero(p.data.precio) > 0 ? clp(aEntero(p.data.precio)) : "Incluido";
+          return clp(totalLinea(aNumero(p.data.cantidad), aEntero(p.data.precio)));
+        },
       },
       {
         headerName: "",
@@ -181,7 +207,7 @@ export function GrillaItems({
           filas.length > 1 && p.data ? (
             <button
               type="button"
-              aria-label="Quitar ítem"
+              aria-label="Quitar línea"
               onClick={() => onChange(filas.filter((f) => f.clave !== p.data?.clave))}
               className="size-full text-muted"
             >
@@ -196,11 +222,12 @@ export function GrillaItems({
   const alTerminarEdicion = (e: CellEditingStoppedEvent<Fila>) => {
     if (!enterPulsado.current) return; // clic afuera o Escape: no se avanza
     enterPulsado.current = false;
-    const sig = EDITABLES.indexOf(e.column.getColId() as (typeof EDITABLES)[number]) + 1;
     const fila = e.rowIndex ?? 0;
-    if (sig < EDITABLES.length) return editar(fila, EDITABLES[sig]);
+    const orden = filas[fila]?.tipo === "tarea" ? EDITABLES_TAREA : EDITABLES; // una tarea salta cantidad y unidad
+    const sig = orden.indexOf(e.column.getColId()) + 1;
+    if (sig < orden.length) return editar(fila, orden[sig]!);
     if (fila < filas.length - 1) return editar(fila + 1, EDITABLES[0]);
-    irA.current = { rowIndex: fila + 1, colKey: EDITABLES[0] };
+    irA.current = { rowIndex: fila + 1, colKey: EDITABLES[0]! };
     onAgregar();
   };
 
@@ -236,13 +263,14 @@ export function GrillaItems({
         singleClickEdit // un clic abre el editor de la celda (por defecto AG Grid pide doble clic o empezar a escribir)
         stopEditingWhenCellsLoseFocus
         onGridReady={(e) => (api.current = e.api)}
-        onFirstDataRendered={() => enfocarAlCargar && editar(0, EDITABLES[0])}
+        onFirstDataRendered={() => enfocarAlCargar && editar(0, EDITABLES[0]!)}
         onCellValueChanged={(e) => onChange(filas.map((f) => (f.clave === e.data?.clave ? { ...e.data } : f)))}
         onCellEditingStopped={alTerminarEdicion}
       />
       {/* La grilla no son <input>: el formulario recibe los ítems por estos campos ocultos. */}
       {filas.map((f) => (
         <span key={f.clave} hidden>
+          <input type="hidden" name="item_tipo" value={f.tipo} readOnly />
           <input type="hidden" name="item_descripcion" value={f.descripcion} readOnly />
           <input type="hidden" name="item_cantidad" value={f.cantidad} readOnly />
           <input type="hidden" name="item_unidad" value={f.unidad} readOnly />

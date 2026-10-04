@@ -13,7 +13,7 @@ import { Multimedia } from "./multimedia";
 type Inicial = {
   descripcion: string;
   direccion: string | null;
-  items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
+  items: { tipo: "item" | "tarea"; descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
   conIva: boolean;
   garantia: string;
@@ -27,7 +27,7 @@ type Inicial = {
 const aNumero = (s: string) => Number(s.trim().replace(",", ".")) || 0;
 const aEntero = (s: string) => Number(s.replace(/[^\d]/g, "")) || 0;
 const MAX_ITEMS = 100; // igual que el servidor
-const filaVacia = (clave: number): Fila => ({ clave, descripcion: "", cantidad: "1", unidad: UNIDAD_POR_DEFECTO, precio: "" });
+const filaVacia = (clave: number, tipo: Fila["tipo"] = "item"): Fila => ({ clave, tipo, descripcion: "", cantidad: "1", unidad: UNIDAD_POR_DEFECTO, precio: "" });
 
 // En pantallas anchas: [contexto] [formulario] [resumen y acciones]. En el teléfono: una columna en ese mismo orden.
 export function Editor({ inicial }: { inicial: Inicial }) {
@@ -37,10 +37,11 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     inicial.items.length > 0
       ? inicial.items.map((it, i) => ({
           clave: i + 1,
+          tipo: it.tipo,
           descripcion: it.descripcion,
           cantidad: String(it.cantidad).replace(".", ","),
           unidad: it.unidad,
-          precio: String(it.precioUnitario),
+          precio: it.tipo === "tarea" && it.precioUnitario === 0 ? "" : String(it.precioUnitario), // una tarea incluida se muestra sin valor
         }))
       : [filaVacia(1)],
   );
@@ -65,8 +66,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   };
   const salir = () => enTransicion(() => salirAction());
 
-  const agregar = () =>
-    setFilas((actuales) => (actuales.length >= MAX_ITEMS ? actuales : [...actuales, filaVacia(Math.max(...actuales.map((f) => f.clave)) + 1)]));
+  const agregar = (tipo: Fila["tipo"] = "item") =>
+    setFilas((actuales) => (actuales.length >= MAX_ITEMS ? actuales : [...actuales, filaVacia(Math.max(...actuales.map((f) => f.clave)) + 1, tipo)]));
 
   // Enter nunca envía el formulario (terminar es irreversible): en un campo suelto pasa al siguiente. La grilla maneja el suyo.
   const alPulsarTecla = (e: KeyboardEvent<HTMLFormElement>) => {
@@ -79,9 +80,10 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     campos[campos.indexOf(e.target) + 1]?.focus();
   };
 
-  const sinItems = filas.every((f) => !f.descripcion.trim() || !f.precio.trim());
+  // Una tarea no necesita precio (puede ir incluida); un ítem sí.
+  const sinItems = filas.every((f) => !f.descripcion.trim() || (f.tipo === "item" && !f.precio.trim()));
   const totales = calcularTotales(
-    filas.map((f) => ({ descripcion: f.descripcion, cantidad: aNumero(f.cantidad), precioUnitario: aEntero(f.precio) })),
+    filas.map((f) => ({ tipo: f.tipo, descripcion: f.descripcion, cantidad: aNumero(f.cantidad), precioUnitario: aEntero(f.precio) })),
     aEntero(descuento),
     conIva,
   );
@@ -189,12 +191,15 @@ export function Editor({ inicial }: { inicial: Inicial }) {
 
       <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
         <h3 id="titulo-items" className="etiqueta uppercase tracking-wide text-muted">
-          Ítems
+          Ítems y tareas
         </h3>
-        <GrillaItems filas={filas} onChange={setFilas} onAgregar={agregar} enfocarAlCargar={Boolean(servicio.trim())} />
+        <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} enfocarAlCargar={Boolean(servicio.trim())} />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <button type="button" onClick={agregar} className="boton-secundario">
+          <button type="button" onClick={() => agregar("item")} className="boton-secundario">
             + Agregar ítem
+          </button>
+          <button type="button" onClick={() => agregar("tarea")} className="boton-secundario" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
+            + Agregar tarea
           </button>
           <p className="ayuda">Enter confirma y pasa a la celda siguiente; tras el último precio crea otra fila.</p>
         </div>

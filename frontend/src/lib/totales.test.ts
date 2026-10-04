@@ -25,3 +25,12 @@ test('el IVA es 19 % de subtotal − descuento, con .5 hacia arriba, y solo si s
   assert.equal(calcularTotales(uno(1000), 5000, true).iva, 0, 'con descuento mayor que el subtotal no hay IVA');
   assert.equal(calcularTotales(uno(10000), 0, false).total, 10000);
 });
+
+test('una tarea vale su precio (sin cantidad) y una tarea incluida no suma', () => {
+  const items = [
+    { descripcion: 'Piso', cantidad: 2, precioUnitario: 10000 },
+    { tipo: 'tarea' as const, descripcion: 'Botar escombros', cantidad: 5, precioUnitario: 30000 }, // la cantidad se ignora
+    { tipo: 'tarea' as const, descripcion: 'Limpiar bodega', cantidad: 1, precioUnitario: 0 },
+  ];
+  assert.deepEqual(calcularTotales(items, 0), { subtotal: 50000, descuento: 0, iva: 0, total: 50000 });
+});

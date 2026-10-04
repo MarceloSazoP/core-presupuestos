@@ -29,10 +29,13 @@ test('el presupuesto de la API se adapta a la pantalla: borrador y pendiente se 
   const m = aPresupuesto(api({ survey: { notes: 'n', measurements: [{ label: 'Largo', value: '3 m' }], photos: [{ id: 'f1' }], voice_notes: [{ id: 'v1', duration_seconds: 12 }] }, items: [{ description: 'x', quantity: 2, unit: 'm2', unit_price: 100 }] }));
   assert.deepEqual(m.levantamiento.medidas, [{ etiqueta: 'Largo', valor: '3 m' }]);
   assert.equal(m.direccion, null);
+  assert.deepEqual(m.items.map((i) => i.tipo), ['item']);
+  const t = aPresupuesto(api({ items: [{ kind: 'TASK', description: 'Botar escombros', quantity: 1, unit: 'un', unit_price: 0 }] }));
+  assert.deepEqual([t.items[0]!.tipo, t.items[0]!.descripcion], ['tarea', 'Botar escombros']);
   assert.deepEqual([m.conIva, m.iva, m.total], [false, 0, 0]);
   assert.deepEqual(m.levantamiento.fotos, ['f1']);
   assert.deepEqual(m.levantamiento.audios, [{ id: 'v1', segundos: 12 }]);
-  assert.deepEqual(m.items, [{ descripcion: 'x', cantidad: 2, unidad: 'm2', precioUnitario: 100 }]);
+  assert.deepEqual(m.items, [{ tipo: 'item', descripcion: 'x', cantidad: 2, unidad: 'm2', precioUnitario: 100 }]);
 });
 
 test('los errores 422 de la API se muestran con el ítem o el campo, sin repetir', () => {

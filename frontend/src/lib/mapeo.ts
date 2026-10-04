@@ -21,7 +21,7 @@ export type QuoteApi = {
   service_description: string;
   address: string | null;
   survey: { notes: string | null; measurements: { label: string; value: string }[]; photos: { id: string }[]; voice_notes: { id: string; duration_seconds: number }[] };
-  items: { description: string; quantity: number; unit: string; unit_price: number }[];
+  items: { kind?: 'ITEM' | 'TASK'; description: string; quantity: number; unit: string; unit_price: number }[];
   subtotal: number;
   discount: number;
   include_vat: boolean;
@@ -45,7 +45,7 @@ export type Presupuesto = {
   descripcion: string;
   direccion: string | null;
   levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[]; fotos: string[]; audios: { id: string; segundos: number }[] };
-  items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
+  items: { tipo: 'item' | 'tarea'; descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   subtotal: number;
   descuento: number;
   conIva: boolean;
@@ -74,7 +74,7 @@ export const aPresupuesto = (q: QuoteApi): Presupuesto => ({
     fotos: q.survey.photos.map((f) => f.id),
     audios: q.survey.voice_notes.map((v) => ({ id: v.id, segundos: v.duration_seconds })),
   },
-  items: q.items.map((i) => ({ descripcion: i.description, cantidad: i.quantity, unidad: i.unit, precioUnitario: i.unit_price })),
+  items: q.items.map((i) => ({ tipo: i.kind === 'TASK' ? ('tarea' as const) : ('item' as const), descripcion: i.description, cantidad: i.quantity, unidad: i.unit, precioUnitario: i.unit_price })),
   subtotal: q.subtotal,
   descuento: q.discount,
   conIva: q.include_vat,
