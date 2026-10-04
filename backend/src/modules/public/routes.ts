@@ -21,7 +21,7 @@ async function docByToken(token: string): Promise<Doc> {
 }
 
 const view = (s: Snapshot, token: string) => ({
-  number: s.number, finalized_at: s.finalized_at, valid_until: s.valid_until,
+  number: s.number, version: s.version ?? 1, previous_number: s.previous_number ?? null, finalized_at: s.finalized_at, valid_until: s.valid_until,
   professional: { name: s.professional.name, phone: s.professional.phone, email: s.professional.email, has_logo: !!s.professional.logo_file_id, has_signature: !!s.professional.signature_file_id },
   customer: { name: s.customer.name },
   service_description: s.service_description, service_address: s.service_address,

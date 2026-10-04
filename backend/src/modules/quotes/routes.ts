@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { PoolClient } from 'pg';
+import { z } from 'zod';
 import { query, withTx } from '../../db';
 import { AppError } from '../../errors';
 import { requireSession } from '../../http/session';
@@ -204,6 +205,56 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     editable(q);
     await query(`UPDATE quotes SET doc_status = 'PENDING', updated_at = now() WHERE id = $1 AND doc_status = 'DRAFT'`, [q.id]);
     res.json(await quoteDetail(await loadQuote(req, q.id)));
+  });
+
+  // ── Rehacer un presupuesto rechazado como nueva versión (Contrato API §6) ───────────────────
+  // Lo enviado no cambia: la versión nueva es OTRO presupuesto, con su código, su número y su PDF.
+  r.post('/:id/revise', allow('USER'), async (req, res) => {
+    const q = await loadQuote(req, req.params.id);
+    const b = parse(z.strictObject({ id: z.uuid().optional() }), req.body ?? {});
+    const userId = q.user_id;
+    if (b.id) {
+      // Idempotencia (Contrato API §1): el mismo id de esta misma versión es un reintento.
+      const { rows } = await query<QuoteRow>('SELECT * FROM quotes WHERE id = $1', [b.id]);
+      if (rows[0]) {
+        if (rows[0].user_id !== userId || rows[0].parent_quote_id !== q.id) throw new AppError(409, 'ID_CONFLICT', 'El id ya existe');
+        res.status(200).json(await quoteDetail(rows[0]));
+        return;
+      }
+    }
+    if (q.doc_status !== 'FINALIZED' || q.commercial_status !== 'REJECTED') throw new AppError(409, 'INVALID_STATE', 'Solo un presupuesto rechazado se puede rehacer como nueva versión');
+    const next = await query<{ id: string }>('SELECT id FROM quotes WHERE parent_quote_id = $1', [q.id]);
+    if (next.rows[0]) throw new AppError(409, 'ALREADY_REVISED', 'Este presupuesto ya tiene una versión nueva', [{ field: 'next_version_id', message: next.rows[0].id }]);
+
+    const secret = newSecret();
+    const codeHash = await hashSecret(secret); // lento a propósito: fuera de la transacción
+    const created = await withTx(async (c) => {
+      let nuevo: QuoteRow | undefined;
+      for (let intento = 0; intento < 5 && !nuevo; intento++) {
+        nuevo = (await c.query<QuoteRow>(
+          `INSERT INTO quotes (id, user_id, customer_id, short_id, service_description, address, latitude, longitude,
+                               subtotal, discount, include_vat, vat, total, warranty_kind, warranty_text, validity_days, observations,
+                               include_signature, include_qr, version, parent_quote_id)
+           SELECT COALESCE($2, gen_random_uuid()), user_id, customer_id, $3, service_description, address, latitude, longitude,
+                  subtotal, discount, include_vat, vat, total, warranty_kind, warranty_text, validity_days, observations,
+                  include_signature, include_qr, version + 1, id
+             FROM quotes WHERE id = $1
+           ON CONFLICT (short_id) DO NOTHING RETURNING *`, [q.id, b.id ?? null, newShortId()])).rows[0];
+      }
+      if (!nuevo) throw new Error('no se pudo asignar un ID corto');
+      // Se copia lo que se vuelve a trabajar; las fotos y la voz se quedan en la versión original.
+      await c.query(`INSERT INTO quote_items (quote_id, position, kind, description, quantity, unit, unit_price, line_total)
+                     SELECT $2, position, kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1`, [q.id, nuevo.id]);
+      await c.query(`INSERT INTO quote_surveys (quote_id, notes, field_observations)
+                     SELECT $2, notes, field_observations FROM quote_surveys WHERE quote_id = $1`, [q.id, nuevo.id]);
+      await c.query(`INSERT INTO survey_measurements (quote_id, position, label, value)
+                     SELECT $2, position, label, value FROM survey_measurements WHERE quote_id = $1`, [q.id, nuevo.id]);
+      await c.query(`INSERT INTO quote_access (quote_id, kind, code_hash) VALUES ($1, 'CODE', $2)`, [nuevo.id, codeHash]);
+      return nuevo;
+    });
+    await audit(req, 'QUOTE_REVISED', { userId, quoteId: created.id, metadata: { from: q.id, version: created.version } });
+    await audit(req, 'ACCESS_CODE_CREATED', { userId, quoteId: created.id });
+    res.status(201).json({ ...(await quoteDetail(created)), access_code: formatCode(created.short_id, secret) });
   });
 
   // ── Borrar (solo DRAFT/PENDING; en cascada) ────────────────────────────────

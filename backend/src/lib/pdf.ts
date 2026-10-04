@@ -52,7 +52,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
   const def: TDocumentDefinitions = {
     pageMargins: [40, 40, 40, 50],
     defaultStyle: { font: 'Roboto', fontSize: 10 },
-    info: { title: `Presupuesto ${s.number}` },
+    info: { title: `Presupuesto ${s.number}${(s.version ?? 1) > 1 ? ` · Versión ${s.version}` : ''}` },
     content: [
       {
         columnGap: 10,
@@ -65,7 +65,17 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
               { text: `${s.professional.phone} · ${s.professional.email}`, color: '#555555' },
             ],
           },
-          { text: `Presupuesto ${s.number}\nFecha: ${issued(s.finalized_at)}`, alignment: 'right', bold: true, width: 'auto' },
+          {
+            // La 2.ª o 3.ª versión de un presupuesto rechazado lo dice y nombra al que reemplaza.
+            text: [
+              `Presupuesto ${s.number}${(s.version ?? 1) > 1 ? ` · Versión ${s.version}` : ''}\n`,
+              ...(s.previous_number ? [{ text: `Reemplaza al presupuesto ${s.previous_number}\n`, fontSize: 8, bold: false, color: '#555555' }] : []),
+              `Fecha: ${issued(s.finalized_at)}`,
+            ],
+            alignment: 'right',
+            bold: true,
+            width: 'auto',
+          },
         ],
       },
       { text: `Cliente: ${s.customer.name}`, margin: [0, 18, 0, 4] },

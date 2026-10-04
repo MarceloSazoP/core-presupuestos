@@ -70,6 +70,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     const bad = problems(q0, items.rows, user.rows[0]!);
     if (bad.length) throw new AppError(422, 'VALIDATION_FAILED', 'El presupuesto está incompleto', bad);
 
+    const previousNumber = q0.parent_quote_id ? ((await query<{ number: string }>('SELECT number FROM quotes WHERE id = $1', [q0.parent_quote_id])).rows[0]?.number ?? null) : null;
     const fileId = randomUUID();
     const key = keyFor(q0.user_id, q0.id, fileId, 'pdf');
     let written = false;
@@ -90,7 +91,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
 
         const u = user.rows[0]!;
         const snapshot: Snapshot = {
-          number, finalized_at: t[0]!.ts.toISOString(), valid_until: t[0]!.valid_until,
+          number, version: q.version, previous_number: previousNumber, finalized_at: t[0]!.ts.toISOString(), valid_until: t[0]!.valid_until,
           professional: { name: u.name, phone: u.phone, email: u.email, logo_file_id: u.logo_file_id, signature_file_id: q.include_signature ? u.signature_file_id : null },
           customer: { name: customer.rows[0]!.name },
           service_description: q.service_description!.trim(), service_address: q.address,

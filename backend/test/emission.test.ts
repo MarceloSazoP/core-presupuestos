@@ -193,7 +193,7 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.equal(r.headers.get('cache-control'), 'no-store');
     assert.equal(r.headers.get('x-robots-tag'), 'noindex');
     const j = await r.json();
-    assert.deepEqual(Object.keys(j).sort(), ['customer', 'discount', 'finalized_at', 'include_vat', 'items', 'number', 'observations', 'pdf_url', 'professional', 'service_address', 'service_description', 'subtotal', 'total', 'valid_until', 'validity_days', 'vat', 'vat_rate', 'warranty']);
+    assert.deepEqual(Object.keys(j).sort(), ['customer', 'discount', 'finalized_at', 'include_vat', 'items', 'number', 'observations', 'pdf_url', 'previous_number', 'professional', 'service_address', 'service_description', 'subtotal', 'total', 'valid_until', 'validity_days', 'vat', 'vat_rate', 'version', 'warranty']);
     const texto = JSON.stringify(j);
     for (const prohibido of ['NOTA INTERNA', a.user.id, q.id, 'juan@cliente.cl', '+56933333333', 'short_id', 'logo_file_id']) assert.ok(!texto.includes(prohibido), prohibido);
     assert.equal(j.pdf_url, `/public/quotes/${token}/pdf`);

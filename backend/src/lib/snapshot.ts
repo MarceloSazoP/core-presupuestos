@@ -2,6 +2,8 @@
 // Fotos, notas, medidas y observaciones de terreno nunca entran aquí (Definición §14: son internas).
 export type Snapshot = {
   number: string;
+  version?: number; // 2.ª, 3.ª versión de un rechazado; los snapshots anteriores no lo traen: son la versión 1
+  previous_number?: string | null; // número del presupuesto rechazado al que reemplaza
   finalized_at: string; // ISO 8601 UTC
   valid_until: string; // YYYY-MM-DD, America/Santiago
   professional: { name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null };
