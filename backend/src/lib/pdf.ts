@@ -11,6 +11,10 @@ type Pdfmake = {
   createPdf(def: TDocumentDefinitions): { getBuffer(): Promise<Buffer> };
 };
 
+// pdfmake no parte una palabra sin espacios: una glosa larga sin cortes se salía de la hoja y se comía los bordes y las columnas.
+// Se le da un punto de corte invisible cada 24 caracteres seguidos.
+const cortable = (t: string) => t.replace(/\S{24}/g, '$&​');
+
 const nodeRequire = createRequire(__filename);
 let engine: Pdfmake | null = null;
 
@@ -84,9 +88,9 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
           },
         ],
       },
-      { text: `Cliente: ${s.customer.name}`, margin: [0, 18, 0, 4] },
+      { text: `Cliente: ${cortable(s.customer.name)}`, margin: [0, 18, 0, 4] },
       ...(s.service_address ? [{ text: `Dirección del servicio: ${s.service_address}`, margin: [0, 0, 0, 4] } as Content] : []),
-      { text: `Servicio: ${s.service_description}`, margin: [0, 0, 0, 14] },
+      { text: `Servicio: ${cortable(s.service_description)}`, margin: [0, 0, 0, 14] },
       {
         table: {
           headerRows: 1,
@@ -103,14 +107,14 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
             ...s.items.map((i) =>
               i.kind === 'TASK'
                 ? [
-                    { text: [{ text: 'TAREA  ', fontSize: 7, bold: true, color: '#666666' }, i.description] },
+                    { text: [{ text: 'TAREA  ', fontSize: 7, bold: true, color: '#666666' }, cortable(i.description)] },
                     { text: '', alignment: 'right' as const },
                     { text: '', alignment: 'center' as const },
                     { text: '', alignment: 'right' as const },
                     { text: i.line_total > 0 ? clp(i.line_total) : 'Incluido', alignment: 'right' as const },
                   ]
                 : [
-                    i.description,
+                    cortable(i.description),
                     { text: qty(i.quantity), alignment: 'right' as const },
                     { text: unitSymbol(i.unit), alignment: 'center' as const },
                     { text: clp(i.unit_price), alignment: 'right' as const },
@@ -132,7 +136,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
       },
       { text: `Garantía: ${s.warranty.text}`, margin: [0, 18, 0, 2] },
       { text: `Validez: ${s.validity_days} días (hasta el ${dayMonthYear(s.valid_until)})`, margin: [0, 0, 0, 2] },
-      ...(s.observations ? [{ text: `Observaciones: ${s.observations}`, margin: [0, 8, 0, 0] } as Content] : []),
+      ...(s.observations ? [{ text: `Observaciones: ${cortable(s.observations)}`, margin: [0, 8, 0, 0] } as Content] : []),
       // Bloque de firma: una línea y, debajo, «Firma:» con el nombre o negocio, su teléfono y su correo. Sale siempre (también sirve
       // para firmar a mano); la imagen de la firma va sobre la línea solo si el presupuesto la incluye.
       {
