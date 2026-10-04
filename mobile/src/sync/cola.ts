@@ -4,7 +4,7 @@ import type { Presupuesto } from '@/api/types';
 import { guardarCodigo } from '@/lib/codigos';
 import { borrarArchivo, existeArchivo } from './archivos';
 import { agregarOp, borrarOp, cambiarOp, guardarKv, leerKv, limpiarTodo, listarKv, ops, type Op } from './db';
-import { esTransitorio, espera, reemplazadas } from './reglas';
+import { bloqueo, esTransitorio, espera, reemplazadas } from './reglas';
 
 // Cola de envío (Arquitectura §5): toda edición se guarda primero en el teléfono y se envía después, en orden. La
 // interfaz nunca espera a la red; el `id` generado aquí hace seguros los reintentos (Contrato API §1).
@@ -65,12 +65,11 @@ export async function descartarSubida(quoteId: string, id: string) {
 export const creacionesPendientes = async () => (await ops()).filter((o) => o.method === 'POST' && o.path === '/quotes').map((o) => o.quote_id);
 export const hayPendientesDe = async (quoteId: string) => (await ops()).some((o) => o.quote_id === quoteId);
 
-// Antes de terminar, enviar o cambiar de estado: lo local tiene que estar en el servidor (Arquitectura §5, regla 8).
-export async function asegurarSincronizado(quoteId: string) {
+// Antes de una acción en línea hay que haber enviado lo local (Arquitectura §5, regla 8). `alcance` en reglas.ts.
+export async function asegurarSincronizado(quoteId: string, alcance: 'creacion' | 'todo' = 'creacion') {
   await vaciar();
-  if (await hayPendientesDe(quoteId)) {
-    throw new ApiError(0, 'SIN_SINCRONIZAR', 'Hay cambios de este presupuesto sin sincronizar. Conéctate a internet e inténtalo de nuevo.');
-  }
+  const motivo = bloqueo(await ops(), quoteId, alcance);
+  if (motivo) throw new ApiError(0, 'SIN_SINCRONIZAR', motivo);
 }
 
 // ── Vaciar la cola ────────────────────────────────────────────────────────────────────────────

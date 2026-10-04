@@ -67,7 +67,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
     setTrabajando(que);
     setError(null);
     try {
-      await asegurarSincronizado(q.id);
+      await asegurarSincronizado(q.id, que === 'terminar' ? 'todo' : 'creacion'); // terminar exige que fotos y voz ya estén arriba
       await guardar();
       if (que === 'terminar') {
         await api(`/quotes/${q.id}/finalize`, { method: 'POST', body: {} });
