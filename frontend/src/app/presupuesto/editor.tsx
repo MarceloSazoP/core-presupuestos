@@ -203,7 +203,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   return (
     <>
       {hayNovedad && (
-        <p role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-aviso p-3 text-sm">
+        <p role="status" className="aparecer flex flex-wrap items-center justify-between gap-3 rounded-lg border border-aviso p-3 text-sm">
           Hay cambios nuevos hechos desde otro lugar.
           <button type="button" onClick={() => {
               setHayNovedad(false);
@@ -402,19 +402,19 @@ export function Editor({ inicial }: { inicial: Inicial }) {
 
       <div className="flex flex-col gap-4">
         {estado.errores && (
-          <ul role="alert" className="list-disc pl-5 text-sm text-error">
+          <ul role="alert" className="aparecer list-disc pl-5 text-sm text-error">
             {estado.errores.map((e) => (
               <li key={e}>{e}</li>
             ))}
           </ul>
         )}
         {intentoTerminar && sinItems && (
-          <p role="alert" className="text-sm text-error">
+          <p role="alert" className="aparecer text-sm text-error">
             Agrega al menos un ítem con descripción y precio.
           </p>
         )}
         {sinVentana && estado.vistaPrevia && (
-          <p role="status" className="text-sm">
+          <p role="status" className="aparecer text-sm">
             El navegador bloqueó la pestaña nueva.{" "}
             <a href={`/presupuesto/vista-previa?t=${estado.vistaPrevia}`} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">
               Abrir la vista previa
@@ -422,12 +422,12 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </p>
         )}
         {estado.guardado && (
-          <p role="status" className="text-sm text-ok">
+          <p role="status" className="aparecer text-sm text-ok">
             {estado.guardado}
           </p>
         )}
 
-        <dialog ref={modal} aria-labelledby="confirmar" onClose={() => setConfirmando(false)} className="m-auto w-[min(92vw,26rem)] rounded-xl border-2 border-tinta bg-background p-5 text-foreground backdrop:bg-black/50">
+        <dialog ref={modal} aria-labelledby="confirmar" onClose={() => setConfirmando(false)} className="modal m-auto w-[min(92vw,26rem)] rounded-xl border border-borde bg-card p-5 text-foreground">
           <div className="flex flex-col gap-3">
             <h2 id="confirmar" className="text-lg font-semibold">
               ¿Cerrar y enviar este presupuesto?

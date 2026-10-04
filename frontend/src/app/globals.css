@@ -258,8 +258,11 @@ button {
     @apply min-w-11 px-2 text-muted;
   }
   .boton:active:not(:disabled),
-  .boton-secundario:active:not(:disabled) {
-    transform: scale(0.98);
+  .boton-secundario:active:not(:disabled),
+  .boton-suave:active:not(:disabled),
+  .boton-texto:active:not(:disabled),
+  .boton-icono:active:not(:disabled) {
+    transform: scale(0.97);
   }
   @media (hover: hover) and (pointer: fine) {
     .boton:hover:not(:disabled) {
@@ -370,13 +373,17 @@ button {
   }
   .boton,
   .boton-secundario,
+  .boton-suave,
   .boton-texto,
   .boton-icono,
   .campo {
     transition: none;
   }
   .boton:active,
-  .boton-secundario:active {
+  .boton-secundario:active,
+  .boton-suave:active,
+  .boton-texto:active,
+  .boton-icono:active {
     transform: none;
   }
   .esqueleto {
@@ -390,4 +397,54 @@ button {
 /* AG Grid reserva 150 px mínimos aunque haya una sola fila: la grilla de ítems mide lo que miden sus filas. */
 .ag-grid-scrolling-rows.ag-layout-auto-height {
   min-height: 0 !important;
+}
+
+/* Avisos que aparecen en la pantalla: fundido corto y un leve desplazamiento (transición, no keyframes: se puede interrumpir).
+   Los @starting-style van sin anidar: el compilador de CSS los sacaba como reglas normales y dejaban el elemento invisible. */
+.aparecer {
+  transition: opacity 150ms var(--ease), transform 150ms var(--ease);
+}
+@starting-style {
+  .aparecer {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Modal: fundido y escala desde el centro (no está anclado a un botón). Entra en 200 ms y sale más rápido. */
+dialog.modal {
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 150ms var(--ease), transform 150ms var(--ease), overlay 150ms allow-discrete, display 150ms allow-discrete;
+}
+dialog.modal[open] {
+  opacity: 1;
+  transform: scale(1);
+  transition-duration: 200ms;
+}
+@starting-style {
+  dialog.modal[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+dialog.modal::backdrop {
+  background: rgb(0 0 0 / 0);
+  transition: background-color 150ms var(--ease), overlay 150ms allow-discrete, display 150ms allow-discrete;
+}
+dialog.modal[open]::backdrop {
+  background: rgb(0 0 0 / 0.5);
+  transition-duration: 200ms;
+}
+@starting-style {
+  dialog.modal[open]::backdrop {
+    background: rgb(0 0 0 / 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aparecer,
+  dialog.modal,
+  dialog.modal::backdrop {
+    transition: none;
+  }
 }
