@@ -108,6 +108,16 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     datos.set("accion", "previsualizar");
     enTransicion(() => accion(datos));
   };
+  // El total de la barra fija solo se muestra cuando el resumen (con el mismo total) no está a la vista: así no aparece dos veces.
+  const resumen = useRef<HTMLElement>(null);
+  const [resumenVisible, setResumenVisible] = useState(false);
+  useEffect(() => {
+    const el = resumen.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setResumenVisible(e!.isIntersecting), { rootMargin: "0px 0px -72px 0px" }); // lo tapado por la barra no cuenta
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const modal = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = modal.current;
@@ -331,7 +341,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </div>
         </section>
 
-        <section aria-labelledby="titulo-resumen" className="flex flex-col gap-3">
+        <section ref={resumen} aria-labelledby="titulo-resumen" className="flex flex-col gap-3">
           <h3 id="titulo-resumen" className="sr-only">
             Totales
           </h3>
@@ -450,7 +460,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
 
       {/* Barra fija: el total y las acciones siempre a la vista. Una sola acción principal. */}
       <div className="sticky bottom-0 z-10 -mx-5 -mb-5 flex items-center justify-between gap-3 rounded-b-xl border-t border-borde bg-card/95 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8 lg:-mx-10 lg:-mb-10 lg:px-10">
-        <p className="flex flex-col leading-tight tabular-nums">
+        <p aria-hidden={resumenVisible} className={`flex flex-col leading-tight tabular-nums transition-opacity duration-150 motion-reduce:transition-none ${resumenVisible ? "opacity-0" : ""}`}>
           <span className="text-sm text-muted">Total</span>
           <span className={`text-2xl font-bold ${descuentoExcesivo ? "text-error" : ""}`}>{clp(totales.total)}</span>
         </p>

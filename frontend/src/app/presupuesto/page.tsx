@@ -65,10 +65,12 @@ export default async function PresupuestoPage() {
   return (
     <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
       <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
-      <header className="flex flex-col items-start gap-2">
-        <span className="estado estado-cerrado">Cerrado · {p.numero}{p.version > 1 ? ` · Versión ${p.version}` : ""}</span>
+      <header className="flex flex-col items-start gap-1">
+        <span className="estado estado-cerrado">Cerrado{p.version > 1 ? ` · Versión ${p.version}` : ""}</span>
         {p.numeroAnterior && <p className="text-sm text-muted">Reemplaza al presupuesto {p.numeroAnterior}</p>}
-        <h1 className="text-2xl font-semibold leading-tight">{p.descripcion}</h1>
+        {/* El número es la identidad del documento: va como título y el servicio como subtítulo. */}
+        <h1 className="mt-1 text-2xl font-semibold leading-tight tabular-nums">{p.numero}</h1>
+        <p className="text-lg">{p.descripcion}</p>
         <p className="text-muted">Para {p.cliente.nombre}</p>
       </header>
 
