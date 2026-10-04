@@ -68,10 +68,8 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     const r = await finalizar(q.id);
     assert.equal(r.status, 422);
     assert.deepEqual(r.json.error.details.map((d: { field: string }) => d.field), ['discount']);
-    await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { discount: 0, include_signature: true } });
-    assert.deepEqual((await finalizar(q.id)).json.error.details.map((d: { field: string }) => d.field), ['include_signature']);
-    assert.equal((await app.upload('PUT', '/me/signature', { token: a.token, file: PNG() })).status, 200);
-    assert.equal((await finalizar(q.id)).status, 200, 'con la firma subida sí');
+    await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { discount: 0 } });
+    assert.equal((await finalizar(q.id)).status, 200, 'sin firma subida también se termina: la firma es del perfil');
   });
 
   it('finaliza: número CP-AAAA-NNNN por usuario, snapshot sin datos internos, PDF y enlace público', async () => {
@@ -255,7 +253,8 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
 
   it('una firma o logo con contenido corrupto da 422 claro, no un 500', async () => {
     await app.upload('PUT', '/me/signature', { token: a.token, file: PNG_FALSO() });
-    const q = await completo(a.token, { patch: { include_signature: true } });
+    await app.api('PUT', '/me', { token: a.token, body: { include_signature: true } });
+    const q = await completo(a.token);
     const r = await finalizar(q.id);
     assert.equal(r.status, 422);
     assert.equal(r.json.error.details[0].field, 'logo_o_firma');
@@ -285,7 +284,8 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     const sin = await completo();
     await finalizar(sin.id);
     await app.upload('PUT', '/me/signature', { token: a.token, file: PNG() });
-    const con = await completo(a.token, { patch: { include_qr: true, include_signature: true } });
+    await app.api('PUT', '/me', { token: a.token, body: { include_signature: true } });
+    const con = await completo(a.token, { patch: { include_qr: true } });
     assert.equal((await finalizar(con.id)).status, 200);
     const tam = async (id: string) => Number((await pool.query(`SELECT f.size_bytes AS n FROM quote_documents d JOIN files f ON f.id = d.pdf_file_id WHERE d.quote_id = $1`, [id])).rows[0].n);
     assert.ok((await tam(con.id)) > (await tam(sin.id)));

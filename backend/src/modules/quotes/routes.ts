@@ -9,6 +9,7 @@ import { audit } from '../../lib/audit';
 import { removeMany } from '../../lib/files';
 import type { SendMail } from '../../lib/mail';
 import { formatCode, hashSecret, newSecret, newShortId } from '../../lib/code';
+import { email, name, phone } from '../auth/schemas';
 import { allow, editable, loadQuote, session } from './guard';
 import { addEmissionRoutes } from './emission';
 import { addFollowUpRoutes } from './followups';
@@ -104,7 +105,7 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     const sets: string[] = [];
     const params: unknown[] = [q.id, q.user_id];
     const set = (col: string, v: unknown) => (params.push(v), sets.push(`${col} = $${params.length}`)); // `col` es siempre una constante de este archivo
-    for (const k of ['customer_id', 'service_description', 'address', 'latitude', 'longitude', 'validity_days', 'observations', 'include_signature', 'include_qr'] as const) {
+    for (const k of ['customer_id', 'service_description', 'address', 'latitude', 'longitude', 'validity_days', 'observations', 'include_qr'] as const) {
       if (k in b) set(k, b[k]);
     }
     if (b.warranty) {
@@ -207,6 +208,24 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     res.json(await quoteDetail(await loadQuote(req, q.id)));
   });
 
+  // ── Corregir el teléfono o el correo del cliente (Contrato API §6) ─────────────────────────
+  // Siempre se puede (el cliente se equivoca al dárselos y los confirma después): no están en el PDF ni en el snapshot. El
+  // nombre sí sale en el PDF, así que solo cambia mientras el presupuesto se edita. Modifica al cliente, no solo a este presupuesto.
+  r.patch('/:id/customer', allow('USER', 'QUOTE_CODE'), async (req, res) => {
+    const q = await loadQuote(req, req.params.id);
+    const b = parse(z.strictObject({ name, phone, email: email.nullable() }).partial().refine((x) => Object.keys(x).length > 0, { message: 'Envía al menos un campo' }), req.body);
+    if (b.name !== undefined && q.doc_status === 'FINALIZED') throw new AppError(409, 'INVALID_STATE', 'El nombre del cliente ya no se puede cambiar: sale en el PDF del presupuesto terminado');
+    await query(
+      `UPDATE customers SET name = CASE WHEN $3 THEN $4 ELSE name END,
+                            phone = CASE WHEN $5 THEN $6 ELSE phone END,
+                            email = CASE WHEN $7 THEN $8 ELSE email END,
+                            updated_at = now()
+        WHERE id = $1 AND user_id = $2`,
+      [q.customer_id, q.user_id, 'name' in b, b.name ?? null, 'phone' in b, b.phone ?? null, 'email' in b, b.email ?? null]);
+    await audit(req, 'CUSTOMER_CONTACT_UPDATED', { userId: q.user_id, quoteId: q.id });
+    res.json(await quoteDetail(await loadQuote(req, q.id)));
+  });
+
   // ── Rehacer un presupuesto rechazado como nueva versión (Contrato API §6) ───────────────────
   // Lo enviado no cambia: la versión nueva es OTRO presupuesto, con su código, su número y su PDF.
   r.post('/:id/revise', allow('USER'), async (req, res) => {
@@ -234,10 +253,10 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
         nuevo = (await c.query<QuoteRow>(
           `INSERT INTO quotes (id, user_id, customer_id, short_id, service_description, address, latitude, longitude,
                                subtotal, discount, include_vat, vat, total, warranty_kind, warranty_text, validity_days, observations,
-                               include_signature, include_qr, version, parent_quote_id)
+                               include_qr, version, parent_quote_id)
            SELECT COALESCE($2, gen_random_uuid()), user_id, customer_id, $3, service_description, address, latitude, longitude,
                   subtotal, discount, include_vat, vat, total, warranty_kind, warranty_text, validity_days, observations,
-                  include_signature, include_qr, version + 1, id
+                  include_qr, version + 1, id
              FROM quotes WHERE id = $1
            ON CONFLICT (short_id) DO NOTHING RETURNING *`, [q.id, b.id ?? null, newShortId()])).rows[0];
       }

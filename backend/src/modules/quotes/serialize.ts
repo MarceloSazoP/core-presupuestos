@@ -8,7 +8,7 @@ export type QuoteRow = {
   service_description: string | null; address: string | null; latitude: number | null; longitude: number | null;
   subtotal: number; discount: number; include_vat: boolean; vat: number; total: number;
   warranty_kind: string; warranty_text: string | null; validity_days: number | null; observations: string | null;
-  include_signature: boolean; include_qr: boolean; next_contact_date: string | null;
+  include_qr: boolean; next_contact_date: string | null;
   finalized_at: Date | null; sent_at: Date | null; accepted_at: Date | null; created_at: Date; updated_at: Date;
 };
 
@@ -46,7 +46,7 @@ export async function quoteDetail(q: QuoteRow) {
     subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, total: q.total,
     warranty: { kind: q.warranty_kind, text: q.warranty_text },
     validity_days: q.validity_days, observations: q.observations,
-    include_signature: q.include_signature, include_qr: q.include_qr,
+    include_qr: q.include_qr,
     next_contact_date: q.next_contact_date,
     finalized_at: q.finalized_at, sent_at: q.sent_at, accepted_at: q.accepted_at,
     public_url: access.rows[0] ? `${config.WEB_BASE_URL}/q/${access.rows[0].token}` : null,

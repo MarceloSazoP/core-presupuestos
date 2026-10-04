@@ -43,7 +43,6 @@ export const PatchQuote = z
     warranty: Warranty,
     validity_days: z.number().int().min(1).max(365).nullable(),
     observations: text(5000).nullable(),
-    include_signature: z.boolean(),
     include_qr: z.boolean(),
   })
   .partial()

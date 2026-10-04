@@ -21,7 +21,7 @@ import { quoteDetail, type QuoteRow } from './serialize';
 export const publicUrl = (token: string) => `${config.WEB_BASE_URL}/q/${token}`;
 
 type ItemRow = { kind: 'ITEM' | 'TASK'; description: string; quantity: number; unit: string; unit_price: number; line_total: number };
-type UserRow = { name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null };
+type UserRow = { name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null; include_signature: boolean };
 
 // Lo que exige `finalize` (Contrato API §7). Devuelve todos los problemas juntos, no solo el primero.
 function problems(q: QuoteRow, items: ItemRow[], user: UserRow): Detail[] {
@@ -31,7 +31,6 @@ function problems(q: QuoteRow, items: ItemRow[], user: UserRow): Detail[] {
   if (q.discount > q.subtotal) d.push({ field: 'discount', message: 'El descuento no puede superar el subtotal' });
   if (q.validity_days == null) d.push({ field: 'validity_days', message: 'Define la validez del presupuesto' });
   if (q.warranty_kind === 'CUSTOM' && !q.warranty_text) d.push({ field: 'warranty.text', message: 'Escribe la garantía' });
-  if (q.include_signature && !user.signature_file_id) d.push({ field: 'include_signature', message: 'Sube tu firma para incluirla' });
   return d;
 }
 
@@ -64,7 +63,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     editable(q0);
     const [items, user, customer] = await Promise.all([
       query<ItemRow>('SELECT kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q0.id]),
-      query<UserRow>('SELECT name, COALESCE(contact_phone, phone) AS phone, COALESCE(contact_email, email) AS email, logo_file_id, signature_file_id FROM users WHERE id = $1', [q0.user_id]),
+      query<UserRow>('SELECT name, COALESCE(contact_phone, phone) AS phone, COALESCE(contact_email, email) AS email, logo_file_id, signature_file_id, include_signature FROM users WHERE id = $1', [q0.user_id]),
       query<{ name: string }>('SELECT name FROM customers WHERE id = $1 AND user_id = $2', [q0.customer_id, q0.user_id]),
     ]);
     const bad = problems(q0, items.rows, user.rows[0]!);
@@ -92,19 +91,19 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
         const u = user.rows[0]!;
         const snapshot: Snapshot = {
           number, version: q.version, previous_number: previousNumber, finalized_at: t[0]!.ts.toISOString(), valid_until: t[0]!.valid_until,
-          professional: { name: u.name, phone: u.phone, email: u.email, logo_file_id: u.logo_file_id, signature_file_id: q.include_signature ? u.signature_file_id : null },
+          professional: { name: u.name, phone: u.phone, email: u.email, logo_file_id: u.logo_file_id, signature_file_id: u.include_signature ? u.signature_file_id : null },
           customer: { name: customer.rows[0]!.name },
           service_description: q.service_description!.trim(), service_address: q.address,
           items: items.rows.map((i) => ({ kind: i.kind, description: i.description, quantity: i.quantity, unit: i.unit, unit_price: i.unit_price, line_total: i.line_total })),
           subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, vat_rate: VAT_RATE, total: q.total,
           warranty: { kind: q.warranty_kind, text: warrantyText(q.warranty_kind, q.warranty_text) },
-          validity_days: q.validity_days!, observations: q.observations, include_signature: q.include_signature, include_qr: q.include_qr,
+          validity_days: q.validity_days!, observations: q.observations, include_signature: u.include_signature, include_qr: q.include_qr, // la firma sigue al perfil de este momento
         };
 
         const token = randomBytes(24).toString('base64url'); // 192 bits
         const pdf = await buildPdf(snapshot, {
           logo: await readImage(u.logo_file_id),
-          signature: q.include_signature ? await readImage(u.signature_file_id) : undefined,
+          signature: u.include_signature ? await readImage(u.signature_file_id) : undefined,
           qr: q.include_qr ? await QRCode.toBuffer(publicUrl(token), { margin: 1, width: 300 }) : undefined,
         }).catch((e: unknown) => {
           // El tipo se detecta por la firma de bytes, pero el contenido puede estar corrupto: se pide volver a subirlo.

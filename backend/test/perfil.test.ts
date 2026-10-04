@@ -83,4 +83,35 @@ describe('API: perfil y datos de contacto (Contrato API §4 y BD §16)', () => {
     assert.equal((await app.api('DELETE', '/me/logo', { token: a.token })).status, 204);
     assert.equal((await app.api('GET', '/me/logo', { token: a.token })).status, 404);
   });
+
+  it('la firma es del perfil: no se activa sin imagen, borrarla la apaga y sale en todos los presupuestos terminados o en ninguno', async () => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    const sin = await put({ include_signature: true });
+    assert.equal(sin.status, 422);
+    assert.equal(sin.json.error.details[0].field, 'include_signature');
+    assert.equal((await app.upload('PUT', '/me/signature', { token: a.token, file: png })).json.include_signature, false, 'subirla no la activa sola');
+    assert.equal((await put({ include_signature: true })).json.include_signature, true);
+
+    const terminar = async () => {
+      const q = (await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Juan', phone: '+56933333333' } } })).json;
+      await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { service_description: 'Instalar puerta', validity_days: 15 } });
+      await app.api('PUT', `/quotes/${q.id}/items`, { token: a.token, body: { items: [{ description: 'Puerta', quantity: 1, unit_price: 1000 }] } });
+      assert.equal((await app.api('POST', `/quotes/${q.id}/finalize`, { token: a.token, body: {} })).status, 200);
+      return (await pool.query('SELECT snapshot FROM quote_documents WHERE quote_id = $1', [q.id])).rows[0].snapshot;
+    };
+    const con = await terminar();
+    assert.equal(con.include_signature, true);
+    assert.ok(con.professional.signature_file_id, 'la imagen queda fijada en el snapshot');
+
+    assert.equal((await put({ include_signature: false })).json.include_signature, false);
+    const sinFirma = await terminar();
+    assert.deepEqual([sinFirma.include_signature, sinFirma.professional.signature_file_id], [false, null], 'apagada: en ningún presupuesto nuevo');
+    const algunId = (await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Borrador', phone: '+56933333339' } } })).json.id;
+    assert.equal((await app.api('PATCH', `/quotes/${algunId}`, { token: a.token, body: { include_signature: true } })).status, 422, 'ya no se elige por presupuesto');
+
+    await put({ include_signature: true });
+    assert.equal((await app.api('DELETE', '/me/signature', { token: a.token })).status, 204);
+    assert.equal((await app.api('GET', '/me', { token: a.token })).json.include_signature, false, 'sin firma la opción se apaga');
+    await assert.rejects(pool.query('UPDATE users SET include_signature = true WHERE id = $1', [a.user.id]), /users_signature_check/);
+  });
 });
