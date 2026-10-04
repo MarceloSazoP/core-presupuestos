@@ -8,6 +8,7 @@
   --muted: oklch(0.46 0.016 262);
   --card: oklch(0.965 0.007 262);
   --borde: oklch(0.87 0.011 262);
+  --borde-campo: oklch(0.62 0.014 262); /* borde de campos: ≥ 3:1 contra su fondo (WCAG 1.4.11); --borde es para divisiones */
   --acento: oklch(0.5 0.19 262);
   --acento-texto: oklch(0.5 0.19 262);
   --error: oklch(0.5 0.19 27);
@@ -24,6 +25,7 @@
     --muted: oklch(0.72 0.014 262);
     --card: oklch(0.19 0.009 262);
     --borde: oklch(0.31 0.012 262);
+    --borde-campo: oklch(0.5 0.014 262);
     --acento-texto: oklch(0.76 0.12 262);
     --error: oklch(0.74 0.15 27);
     --ok: oklch(0.76 0.14 150);
@@ -40,6 +42,7 @@
   --muted: oklch(0.72 0.014 262);
   --card: oklch(0.19 0.009 262);
   --borde: oklch(0.31 0.012 262);
+  --borde-campo: oklch(0.5 0.014 262);
   --acento-texto: oklch(0.76 0.12 262);
   --error: oklch(0.74 0.15 27);
   --ok: oklch(0.76 0.14 150);
@@ -130,6 +133,7 @@ button {
   --muted: oklch(0.42 0.03 262);
   --card: oklch(1 0 0);
   --borde: oklch(0.82 0.015 262);
+  --borde-campo: oklch(0.62 0.014 262);
   --acento: oklch(0.5 0.19 262);
   --acento-texto: oklch(0.5 0.19 262);
   --amarillo: oklch(0.88 0.17 95);
@@ -183,7 +187,8 @@ button {
 
   /* Campos: reposo, hover, foco, deshabilitado, error */
   .campo {
-    @apply min-h-11 w-full rounded-lg border border-borde bg-background px-3 py-2 text-foreground placeholder:text-muted;
+    @apply min-h-11 w-full rounded-lg border bg-background px-3 py-2 text-foreground placeholder:text-muted;
+    border-color: var(--borde-campo);
     transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
   }
   .campo:focus-visible {
@@ -257,7 +262,7 @@ button {
       color: var(--foreground);
     }
     .campo:hover:not(:focus-visible):not(:disabled) {
-      border-color: color-mix(in oklab, var(--borde) 55%, var(--foreground));
+      border-color: color-mix(in oklab, var(--borde-campo) 60%, var(--foreground));
     }
   }
 
