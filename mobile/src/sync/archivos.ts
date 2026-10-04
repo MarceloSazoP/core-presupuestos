@@ -10,6 +10,7 @@ export async function guardarArchivo(uri: string): Promise<string> {
   const origen = new File(uri);
   await origen.copy(carpeta());
   const destino = new File(carpeta(), origen.name);
+  if (__DEV__) console.log('[archivos] copiado', uri, '→', destino.uri, `existe=${destino.exists}`, `bytes=${destino.exists ? destino.size : 0}`);
   if (!destino.exists) throw new Error('No se pudo guardar el archivo en el teléfono');
   return destino.uri;
 }

@@ -1,3 +1,6 @@
+import { File } from 'expo-file-system';
+import { Platform } from 'react-native';
+
 // Cliente de la API (Contrato de API). Sin lógica de negocio: la app captura y presenta, las reglas viven en el backend.
 // En un iPhone real `localhost` es el propio teléfono: EXPO_PUBLIC_API_URL debe apuntar a la IP del computador.
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3013/api/v1';
@@ -62,11 +65,14 @@ export function mensajeDe(e: unknown): string {
   return e.message;
 }
 
-// Subida multipart (fotos y notas de voz, Contrato API §6): el archivo viaja por su ruta local, sin cargarlo en memoria de JS.
-export const subir = <T>(path: string, archivo: { uri: string; name: string; type: string }, campos: Record<string, string> = {}) => {
+// Subida multipart (fotos y notas de voz, Contrato API §6). El `fetch` de Expo sigue el estándar web y NO admite el objeto
+// `{ uri, name, type }` propio de React Native ("Unsupported FormDataPart implementation"): el archivo va como `File`
+// (expo-file-system, que lee desde su ruta sin cargarlo entero en memoria de JS) o, en la web de desarrollo, como Blob.
+export const subir = async <T>(path: string, archivo: { uri: string; name: string; type: string }, campos: Record<string, string> = {}) => {
   const form = new FormData();
   for (const [k, v] of Object.entries(campos)) form.append(k, v);
-  form.append('file', archivo as unknown as Blob);
+  const parte = Platform.OS === 'web' ? await (await fetch(archivo.uri)).blob() : new File(archivo.uri);
+  form.append('file', parte as Blob, archivo.name);
   return api<T>(path, { method: 'POST', body: form, reintentar: 'id' in campos }); // con `id` repetir es seguro (Contrato API §1)
 };
 

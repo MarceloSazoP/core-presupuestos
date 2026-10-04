@@ -77,7 +77,10 @@ let corriendo: Promise<void> | null = null;
 let temporizador: ReturnType<typeof setTimeout> | undefined;
 export const vaciar = () => (corriendo ??= correr().finally(() => (corriendo = null)));
 
+const registro = (...a: unknown[]) => __DEV__ && console.log('[cola]', ...a);
+
 async function enviar(o: Op) {
+  registro('enviando', o.method, o.path, o.file_uri ?? '', o.file_uri ? `existe=${existeArchivo(o.file_uri)}` : '');
   if (o.file_uri && !existeArchivo(o.file_uri)) throw new ApiError(422, 'ARCHIVO_PERDIDO', 'El archivo ya no está en el teléfono: vuelve a tomar la foto o grabar la nota.');
   const r = o.file_uri
     ? await subir<unknown>(o.path, { uri: o.file_uri, name: o.file_name!, type: o.file_type! }, JSON.parse(o.fields ?? '{}'))
@@ -96,10 +99,12 @@ async function correr() {
     if (bloqueados.has(o.quote_id)) continue;
     try {
       await enviar(o);
+      registro('ok', o.method, o.path);
       await borrarOp(o.seq);
       if (o.file_uri) borrarArchivo(o.file_uri);
     } catch (err) {
       const e = err instanceof ApiError ? err : new ApiError(0, 'SIN_CONEXION', String(err));
+      registro('falló', o.method, o.path, `status=${e.status}`, e.message);
       if (e.status === 401) break; // la sesión venció: api() ya la cerró
       if (esTransitorio(e.status)) {
         await cambiarOp(o.seq, { attempts: o.attempts + 1, last_error: e.message });
