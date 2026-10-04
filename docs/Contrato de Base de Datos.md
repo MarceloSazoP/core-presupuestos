@@ -204,11 +204,13 @@ CREATE TABLE quote_items (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   quote_id    uuid NOT NULL REFERENCES quotes(id) ON DELETE CASCADE,
   position    int  NOT NULL,
+  kind        text NOT NULL DEFAULT 'ITEM' CHECK (kind IN ('ITEM','TASK')),  -- v0.4: TASK = actividad sin cantidad ni unidad
   description text NOT NULL CHECK (length(description) BETWEEN 1 AND 300),
   quantity    numeric(12,3) NOT NULL CHECK (quantity > 0),
   unit_price  bigint NOT NULL CHECK (unit_price BETWEEN 0 AND 999999999),
   line_total  bigint NOT NULL CHECK (line_total = round(quantity * unit_price)),
-  UNIQUE (quote_id, position)
+  UNIQUE (quote_id, position),
+  CHECK (kind = 'ITEM' OR quantity = 1)
 );
 
 CREATE TABLE quote_documents (          -- existe solo si doc_status = 'FINALIZED'
@@ -366,7 +368,7 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
   "customer": { "name": "" },
   "service_description": "",
   "service_address": null,
-  "items": [{ "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
+  "items": [{ "kind": "ITEM", "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
   "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "vat_rate": 19, "total": 0,
   "warranty": { "kind": "M3", "text": "3 meses" },
   "validity_days": 15,
@@ -511,7 +513,7 @@ ALTER TABLE quote_access
 
 ## 12. Propuesta v0.4 — identidad verificada y acceso social (borrador, no implementado)
 
-Acompaña a `Contrato de API.md` §3.1. La migración `0005` se escribe cuando se apruebe.
+Acompaña a `Contrato de API.md` §3.1. La migración `0006` se escribe cuando se apruebe.
 
 ```sql
 -- El correo identifica la cuenta y está verificado; el teléfono es contacto y puede faltar.
@@ -571,3 +573,20 @@ ALTER TABLE quotes
 
 - Los snapshots ya creados no traen `include_vat`: se leen como `false`.
 - **Pruebas que acompañan:** `total = subtotal − descuento + IVA`; con `include_vat = false` el IVA es 0; el descuento se aplica antes del IVA; el redondeo de `.5` sube; cambiar el descuento o la casilla recalcula; el snapshot, el PDF y la vista pública muestran el IVA; el esquema rechaza un total que no cuadra.
+
+
+---
+
+## 14. Migración `0005` (tareas en la grilla de ítems, decisión del 2026-10-04)
+
+El usuario pidió poder agregar actividades como «botar escombros» o «limpiar bodega» a la grilla, con algo que las distinga de los ítems y sin cantidad ni unidad. Detalle de la regla en `Contrato de API.md` §6 («Ítems y tareas»). Las líneas existentes quedan como `ITEM`.
+
+```sql
+ALTER TABLE quote_items
+  ADD COLUMN kind text NOT NULL DEFAULT 'ITEM' CHECK (kind IN ('ITEM','TASK')),
+  ADD CONSTRAINT quote_items_task_check CHECK (kind = 'ITEM' OR quantity = 1);
+```
+
+- Una tarea guarda `quantity = 1` y `unit = 'un'` para no cambiar el resto del esquema (`line_total = round(quantity × unit_price)` sigue valiendo y `unit` sigue teniendo un valor); lo que la distingue es `kind`.
+- Los snapshots ya creados no traen `kind` en sus ítems: se leen como `ITEM`.
+- **Pruebas que acompañan:** una tarea se crea sin cantidad ni unidad y con `quantity = 1`; con cantidad o unidad responde 422; `unit_price` omitido vale 0; suma al subtotal; una tarea en 0 es «Incluido» y no cambia el total; el snapshot, la vista pública y el PDF las muestran como tarea; el esquema rechaza una tarea con cantidad distinta de 1.

@@ -91,7 +91,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
     "photos":      [{ "id": "uuid", "url": "/files/uuid", "caption": null, "created_at": "…" }],
     "voice_notes": [{ "id": "uuid", "url": "/files/uuid", "duration_seconds": 42, "created_at": "…" }]
   },
-  "items": [{ "id": "uuid", "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
+  "items": [{ "id": "uuid", "kind": "ITEM", "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
   "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "total": 0,
   "warranty": { "kind": "NONE", "text": null },
   "validity_days": null, "observations": null,
@@ -264,7 +264,15 @@ Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, emai
   { "id": "uuid?", "description": "Pilas grandes", "quantity": 1, "unit": "un", "unit_price": 5000 },
   { "description": "Piso flotante", "quantity": 12.5, "unit": "m2", "unit_price": 18000 } ] }
 ```
-`unit` es el código del catálogo de §12.1 y vale `un` si se omite. Responde `Quote` con `line_total`, `subtotal`, `vat` y `total` calculados. `line_total = round(quantity × unit_price)`, redondeo hacia arriba en `.5`.
+`unit` es el código del catálogo de §12.1 y vale `un` si se omite.
+
+**Ítems y tareas (decisión del 2026-10-04).** Cada línea tiene `kind`: `ITEM` (por defecto) o `TASK`. Una **tarea** es una actividad que se cobra o se incluye sin medirla, por ejemplo «botar escombros» o «limpiar bodega»: no tiene cantidad ni unidad.
+```json
+{ "kind": "TASK", "id": "uuid?", "description": "Botar escombros", "unit_price": 30000 }
+```
+- En una tarea **no se envían** `quantity` ni `unit` (422 si vienen): el servidor guarda `quantity = 1` y `unit = 'un'`, y `line_total = unit_price`.
+- `unit_price` es opcional en una tarea y vale `0` si se omite: una tarea en `0` se presenta como **«Incluido»** (va en el presupuesto pero no suma al total).
+- Las tareas cuentan en `subtotal` como cualquier línea, se muestran con la etiqueta «Tarea» y sin cantidad, unidad ni precio unitario, y se mantienen en el orden en que se ingresaron. Un presupuesto puede tener solo tareas. Responde `Quote` con `line_total`, `subtotal`, `vat` y `total` calculados. `line_total = round(quantity × unit_price)`, redondeo hacia arriba en `.5`.
 
 ### Guardar
 
@@ -282,7 +290,7 @@ Acción "TERMINAR Y ENVIAR", primera mitad. Desde `DRAFT` o `PENDING`.
 Valida (422 con `details`):
 - `service_description` presente.
 - Cliente con nombre y teléfono.
-- Al menos 1 ítem, cada uno con `quantity > 0` y `unit_price ≥ 0`.
+- Al menos 1 línea (ítem o tarea); cada ítem con `quantity > 0` y `unit_price ≥ 0`.
 - `discount ≤ subtotal`.
 - `validity_days` definido.
 - `warranty.kind = CUSTOM` ⇒ `warranty.text` presente.
