@@ -7,9 +7,9 @@ import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
 import { Boton, Texto } from '@/components/ui';
-import { reconciliar } from '@/lib/notificaciones';
+import { cancelarRecordatorio, reconciliar } from '@/lib/notificaciones';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { creacionesPendientes, leerBorrador, useCola, vaciar } from '@/sync/cola';
+import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
@@ -34,13 +34,22 @@ export default function Presupuestos() {
       setError(mensajeDe(err)); // sin señal en terreno se muestra la última lista guardada
       base = JSON.parse((await leerKv('lista')) ?? 'null') as ResumenPresupuesto[] | null;
     }
+    // Lo que se eliminó pero el servidor aún no borró (sin conexión) no se muestra.
+    const eliminados = await eliminacionesPendientes();
+    base = base && base.filter((r) => !eliminados.has(r.id));
     // Los presupuestos creados sin conexión aparecen arriba hasta que el servidor los reciba.
     const nuevos: ResumenPresupuesto[] = [];
     for (const id of await creacionesPendientes()) {
       const b = await leerBorrador(id);
-      if (b && !base?.some((r) => r.id === id)) nuevos.push({ id, code_id: b.code_id || undefined, number: null, customer: { id: b.customer.id, name: b.customer.name }, service_description: b.service_description, total: 0, doc_status: 'DRAFT', commercial_status: 'NONE', next_contact_date: null, updated_at: '' });
+      if (b && !eliminados.has(id) && !base?.some((r) => r.id === id)) nuevos.push({ id, code_id: b.code_id || undefined, number: null, customer: { id: b.customer.id, name: b.customer.name }, service_description: b.service_description, total: 0, doc_status: 'DRAFT', commercial_status: 'NONE', next_contact_date: null, updated_at: '' });
     }
     setLista(base || nuevos.length ? [...nuevos, ...(base ?? [])] : base);
+  }, []);
+
+  const eliminar = useCallback(async (q: ResumenPresupuesto) => {
+    setLista((l) => l && l.filter((x) => x.id !== q.id)); // desaparece al instante; el borrado viaja por la cola
+    await eliminarPresupuesto(q.id);
+    void cancelarRecordatorio(q.id);
   }, []);
 
   useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza
@@ -51,7 +60,7 @@ export default function Presupuestos() {
       <FlashList
         data={lista ?? []}
         keyExtractor={(q) => q.id}
-        renderItem={({ item }) => <FilaPresupuesto q={item} />}
+        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} />}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: espacio.l, paddingBottom: insets.bottom + MIN_TOQUE + espacio.xxl }}
         ItemSeparatorComponent={Separador}

@@ -3,6 +3,9 @@
 // Red caída, 429 o 5xx: se conserva y se reintenta. Cualquier otro 4xx: la operación no va a funcionar sola.
 export const esTransitorio = (status: number) => status === 0 || status === 429 || status >= 500;
 
+// Un DELETE que responde 404 ya cumplió su objetivo (otro dispositivo o un reintento ya lo borró).
+export const yaNoExiste = (method: string, status: number) => method === 'DELETE' && status === 404;
+
 export const espera = (intentos: number) => Math.min(60_000, 2_000 * 2 ** intentos);
 
 // Un PUT o PATCH nuevo sobre la misma ruta del mismo presupuesto reemplaza al pendiente: gana la última escritura.

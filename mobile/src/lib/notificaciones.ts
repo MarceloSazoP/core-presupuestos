@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { api } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
-import { planificar } from './recordatorios';
+import { PREFIJO, planificar } from './recordatorios';
 
 // Recordatorios locales del próximo contacto (Arquitectura §5): se programan en el teléfono, sin servidor. Solo suenan
 // en el dispositivo que los programó. La web (vista previa de desarrollo) no los soporta.
@@ -42,6 +42,9 @@ export async function reconciliar(quotes: ResumenPresupuesto[]) {
     // los recordatorios son una ayuda: si el sistema falla, la app sigue funcionando
   }
 }
+
+// Al eliminar un presupuesto su aviso no debe sonar.
+export const cancelarRecordatorio = (quoteId: string) => (disponible ? Notifications.cancelScheduledNotificationAsync(PREFIJO + quoteId).catch(() => {}) : Promise.resolve());
 
 // Después de cambiar un seguimiento: se vuelve a leer la lista y se reconcilia.
 export const sincronizarRecordatorios = () =>

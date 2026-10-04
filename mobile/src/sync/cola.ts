@@ -4,7 +4,7 @@ import type { Presupuesto } from '@/api/types';
 import { guardarCodigo } from '@/lib/codigos';
 import { borrarArchivo, existeArchivo } from './archivos';
 import { agregarOp, borrarOp, cambiarOp, guardarKv, leerKv, limpiarTodo, listarKv, ops, type Op } from './db';
-import { bloqueo, esTransitorio, espera, reemplazadas } from './reglas';
+import { bloqueo, esTransitorio, espera, reemplazadas, yaNoExiste } from './reglas';
 
 // Cola de envío (Arquitectura §5): toda edición se guarda primero en el teléfono y se envía después, en orden. La
 // interfaz nunca espera a la red; el `id` generado aquí hace seguros los reintentos (Contrato API §1).
@@ -106,6 +106,10 @@ async function correr() {
       const e = err instanceof ApiError ? err : new ApiError(0, 'SIN_CONEXION', String(err));
       registro('falló', o.method, o.path, `status=${e.status}`, e.message);
       if (e.status === 401) break; // la sesión venció: api() ya la cerró
+      if (yaNoExiste(o.method, e.status)) {
+        await borrarOp(o.seq);
+        continue;
+      }
       if (esTransitorio(e.status)) {
         await cambiarOp(o.seq, { attempts: o.attempts + 1, last_error: e.message });
         siguiente = espera(o.attempts);
@@ -118,6 +122,22 @@ async function correr() {
   await refrescar();
   if (siguiente !== null) temporizador = setTimeout(() => void vaciar(), siguiente);
 }
+
+// ── Eliminar un presupuesto (solo pendientes; los terminados no se borran, Contrato API §6) ──────
+// Funciona sin conexión: lo local se descarta ya y el DELETE viaja por la cola. Si el presupuesto aún no se había creado en
+// el servidor, su creación se conserva y el DELETE va detrás: así nunca queda uno huérfano si el POST ya iba en camino.
+export async function eliminarPresupuesto(quoteId: string) {
+  for (const o of await ops()) {
+    if (o.quote_id !== quoteId || (o.method === 'POST' && o.path === '/quotes')) continue;
+    await borrarOp(o.seq);
+    if (o.file_uri) borrarArchivo(o.file_uri);
+  }
+  await guardarKv(`q:${quoteId}`, 'null');
+  await encolar({ quote_id: quoteId, method: 'DELETE', path: `/quotes/${quoteId}` });
+}
+
+// Presupuestos con la eliminación en la cola: la lista no debe mostrarlos aunque el servidor aún los tenga.
+export const eliminacionesPendientes = async () => new Set((await ops()).filter((o) => o.method === 'DELETE' && o.path === `/quotes/${o.quote_id}`).map((o) => o.quote_id));
 
 // ── Operaciones que fallaron: reintentar o descartar ──────────────────────────────────────────
 export const fallidas = async () => (await ops()).filter((o) => o.state === 'failed');

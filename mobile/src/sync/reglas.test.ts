@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { bloqueo, esTransitorio, espera, reemplazadas } from './reglas.ts';
+import { bloqueo, esTransitorio, espera, reemplazadas, yaNoExiste } from './reglas.ts';
 
 test('qué errores se reintentan', () => {
   for (const s of [0, 429, 500, 502, 503]) assert.equal(esTransitorio(s), true);
@@ -34,4 +34,10 @@ test('las fotos pendientes no impiden guardar, pero sí terminar', () => {
 test('si algo falló para siempre, el mensaje dice el motivo y qué hacer', () => {
   const rota = { quote_id: 'a', method: 'POST', path: '/quotes/a/photos', state: 'failed', last_error: 'El archivo ya no está' };
   assert.match(bloqueo([rota], 'a', 'todo')!, /El archivo ya no está.*reintentar o descartar/);
+});
+
+test('borrar algo que ya no existe cuenta como hecho; cualquier otra operación con 404 no', () => {
+  assert.equal(yaNoExiste('DELETE', 404), true);
+  assert.equal(yaNoExiste('DELETE', 409), false);
+  assert.equal(yaNoExiste('POST', 404), false);
 });
