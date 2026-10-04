@@ -12,6 +12,7 @@ const claro = {
   sobreAcento: '#FFFFFF',
   aviso: '#8A5A00',
   ok: '#1A7F37',
+  seguimiento: '#7C3AED', // violeta: el estado «Seguimiento» tiene su propio color
   error: '#CF222E',
 } as const;
 
@@ -25,6 +26,7 @@ const oscuro = {
   sobreAcento: '#0B0D12',
   aviso: '#E3B341',
   ok: '#56D364',
+  seguimiento: '#B197FC',
   error: '#FF7B72',
 } as const;
 

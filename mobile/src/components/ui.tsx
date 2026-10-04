@@ -67,7 +67,7 @@ export function Campo({ etiqueta, error, ayuda, ref, style, ...props }: TextInpu
   );
 }
 
-export function Pastilla({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'acento' | 'error' }) {
+export function Pastilla({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'acento' | 'seguimiento' | 'error' }) {
   const t = useTema();
   const color = t[tono];
   return (
