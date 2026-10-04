@@ -73,6 +73,11 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     setConfirmando(false);
     const datos = new FormData(e.currentTarget, (e.nativeEvent as SubmitEvent).submitter);
     enTransicion(() => accion(datos));
+    // El servidor ya ignoró las filas en blanco (Enter deja una al final): también se quitan de la grilla, dejando una si no queda ninguna.
+    setFilas((actuales) => {
+      const llenas = actuales.filter((f) => f.descripcion.trim() || f.precio.trim());
+      return llenas.length > 0 ? llenas : actuales.slice(0, 1);
+    });
   };
   const salir = () => enTransicion(() => salirAction());
 
