@@ -6,7 +6,7 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).
 export function Multimedia({ fotos, audios }: Props) {
   if (fotos.length === 0 && audios.length === 0) return null;
   return (
-    <section aria-labelledby="multimedia" className="flex flex-col gap-3">
+    <section aria-labelledby="multimedia" className="flex flex-col gap-3 @3xl:col-span-2">
       <h3 id="multimedia" className="etiqueta uppercase tracking-wide text-muted">
         Fotos y notas de voz <span className="font-normal normal-case">(internas, no salen en el PDF)</span>
       </h3>
