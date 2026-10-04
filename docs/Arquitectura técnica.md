@@ -257,11 +257,25 @@ Reglas de la cola:
 
 **Implementado (app móvil, `mobile/src/sync/`):** `db.ts` (SQLite con tablas `ops` y `kv`; `db.web.ts` solo para la vista previa), `cola.ts` (encolar, colapso, `vaciar` con una sola ejecución a la vez, reintento con espera creciente, fallidas con reintentar/descartar) y `reglas.ts` (lógica pura con pruebas). Diferencias respecto del diseño de arriba, por simplicidad:
 
-- `quote_drafts` y `customers_cache` se reducen a un JSON por presupuesto (`kv`, clave `q:<id>`) y a la última lista (`kv`, clave `lista`); no hay tabla `media` (los archivos pendientes viajan en su fila de `ops` y se copian a `Paths.document/pendientes`) ni `reminders` (los recordatorios locales siguen pendientes).
+- `quote_drafts` y `customers_cache` se reducen a un JSON por presupuesto (`kv`, clave `q:<id>`) y a la última lista (`kv`, clave `lista`); no hay tabla `media` (los archivos pendientes viajan en su fila de `ops` y se copian a `Paths.document/pendientes`) ni `reminders` (ver «Recordatorios locales»).
 - La pantalla trabaja sobre la copia local; el servidor la reemplaza solo cuando ya no quedan operaciones del presupuesto en la cola.
 - Un presupuesto creado sin conexión no tiene código hasta sincronizar: el código llega en la respuesta `201` de `POST /quotes` y se guarda entonces en el teléfono. Si la respuesta se pierde y el reintento recibe `200`, el código ya no se puede leer y se genera uno nuevo.
 - Los datos locales pertenecen a un usuario: si entra otro en el mismo teléfono se borran (`usarDatosDe`).
 - Disparadores: abrir la app, volver a primer plano, cada edición y el reintento con espera (2 s, 4 s… tope 60 s). No se usa `expo-network`.
+
+### Clientes recurrentes y contactos (decisión del 2026-10-04, app móvil)
+
+El usuario pidió reutilizar clientes y traerlos desde la agenda del teléfono. **No estaba en la documentación anterior**; no cambia la API (ya existen `/customers` y `customer_id` en `POST /quotes`, Contrato API §5 y §6), solo la app. Sigue siendo un solo cliente por presupuesto y **no es un CRM**: sin etiquetas, notas de cliente ni importación masiva.
+
+- **Etapa 1 con tres puntos de partida:** escribir los datos a mano (como hoy), **elegir un cliente guardado** (buscador por nombre o teléfono) o **traer uno desde Contactos**. Los tres terminan en el mismo formulario, que se puede corregir antes de crear.
+- **Contactos:** solo con el **selector del sistema** (`Contact.presentPicker()`), que entrega un único contacto elegido por la persona. No se lee ni se sube la agenda completa y no se guarda nada más que lo que queda en el formulario (nombre, primer teléfono, primer correo y primera dirección). Si la persona rechaza el permiso, la opción desaparece y lo manual sigue funcionando.
+- **Cliente nuevo con un teléfono que ya existe:** antes de crearlo, la app ofrece usar el cliente guardado (Contrato BD §3: el teléfono no es único, la app sugiere).
+- **Ficha del cliente** (`Clientes`, desde la lista de presupuestos): datos, resumen (`GET /customers/{id}`), y las acciones **Nuevo presupuesto** (Etapa 1 con el cliente ya elegido, usa `customer_id`), **Ver sus presupuestos** (`GET /quotes?customer_id=`), **Llamar** y **WhatsApp**.
+- **Sin conexión:** la lista de clientes se guarda en el teléfono (`kv`, clave `clientes`, la antes llamada `customers_cache`). Crear un presupuesto para un cliente ya guardado funciona sin red porque usa `customer_id`; un cliente nuevo viaja dentro del mismo `POST /quotes`, como hoy.
+
+### Recordatorios locales (implementado)
+
+Una notificación local por presupuesto con `next_contact_date`, a las 09:00 de ese día en la hora del teléfono. Se simplifica el diseño de arriba: **no hay tabla `reminders`**; el `identifier` de la notificación es `contacto-<quote_id>`, así que programar de nuevo reemplaza la anterior y cancelar no necesita un mapa. La lógica de decidir qué programar y qué cancelar es una función pura con pruebas (`mobile/src/lib/recordatorios.ts`). El permiso de notificaciones se pide la primera vez que se programa una fecha, no al abrir la app. Tocar el aviso abre el presupuesto.
 
 ### Envío y seguimiento
 
