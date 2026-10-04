@@ -9,8 +9,8 @@ import { limpiarCantidad, limpiarPrecio, type Fila } from "./grilla-items";
 const aNumero = (s: string) => Number(s.trim().replace(",", ".")) || 0;
 const aEntero = (s: string) => Number(s.replace(/[^\d]/g, "")) || 0;
 
-const ANGOSTO = "(max-width: 639px)";
-// Teléfono: la grilla no cabe (esconde el precio y el total), así que los ítems se editan como tarjetas. En el servidor se asume ancho.
+const ANGOSTO = "(max-width: 819px)"; // la grilla necesita ~710 px de ancho útil
+// Teléfono y tablet vertical: la grilla no cabe (esconde el precio y el total), así que los ítems se editan como tarjetas. En el servidor se asume ancho.
 export function useEsAngosto() {
   return useSyncExternalStore(
     (avisar) => {

@@ -12,6 +12,7 @@ import { EnviarCorreo } from "./enviar-correo";
 import { NotasVisita } from "./notas-visita";
 import { CamposItems, GrillaItems, type Fila } from "./grilla-items";
 import { ListaItemsMovil, useEsAngosto } from "./lista-items-movil";
+import { DeLaVisita, Medidas } from "./de-la-visita";
 import { Multimedia } from "./multimedia";
 
 type Inicial = {
@@ -200,153 +201,155 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     );
   }
 
+  // Pantallas anchas: [título · «De la visita» · hoja del presupuesto] a la izquierda y [resumen con el total y las acciones] fijo a la
+  // derecha. Más angostas: una columna en ese mismo orden y una barra fija abajo con el total y la acción principal.
   return (
-    <>
-      {hayNovedad && (
-        <p role="status" className="aparecer flex flex-wrap items-center justify-between gap-3 rounded-lg border border-aviso p-3 text-sm">
-          Hay cambios nuevos hechos desde otro lugar.
-          <button type="button" onClick={() => {
-              setHayNovedad(false);
-              router.refresh();
-            }}
-            className="boton-secundario"
-          >
-            Actualizar (se pierde lo que no guardaste)
-          </button>
-        </p>
-      )}
-    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-10 rounded-xl border border-borde bg-card p-5 sm:p-8 lg:p-10">
-      {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-borde pb-3">
-        <h2 className="text-2xl font-semibold leading-tight">Presupuesto de {inicial.cliente.nombre}</h2>
-        <span className="estado estado-pendiente">Borrador{inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}</span>
-        {inicial.numeroAnterior && <p className="basis-full text-sm font-normal normal-case text-muted">Reemplaza al presupuesto {inicial.numeroAnterior}</p>}
-      </div>
+    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-start xl:gap-8">
+      <div className="flex min-w-0 flex-col gap-6">
+        {hayNovedad && (
+          <p role="status" className="aparecer flex flex-wrap items-center justify-between gap-3 rounded-lg border border-aviso p-3 text-sm">
+            Hay cambios nuevos hechos desde otro lugar.
+            <button
+              type="button"
+              onClick={() => {
+                setHayNovedad(false);
+                router.refresh();
+              }}
+              className="boton-secundario"
+            >
+              Actualizar (se pierde lo que no guardaste)
+            </button>
+          </p>
+        )}
 
-      <div className="grid gap-6 @3xl:grid-cols-2">
-        <section aria-labelledby="cliente" className="flex flex-col gap-1">
-          <h3 id="cliente" className="seccion">
-            Cliente
-          </h3>
-          <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
-        </section>
+        <header className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.015em]">Presupuesto de {inicial.cliente.nombre}</h2>
+            <span className="estado estado-pendiente">Borrador{inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}</span>
+          </div>
+          {inicial.numeroAnterior && <p className="text-sm text-muted">Reemplaza al presupuesto {inicial.numeroAnterior}</p>}
+          <p className="max-w-prose text-muted">Lo que completes en la hoja sale en el PDF del cliente. Lo que anotaste en la visita es solo para ti.</p>
+        </header>
 
-        <section aria-labelledby="levantamiento" className="flex flex-col gap-1">
-          <h3 id="levantamiento" className="seccion">
-            Notas de la visita <span className="ayuda">(internas, no salen en el PDF)</span>
-          </h3>
+        <DeLaVisita>
           <NotasVisita notas={inicial.levantamiento.notas} />
-          {inicial.levantamiento.medidas.length > 0 && (
-            <p className="text-sm text-muted">{inicial.levantamiento.medidas.map((m) => `${m.etiqueta}: ${m.valor}`).join(" · ")}</p>
-          )}
-        </section>
+          <Medidas medidas={inicial.levantamiento.medidas} />
+          <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} editable />
+        </DeLaVisita>
 
-        <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} editable />
-      </div>
+        {/* La hoja: lo que recibe el cliente, en el orden del PDF. */}
+        <section aria-label="Hoja del presupuesto" className="tarjeta @container flex flex-col gap-10 p-5 sm:p-8">
+          <section aria-labelledby="cliente" className="flex flex-col gap-1">
+            <h3 id="cliente" className="seccion">
+              Cliente
+            </h3>
+            <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
+          </section>
 
-      {/* Servicio y dirección son un solo grupo: más cerca entre sí que del resto. */}
-      <div className="flex flex-col gap-5">
-        <section className="flex flex-col gap-1">
-          <label htmlFor="descripcion" className="etiqueta">
-            Servicio
-          </label>
-          <textarea
-            id="descripcion"
-            name="descripcion"
-            rows={2}
-            maxLength={2000}
-            autoFocus={!servicio.trim()}
-            placeholder="Qué trabajo se va a hacer (aparece en el PDF)"
-            value={servicio}
-            onChange={(e) => setServicio(e.target.value)}
-            className="campo"
-          />
-        </section>
-
-        <section className="flex flex-col gap-1">
-          <label htmlFor="direccion" className="etiqueta">
-            Dirección del trabajo <span className="ayuda">(opcional, aparece en el PDF)</span>
-          </label>
-          <input
-            id="direccion"
-            name="direccion"
-            type="text"
-            maxLength={300}
-            autoComplete="off"
-            placeholder="Calle, número y comuna"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-            className="campo"
-          />
-        </section>
-      </div>
-
-      <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
-        <h3 id="titulo-items" className="seccion">
-          Ítems y tareas
-        </h3>
-        {esAngosto ? <ListaItemsMovil filas={filas} onChange={setFilas} /> : <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
-        <CamposItems filas={filas} />
-        <div className="-ml-4 flex flex-wrap items-center gap-x-2 gap-y-2">
-          <button type="button" onClick={() => agregar("item")} className="boton-suave">
-            + Agregar ítem
-          </button>
-          <button type="button" onClick={() => agregar("tarea")} className="boton-suave" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
-            + Agregar tarea
-          </button>
-          <p className="ayuda">Enter pasa a la celda siguiente y, al final, crea otra fila.</p>
-        </div>
-      </section>
-
-      <div className="grid gap-8 @3xl:grid-cols-[minmax(0,1fr)_22rem] @3xl:items-start">
-        <section aria-labelledby="titulo-condiciones" className="flex flex-col gap-4">
-          <h3 id="titulo-condiciones" className="seccion">
-            Condiciones
-          </h3>
-          <div className="grid gap-4 @xl:grid-cols-2">
+          {/* Servicio y dirección son un solo grupo: más cerca entre sí que del resto. */}
+          <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1">
-              <label htmlFor="garantia" className="etiqueta">
-                Garantía
+              <label htmlFor="descripcion" className="etiqueta">
+                Servicio
               </label>
-              <select id="garantia" name="garantia" value={garantia} onChange={(e) => setGarantia(e.target.value)} className="campo">
-                {GARANTIAS.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
+              <textarea
+                id="descripcion"
+                name="descripcion"
+                rows={2}
+                maxLength={2000}
+                autoFocus={!servicio.trim()}
+                placeholder="Qué trabajo se va a hacer"
+                value={servicio}
+                onChange={(e) => setServicio(e.target.value)}
+                className="campo"
+              />
             </div>
             <div className="flex flex-col gap-1">
-              <label htmlFor="validezDias" className="etiqueta">
-                Validez del presupuesto
+              <label htmlFor="direccion" className="etiqueta">
+                Dirección del trabajo <span className="ayuda">(opcional)</span>
               </label>
-              <select id="validezDias" name="validezDias" value={validez} onChange={(e) => setValidez(e.target.value)} className="campo">
-                {VALIDEZ_DIAS.map((d) => (
-                  <option key={d} value={d}>
-                    {d} días
-                  </option>
-                ))}
-              </select>
+              <input
+                id="direccion"
+                name="direccion"
+                type="text"
+                maxLength={300}
+                autoComplete="off"
+                placeholder="Calle, número y comuna"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                className="campo"
+              />
             </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="observaciones" className="etiqueta">
-              Observaciones (opcional)
-            </label>
-            <textarea
-              id="observaciones"
-              name="observaciones"
-              rows={3}
-              maxLength={5000}
-              placeholder="Aclaraciones para el cliente (aparecen en el PDF)"
-              value={observaciones}
-              onChange={(e) => setObservaciones(e.target.value)}
-              className="campo"
-            />
-          </div>
-        </section>
 
-        <section ref={resumen} aria-labelledby="titulo-resumen" className="flex flex-col gap-3">
-          <h3 id="titulo-resumen" className="sr-only">
-            Totales
+          <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
+            <h3 id="titulo-items" className="seccion">
+              Ítems y tareas
+            </h3>
+            {esAngosto ? <ListaItemsMovil filas={filas} onChange={setFilas} /> : <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
+            <CamposItems filas={filas} />
+            <div className="-ml-4 flex flex-wrap items-center gap-x-2 gap-y-2">
+              <button type="button" onClick={() => agregar("item")} className="boton-suave">
+                + Agregar ítem
+              </button>
+              <button type="button" onClick={() => agregar("tarea")} className="boton-suave" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
+                + Agregar tarea
+              </button>
+              {!esAngosto && <p className="ayuda">Enter pasa a la celda siguiente y, al final, crea otra fila.</p>}
+            </div>
+          </section>
+
+          <section aria-labelledby="titulo-condiciones" className="flex flex-col gap-4">
+            <h3 id="titulo-condiciones" className="seccion">
+              Condiciones
+            </h3>
+            <div className="grid gap-4 @xl:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="garantia" className="etiqueta">
+                  Garantía
+                </label>
+                <select id="garantia" name="garantia" value={garantia} onChange={(e) => setGarantia(e.target.value)} className="campo">
+                  {GARANTIAS.map((g) => (
+                    <option key={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="validezDias" className="etiqueta">
+                  Validez del presupuesto
+                </label>
+                <select id="validezDias" name="validezDias" value={validez} onChange={(e) => setValidez(e.target.value)} className="campo">
+                  {VALIDEZ_DIAS.map((d) => (
+                    <option key={d} value={d}>
+                      {d} días
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="observaciones" className="etiqueta">
+                Observaciones <span className="ayuda">(opcional)</span>
+              </label>
+              <textarea
+                id="observaciones"
+                name="observaciones"
+                rows={3}
+                maxLength={5000}
+                placeholder="Aclaraciones para el cliente"
+                value={observaciones}
+                onChange={(e) => setObservaciones(e.target.value)}
+                className="campo"
+              />
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
+        <section ref={resumen} aria-labelledby="titulo-resumen" className="tarjeta flex flex-col gap-4 p-5 sm:p-6">
+          <h3 id="titulo-resumen" className="seccion">
+            Resumen
           </h3>
           <dl className="flex flex-col gap-2 tabular-nums">
             <div className="flex justify-between gap-3 text-muted">
@@ -381,7 +384,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
               </dt>
               <dd>
                 {/* El casillero nativo no crece con relleno: la etiqueta que lo envuelve da el área de 44 px. */}
-                <label className="grid size-11 cursor-pointer place-items-center">
+                <label className="-mr-2.5 grid size-11 cursor-pointer place-items-center">
                   <input id="iva" name="iva" value="1" type="checkbox" checked={conIva} onChange={(e) => setConIva(e.target.checked)} className="size-6 cursor-pointer accent-[var(--acento-texto)]" />
                 </label>
               </dd>
@@ -392,43 +395,56 @@ export function Editor({ inicial }: { inicial: Inicial }) {
                 <dd>{clp(totales.iva)}</dd>
               </div>
             )}
-            <div className="flex items-baseline justify-between gap-3 border-t-2 border-foreground pt-3">
+            <div className="mt-1 flex items-baseline justify-between gap-3 border-t-2 border-foreground pt-3">
               <dt className="text-lg font-semibold">Total</dt>
-              <dd className={`text-3xl font-bold ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">
+              <dd className={`text-[2rem] font-bold leading-none tracking-[-0.02em] ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">
                 {clp(totales.total)}
               </dd>
             </div>
           </dl>
           {descuentoExcesivo && <p className="text-sm text-error">El descuento no puede superar el subtotal.</p>}
-        </section>
-      </div>
 
-      <div className="flex flex-col gap-4">
-        {estado.errores && (
-          <ul role="alert" className="aparecer list-disc pl-5 text-sm text-error">
-            {estado.errores.map((e) => (
-              <li key={e}>{e}</li>
-            ))}
-          </ul>
-        )}
-        {intentoTerminar && sinItems && (
-          <p role="alert" className="aparecer text-sm text-error">
-            Agrega al menos un ítem con descripción y precio.
-          </p>
-        )}
-        {sinVentana && estado.vistaPrevia && (
-          <p role="status" className="aparecer text-sm">
-            El navegador bloqueó la pestaña nueva.{" "}
-            <a href={`/presupuesto/vista-previa?t=${estado.vistaPrevia}`} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">
-              Abrir la vista previa
-            </a>
-          </p>
-        )}
-        {estado.guardado && (
-          <p role="status" className="aparecer text-sm text-ok">
-            {estado.guardado}
-          </p>
-        )}
+          {estado.errores && (
+            <ul role="alert" className="aparecer list-disc pl-5 text-sm text-error">
+              {estado.errores.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          )}
+          {intentoTerminar && sinItems && (
+            <p role="alert" className="aparecer text-sm text-error">
+              Agrega al menos un ítem con descripción y precio.
+            </p>
+          )}
+          {sinVentana && estado.vistaPrevia && (
+            <p role="status" className="aparecer text-sm">
+              El navegador bloqueó la pestaña nueva.{" "}
+              <a href={`/presupuesto/vista-previa?t=${estado.vistaPrevia}`} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">
+                Abrir la vista previa
+              </a>
+            </p>
+          )}
+          {estado.guardado && (
+            <p role="status" className="aparecer text-sm text-ok">
+              {estado.guardado}
+            </p>
+          )}
+
+          {/* En pantallas anchas las acciones viven aquí, junto al total; en las demás, en la barra fija de abajo. */}
+          <div className="hidden flex-col gap-3 border-t border-borde pt-4 xl:flex">
+            <button type="button" onClick={intentarTerminar} className="boton w-full" disabled={pendiente}>
+              {pendiente && <span className="spinner" aria-hidden="true" />}
+              {pendiente ? "Procesando…" : "Terminar y enviar"}
+            </button>
+            <button type="submit" name="accion" value="guardar" className="boton-secundario w-full" disabled={pendiente}>
+              Guardar y seguir después
+            </button>
+            <button type="button" onClick={previsualizar} className="boton-texto w-full" disabled={pendiente}>
+              Previsualizar presupuesto
+            </button>
+            <p className="ayuda text-center">Al terminar se numera, se genera el PDF y se envía al cliente.</p>
+          </div>
+        </section>
 
         <dialog ref={modal} aria-labelledby="confirmar" onClose={() => setConfirmando(false)} className="modal m-auto w-[min(92vw,26rem)] rounded-xl border border-borde bg-card p-5 text-foreground">
           <div className="flex flex-col gap-3">
@@ -448,12 +464,11 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             </div>
           </div>
         </dialog>
+      </aside>
 
-      </div>
-
-      {/* Acciones secundarias en el teléfono: la barra fija de abajo solo lleva el total y la acción principal. */}
-      <div className="flex flex-col gap-3 sm:hidden">
-        <button type="submit" name="accion" value="guardar" className="boton-secundario" disabled={pendiente}>
+      {/* Lo que no cabe en la barra fija: en el teléfono, guardar y previsualizar; en tablet, solo previsualizar. */}
+      <div className="flex flex-col gap-3 sm:items-start lg:hidden">
+        <button type="submit" name="accion" value="guardar" className="boton-secundario sm:hidden" disabled={pendiente}>
           Guardar y seguir después
         </button>
         <button type="button" onClick={previsualizar} className="boton-secundario" disabled={pendiente}>
@@ -461,14 +476,14 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </button>
       </div>
 
-      {/* Barra fija: el total y las acciones siempre a la vista. Una sola acción principal. */}
-      <div className="sticky bottom-0 z-10 -mx-5 -mb-5 flex items-center justify-between gap-3 rounded-b-xl border-t border-borde bg-card/95 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-8 sm:-mb-8 sm:px-8 lg:-mx-10 lg:-mb-10 lg:px-10">
+      {/* Barra fija (hasta pantallas medianas): el total y las acciones siempre a la vista. Va de borde a borde de la página. */}
+      <div className="sticky bottom-0 z-10 -mx-4 flex items-center justify-between gap-3 border-t border-borde bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 xl:hidden">
         <p aria-hidden={resumenVisible} className={`flex flex-col leading-tight tabular-nums transition-opacity duration-150 motion-reduce:transition-none ${resumenVisible ? "opacity-0" : ""}`}>
           <span className="text-sm text-muted">Total</span>
           <span className={`text-2xl font-bold ${descuentoExcesivo ? "text-error" : ""}`}>{clp(totales.total)}</span>
         </p>
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button type="button" onClick={previsualizar} className="boton-texto hidden whitespace-nowrap sm:inline-flex" disabled={pendiente}>
+          <button type="button" onClick={previsualizar} className="boton-texto hidden whitespace-nowrap lg:inline-flex" disabled={pendiente}>
             Previsualizar presupuesto
           </button>
           <button type="submit" name="accion" value="guardar" className="boton-secundario hidden whitespace-nowrap sm:inline-flex" disabled={pendiente}>
@@ -481,6 +496,5 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </div>
       </div>
     </form>
-    </>
   );
 }

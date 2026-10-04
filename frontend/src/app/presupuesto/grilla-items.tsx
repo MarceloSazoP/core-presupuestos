@@ -160,7 +160,7 @@ export function GrillaItems({
       {
         field: "cantidad",
         headerName: "Cant.",
-        width: 100,
+        width: 90,
         type: "rightAligned",
         editable: (p) => p.data?.tipo !== "tarea", // una tarea no lleva cantidad
         cellEditor: EditorNumero,
@@ -172,7 +172,7 @@ export function GrillaItems({
       {
         field: "unidad",
         headerName: "Unidad",
-        width: 120,
+        width: 110,
         editable: (p) => p.data?.tipo !== "tarea", // ni unidad
         cellEditor: EditorUnidad,
         valueFormatter: (p) => (p.data?.tipo === "tarea" ? "—" : simboloUnidad(p.value ?? "")),
@@ -180,7 +180,7 @@ export function GrillaItems({
       {
         field: "precio",
         headerName: "Precio unitario",
-        width: 170,
+        width: 150,
         type: "rightAligned",
         cellEditor: EditorNumero,
         cellEditorParams: { formatear: miles, limpiar: limpiarPrecio },
@@ -190,7 +190,7 @@ export function GrillaItems({
       },
       {
         headerName: "Total",
-        width: 180, // cabe $999.999.999 en negrita sin cortarse
+        width: 160, // cabe $999.999.999 en negrita sin cortarse
         type: "rightAligned",
         editable: false,
         cellClass: ["ag-right-aligned-cell", "font-medium"],
