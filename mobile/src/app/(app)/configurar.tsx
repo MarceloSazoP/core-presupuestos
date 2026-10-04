@@ -4,7 +4,8 @@ import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { ImagenPerfil } from '@/components/imagen-perfil';
-import { Boton, Campo, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Campo, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { elegirTema, leerPreferenciaTema, OPCIONES_TEMA, type PreferenciaTema } from '@/lib/preferencia-tema';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
@@ -20,6 +21,8 @@ export default function Configurar() {
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [tema, setTema] = useState<PreferenciaTema>('sistema');
+  useEffect(() => void leerPreferenciaTema().then(setTema), []);
 
   // Al abrir se traen los datos frescos del servidor (los guardados en el teléfono pueden venir de otra sesión).
   useEffect(() => {
@@ -73,6 +76,18 @@ export default function Configurar() {
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />
         </Tarjeta>
+      </Seccion>
+
+      <Seccion titulo="Apariencia" descripcion="Automático sigue el modo claro u oscuro de tu iPhone.">
+        <Segmentos
+          opciones={OPCIONES_TEMA}
+          valor={tema}
+          etiqueta="Apariencia de la app"
+          alElegir={(p) => {
+            setTema(p);
+            void elegirTema(p);
+          }}
+        />
       </Seccion>
 
       <Tarjeta>

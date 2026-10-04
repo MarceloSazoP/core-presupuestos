@@ -1,9 +1,10 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BarraTeclado } from '@/components/ui';
+import { aplicarTema, leerPreferenciaTema } from '@/lib/preferencia-tema';
 import { useTema } from '@/theme';
 import { SesionProvider, useSesion } from '@/session';
 
@@ -12,10 +13,18 @@ SplashScreen.preventAutoHideAsync();
 // Rutas protegidas por la sesión (Expo Router, Stack.Protected): sin sesión solo existe «ingresar»; con sesión, la app.
 function Navegador() {
   const { estado } = useSesion();
+  const [temaListo, setTemaListo] = useState(false);
+  // El tema elegido (claro, oscuro o automático) se aplica antes de mostrar nada, para que no parpadee el otro.
   useEffect(() => {
-    if (estado !== 'cargando') void SplashScreen.hideAsync(); // el splash cubre la lectura del token guardado
-  }, [estado]);
-  if (estado === 'cargando') return null;
+    void leerPreferenciaTema()
+      .then(aplicarTema)
+      .catch(() => {}) // si algo falla, la app sigue al sistema: nunca debe quedar esperando el tema
+      .finally(() => setTemaListo(true));
+  }, []);
+  useEffect(() => {
+    if (estado !== 'cargando' && temaListo) void SplashScreen.hideAsync(); // el splash cubre la lectura del token y del tema guardados
+  }, [estado, temaListo]);
+  if (estado === 'cargando' || !temaListo) return null;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
