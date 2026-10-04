@@ -128,21 +128,18 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
       { text: `Garantía: ${s.warranty.text}`, margin: [0, 18, 0, 2] },
       { text: `Validez: ${s.validity_days} días (hasta el ${dayMonthYear(s.valid_until)})`, margin: [0, 0, 0, 2] },
       ...(s.observations ? [{ text: `Observaciones: ${s.observations}`, margin: [0, 8, 0, 0] } as Content] : []),
-      // Bloque de firma (opcional): la imagen de la firma, una línea y, debajo, «Firma:» con el nombre o negocio y su contacto.
-      ...(s.include_signature
-        ? [
-            {
-              unbreakable: true,
-              margin: [0, 30, 0, 0],
-              stack: [
-                ...(img.signature ? [{ image: dataUrl(img.signature), fit: [170, 60], margin: [0, 0, 0, 2] }] : [{ text: ' ', margin: [0, 0, 0, 36] }]),
-                { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 230, y2: 0, lineWidth: 0.8, lineColor: '#333333' }] },
-                { text: [{ text: 'Firma: ', bold: true }, s.professional.name], margin: [0, 4, 0, 1] },
-                { text: `${s.professional.phone} · ${s.professional.email}`, color: '#555555', fontSize: 9 },
-              ],
-            } as Content,
-          ]
-        : []),
+      // Bloque de firma: una línea y, debajo, «Firma:» con el nombre o negocio, su teléfono y su correo. Sale siempre (también sirve
+      // para firmar a mano); la imagen de la firma va sobre la línea solo si el presupuesto la incluye.
+      {
+        unbreakable: true,
+        margin: [0, 30, 0, 0],
+        stack: [
+          ...(img.signature ? [{ image: dataUrl(img.signature), fit: [170, 60], margin: [0, 0, 0, 2] }] : [{ text: ' ', margin: [0, 0, 0, 36] }]),
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 230, y2: 0, lineWidth: 0.8, lineColor: '#333333' }] },
+          { text: [{ text: 'Firma: ', bold: true }, s.professional.name], margin: [0, 4, 0, 1] },
+          { text: `${s.professional.phone} · ${s.professional.email}`, color: '#555555', fontSize: 9 },
+        ],
+      } as Content,
       ...(img.qr ? [{ image: `data:image/png;base64,${img.qr.toString('base64')}`, fit: [80, 80], margin: [0, 16, 0, 0] } as Content] : []),
       { text: 'Presupuesto comercial. No es un documento tributario.', fontSize: 8, color: '#666666', margin: [0, 30, 0, 0] },
     ],

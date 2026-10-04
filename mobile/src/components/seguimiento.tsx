@@ -80,7 +80,12 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
 
       {cerrada ? null : (
         <>
-          <Texto variante="chico" fuerte>Próximo contacto{q.next_contact_date ? ` · ${diaCorto(q.next_contact_date)}` : ''}</Texto>
+          {/* Destacado con un recuadro: es lo que no hay que olvidar */}
+          <View style={[e.proximo, { borderColor: q.next_contact_date ? t.seguimiento : t.borde, backgroundColor: q.next_contact_date ? `${t.seguimiento}1F` : t.tarjeta }]}>
+            <Texto variante="chico" fuerte color={q.next_contact_date ? 'seguimiento' : 'suave'}>PRÓXIMO CONTACTO</Texto>
+            <Texto variante="subtitulo" color={q.next_contact_date ? 'seguimiento' : 'suave'}>{q.next_contact_date ? diaCorto(q.next_contact_date) : 'Sin fecha programada'}</Texto>
+            {q.next_contact_date ? <Texto variante="chico" suave>Ese día, a las 9:00, te llega un aviso en este teléfono.</Texto> : null}
+          </View>
           <View style={e.chips}>
             {PLAZOS.map((p) => (
               <Pressable key={p.dias} accessibilityRole="button" disabled={ocupado} onPress={() => void programar(enDias(p.dias))} style={[e.chip, { borderColor: q.next_contact_date === enDias(p.dias) ? t.acento : t.borde, backgroundColor: t.tarjeta }]}>
@@ -128,6 +133,7 @@ const e = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
   chip: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: 999, paddingHorizontal: espacio.l, alignItems: 'center', justifyContent: 'center' },
   mitad: { flex: 1 },
+  proximo: { borderWidth: 2, borderRadius: 14, borderCurve: 'continuous', padding: espacio.l, gap: espacio.xs },
   calendario: { borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', padding: espacio.m, gap: espacio.m },
   historial: { gap: espacio.s },
   registro: { borderLeftWidth: 2, paddingLeft: espacio.m, gap: espacio.xs },

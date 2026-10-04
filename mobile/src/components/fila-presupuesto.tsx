@@ -103,7 +103,11 @@ export function FilaPresupuesto({
         {identificador ? <Texto variante="chico" suave style={e.id}>{identificador}</Texto> : null}
         <Texto variante="chico" suave numberOfLines={2}>{q.service_description || 'Sin descripción todavía'}</Texto>
         <Pastilla texto={estado.texto} tono={estado.tono} />
-        {q.next_contact_date ? <Texto variante="chico" suave>Contactar el {diaCorto(q.next_contact_date)}</Texto> : null}
+        {q.next_contact_date ? (
+          <View style={[e.contacto, { borderColor: t.seguimiento, backgroundColor: `${t.seguimiento}1F` }]}>
+            <Texto variante="chico" fuerte color="seguimiento">Contactar el {diaCorto(q.next_contact_date)}</Texto>
+          </View>
+        ) : null}
       </View>
       <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
     </Toque>
@@ -160,6 +164,7 @@ const e = StyleSheet.create({
   filaTexto: { flex: 1, gap: espacio.xs },
   monto: { fontVariant: ['tabular-nums'] },
   id: { fontVariant: ['tabular-nums'], letterSpacing: 1 },
+  contacto: { alignSelf: 'flex-start', borderWidth: 1.5, borderRadius: 8, borderCurve: 'continuous', paddingHorizontal: espacio.m, paddingVertical: espacio.xs },
   contenedor: { borderRadius: 16, borderCurve: 'continuous', overflow: 'hidden' }, // recorta lo que sale por las esquinas redondeadas
   accion: { width: 96, borderRadius: 16, borderCurve: 'continuous' },
   accionToque: { flex: 1, alignItems: 'center', justifyContent: 'center' },
