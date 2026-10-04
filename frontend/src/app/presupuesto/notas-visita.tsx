@@ -29,7 +29,7 @@ export function NotasVisita({ notas }: { notas: string | null }) {
             setError(null);
             setEditando(true);
           }}
-          className="boton-texto !min-h-0 !p-2"
+          className="boton-icono -mr-2 -mt-2 shrink-0"
           aria-label="Editar las notas de la visita"
           title="Editar las notas de la visita"
         >

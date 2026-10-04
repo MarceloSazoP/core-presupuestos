@@ -365,7 +365,10 @@ export function Editor({ inicial }: { inicial: Inicial }) {
                 </label>
               </dt>
               <dd>
-                <input id="iva" name="iva" value="1" type="checkbox" checked={conIva} onChange={(e) => setConIva(e.target.checked)} className="size-5 accent-[var(--acento-texto)]" />
+                {/* El casillero nativo no crece con relleno: la etiqueta que lo envuelve da el área de 44 px. */}
+                <label className="grid size-11 cursor-pointer place-items-center">
+                  <input id="iva" name="iva" value="1" type="checkbox" checked={conIva} onChange={(e) => setConIva(e.target.checked)} className="size-6 cursor-pointer accent-[var(--acento-texto)]" />
+                </label>
               </dd>
             </div>
             {conIva && (

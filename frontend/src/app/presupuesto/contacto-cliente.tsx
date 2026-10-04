@@ -38,7 +38,7 @@ export function ContactoCliente({ nombre, telefono, correo }: { nombre?: string;
             setError(null);
             setEditando(true);
           }}
-          className="boton-texto !min-h-0 !p-2"
+          className="boton-icono -mr-2 -mt-2 shrink-0"
           aria-label="Corregir los datos del cliente"
           title="Corregir los datos del cliente"
         >
