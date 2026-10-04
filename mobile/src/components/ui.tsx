@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type TextInputProps, type TextProps } from 'react-native';
+import { ActivityIndicator, InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, type PressableProps, type TextInputProps, type TextProps } from 'react-native';
 import { espacio, letra, MIN_TOQUE, useTema, type Tema } from '@/theme';
 
 // Piezas mínimas de interfaz. Tamaños de letra: 4; pesos: 2 (400 y 600). Todo objetivo táctil mide ≥ 48 pt.
@@ -39,6 +39,26 @@ export function Boton({ titulo, variante = 'primario', cargando = false, disable
   );
 }
 
+// Barra fija sobre el teclado de iOS (se monta una sola vez en la raíz): el botón «Listo» lo oculta y la barrita indica que se
+// puede arrastrar hacia abajo (las pantallas con campos usan keyboardDismissMode="interactive"). El teclado numérico de iOS no
+// trae tecla para cerrarse, así que sin esto un campo de precio dejaba el teclado abierto.
+export const TECLADO_ID = 'barraTeclado';
+
+export function BarraTeclado() {
+  const t = useTema();
+  if (Platform.OS !== 'ios') return null; // en Android el gesto o el botón atrás ya ocultan el teclado
+  return (
+    <InputAccessoryView nativeID={TECLADO_ID}>
+      <View style={[e.barraTeclado, { backgroundColor: t.tarjeta, borderTopColor: t.borde }]}>
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarreTeclado, { backgroundColor: t.suave }]} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Ocultar teclado" onPress={() => Keyboard.dismiss()} hitSlop={8} style={e.listo}>
+          <Text style={[e.textoBoton, { color: t.acento }]}>Listo</Text>
+        </Pressable>
+      </View>
+    </InputAccessoryView>
+  );
+}
+
 export function Campo({ etiqueta, error, ayuda, ref, style, ...props }: TextInputProps & { etiqueta: string; error?: string | null; ayuda?: string; ref?: React.Ref<TextInput> }) {
   const t = useTema();
   return (
@@ -49,6 +69,7 @@ export function Campo({ etiqueta, error, ayuda, ref, style, ...props }: TextInpu
       <TextInput
         ref={ref}
         accessibilityLabel={etiqueta}
+        inputAccessoryViewID={TECLADO_ID}
         placeholderTextColor={t.suave}
         selectionColor={t.acento}
         {...props}
@@ -82,6 +103,9 @@ const e = StyleSheet.create({
   boton: { minHeight: MIN_TOQUE, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: espacio.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
   textoBoton: { fontSize: letra.cuerpo, fontWeight: '600' },
   campo: { gap: espacio.xs },
+  barraTeclado: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: espacio.l },
+  agarreTeclado: { position: 'absolute', alignSelf: 'center', left: '50%', marginLeft: -20, top: 6, width: 40, height: 5, borderRadius: 3, opacity: 0.5 },
+  listo: { minHeight: 44, minWidth: 64, alignItems: 'flex-end', justifyContent: 'center' },
   entrada: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: espacio.l, fontSize: letra.cuerpo }, // 16 pt: iOS no hace zoom al enfocar
   multilinea: { minHeight: 96, paddingTop: espacio.m, textAlignVertical: 'top' },
   pastilla: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs, alignSelf: 'flex-start', borderWidth: 1, borderRadius: 999, paddingHorizontal: espacio.m, paddingVertical: espacio.xs },

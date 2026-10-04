@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Keyboard, ScrollView, StyleSheet, View } from 'react-native';
 import { api, fuenteDeArchivo, mensajeDe, subir } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
@@ -62,6 +62,7 @@ export default function Configurar() {
   }
 
   async function elegirLogo() {
+    Keyboard.dismiss(); // primero se oculta el teclado: abrir el selector con él abierto descuadra el espacio de abajo
     const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
     if (r.canceled || !usuario) return;
     const a = r.assets[0]!;
@@ -102,7 +103,7 @@ export default function Configurar() {
     ]);
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
+    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <View style={e.seccion}>
         <Texto variante="subtitulo">Tus datos en los presupuestos</Texto>
         <Texto variante="chico" suave>Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.</Texto>

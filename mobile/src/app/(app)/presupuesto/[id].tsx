@@ -97,7 +97,7 @@ export default function Detalle() {
 
   const cerrado = q.doc_status === 'FINALIZED';
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
+    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <Stack.Screen options={{ title: q.number ?? 'Presupuesto' }} />
       <Sincronizacion />
 

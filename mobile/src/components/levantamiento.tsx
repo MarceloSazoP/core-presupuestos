@@ -5,10 +5,10 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { Boton, Campo, TECLADO_ID, Texto } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
 import { guardarArchivo } from '@/sync/archivos';
 import { descartarSubida, encolar } from '@/sync/cola';
@@ -70,7 +70,7 @@ function Trabajo({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <Campo etiqueta="¿Qué trabajo es?" value={servicio} onChangeText={setServicio} onBlur={guardar} multiline maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Sale en el PDF. Es obligatorio para terminar el presupuesto." error={error} />
+      <Campo etiqueta="Servicio" value={servicio} onChangeText={setServicio} onBlur={guardar} multiline maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Sale en el PDF. Es obligatorio para terminar el presupuesto." error={error} />
       <Campo etiqueta="Dirección del trabajo (opcional)" value={direccion} onChangeText={setDireccion} onBlur={guardar} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
     </View>
   );
@@ -131,8 +131,8 @@ function Medidas({ q, cambiar }: Props) {
       <Texto variante="chico" fuerte>Medidas</Texto>
       {filas.map((f) => (
         <View key={f.clave} style={e.filaMedida}>
-          <TextInput accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
-          <TextInput accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Quitar medida" onPress={() => quitar(f.clave)} hitSlop={4} style={e.quitar}>
             <Texto color="suave" variante="subtitulo">×</Texto>
           </Pressable>
@@ -152,6 +152,7 @@ function Fotos({ q, cambiar }: Props) {
   const quedan = MAX_FOTOS - fotos.length;
 
   async function agregar(origen: 'camara' | 'galeria') {
+    Keyboard.dismiss(); // con el teclado abierto, el selector deja el espacio de abajo mal calculado
     if (quedan <= 0) return Alert.alert('Máximo de fotos', `Cada presupuesto admite hasta ${MAX_FOTOS} fotos.`);
     if (origen === 'camara') {
       const p = await ImagePicker.requestCameraPermissionsAsync();
