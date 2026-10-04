@@ -279,7 +279,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           <button type="button" onClick={() => agregar("tarea")} className="boton-secundario" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
             + Agregar tarea
           </button>
-          <p className="ayuda">Enter confirma y pasa a la celda siguiente; tras el último precio crea otra fila.</p>
+          <p className="ayuda">Enter pasa a la celda siguiente y, al final, crea otra fila.</p>
         </div>
       </section>
 

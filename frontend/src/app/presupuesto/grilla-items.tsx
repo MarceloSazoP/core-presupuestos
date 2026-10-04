@@ -145,7 +145,9 @@ export function GrillaItems({
         cellEditorParams: { maxLength: 300 },
         // La etiqueta distingue las tareas de los ítems de un vistazo.
         cellRenderer: (p: { data?: Fila; value?: string }) =>
-          p.data?.tipo === "tarea" ? (
+          !p.value ? (
+            <span className="text-muted">{p.data?.tipo === "tarea" ? "Por ejemplo: botar escombros" : "Qué vas a hacer o vender"}</span>
+          ) : p.data?.tipo === "tarea" ? (
             <span className="flex items-center gap-2">
               <span className="shrink-0 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>
               <span className="truncate">{p.value}</span>

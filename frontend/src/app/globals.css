@@ -367,3 +367,8 @@ button {
     animation-duration: 2.4s;
   }
 }
+
+/* AG Grid reserva 150 px mínimos aunque haya una sola fila: la grilla de ítems mide lo que miden sus filas. */
+.ag-grid-scrolling-rows.ag-layout-auto-height {
+  min-height: 0 !important;
+}
