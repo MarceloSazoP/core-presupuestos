@@ -26,10 +26,11 @@ export function Multimedia({ fotos, audios, editable = false }: Props) {
 
   if (fotos.length === 0 && audios.length === 0) return null;
   return (
-    <section aria-labelledby="multimedia" className="flex flex-col gap-3 @3xl:col-span-2">
-      <h3 id="multimedia" className="etiqueta uppercase tracking-wide text-muted">
-        Fotos y notas de voz <span className="font-normal normal-case">(internas, no salen en el PDF)</span>
-      </h3>
+    <section aria-labelledby="multimedia" className="flex flex-col gap-3">
+      {/* Va dentro del panel «De la visita», que ya dice que es interno. */}
+      <h4 id="multimedia" className="etiqueta">
+        Fotos y notas de voz
+      </h4>
       {error && (
         <p role="alert" className="text-sm text-error">
           {error}
@@ -48,9 +49,13 @@ export function Multimedia({ fotos, audios, editable = false }: Props) {
                   type="button"
                   aria-label={`Eliminar la foto ${i + 1}`}
                   onClick={() => setConfirmando({ tipo: "foto", id })}
-                  className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/65 text-lg leading-none text-white hover:bg-black/80"
+                  className="group absolute right-0 top-0 grid size-11 place-items-center" // área de 44 px; el círculo visible es más chico
                 >
-                  ×
+                  <span className="grid size-7 place-items-center rounded-full bg-black/65 text-white transition-colors group-hover:bg-black/80">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                      <path d="M6 6l12 12M18 6 6 18" />
+                    </svg>
+                  </span>
                 </button>
               )}
               {editable && es("foto", id) && (

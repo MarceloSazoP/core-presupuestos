@@ -3,12 +3,17 @@
 /* Paleta en OKLCH, neutros teñidos hacia el tono de la marca (262). Pares texto/fondo verificados a ≥ 4,5:1. */
 :root {
   color-scheme: light dark;
-  --background: oklch(0.99 0.003 262);
+  /* Claro: página apenas gris y tarjetas blancas, como papel sobre la mesa. */
+  --background: oklch(0.975 0.004 262);
   --foreground: oklch(0.22 0.012 262);
   --muted: oklch(0.46 0.016 262);
-  --card: oklch(0.965 0.007 262);
+  --card: oklch(1 0 0);
   --borde: oklch(0.87 0.011 262);
   --campo-fondo: var(--background);
+  /* Notas de la visita: la copia amarilla del talonario (solo para el profesional, no van al PDF) */
+  --nota-fondo: oklch(0.975 0.045 95);
+  --nota-borde: oklch(0.86 0.08 92);
+  --nota-sello: oklch(0.45 0.09 75);
   --borde-campo: oklch(0.62 0.014 262); /* borde de campos: ≥ 3:1 contra su fondo (WCAG 1.4.11); --borde es para divisiones */
   --acento: oklch(0.5 0.16 262); /* menos saturado que antes (0,19): el azul se mezcla mejor con los neutros */
   --acento-texto: oklch(0.5 0.16 262);
@@ -27,6 +32,9 @@
     --card: oklch(0.19 0.009 262);
     --borde: oklch(0.31 0.012 262);
     --borde-campo: oklch(0.5 0.014 262);
+    --nota-fondo: oklch(0.235 0.03 90);
+    --nota-borde: oklch(0.38 0.055 90);
+    --nota-sello: oklch(0.84 0.11 88);
     --campo-fondo: oklch(0.215 0.009 262); /* un punto más claro que la tarjeta: los campos no se ven como huecos */
     --acento-texto: oklch(0.76 0.12 262);
     --error: oklch(0.74 0.15 27);
@@ -46,6 +54,9 @@
   --borde: oklch(0.31 0.012 262);
   --borde-campo: oklch(0.5 0.014 262);
   --campo-fondo: oklch(0.215 0.009 262);
+  --nota-fondo: oklch(0.235 0.03 90);
+  --nota-borde: oklch(0.38 0.055 90);
+  --nota-sello: oklch(0.84 0.11 88);
   --acento-texto: oklch(0.76 0.12 262);
   --error: oklch(0.74 0.15 27);
   --ok: oklch(0.76 0.14 150);
@@ -286,6 +297,32 @@ button {
   /* Superficies */
   .tarjeta {
     @apply rounded-xl border border-borde bg-card p-4;
+  }
+
+  /* Notas de la visita: hoja amarilla del talonario con el borde de arriba perforado (medios círculos del color de la página).
+     Es lo único con color propio en el editor: marca lo que es solo para el profesional. */
+  .nota {
+    position: relative;
+    border: 1px solid var(--nota-borde);
+    border-radius: 0.25rem 0.25rem 0.75rem 0.75rem;
+    background: var(--nota-fondo);
+  }
+  .nota::before {
+    content: "";
+    position: absolute;
+    inset: -1px -1px auto;
+    height: 7px;
+    background: radial-gradient(circle at 7px 0, var(--background) 3.5px, transparent 4px) 0 0 / 14px 7px repeat-x;
+    pointer-events: none;
+  }
+  .nota-sello {
+    @apply inline-flex items-center gap-1.5 text-[0.8125rem] font-medium;
+    color: var(--nota-sello);
+  }
+  .nota-dato {
+    @apply rounded-md px-2 py-0.5 text-sm;
+    border: 1px solid var(--nota-borde);
+    background: color-mix(in oklab, var(--nota-fondo) 60%, var(--card));
   }
 
   /* Estado documental */

@@ -10,6 +10,7 @@ import { Encabezado } from "./encabezado";
 import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { ContactoCliente } from "./contacto-cliente";
 import { EnviarCorreo } from "./enviar-correo";
+import { DeLaVisita, Medidas } from "./de-la-visita";
 import { Multimedia } from "./multimedia";
 
 export const metadata: Metadata = { title: "Presupuesto · CORE Presupuestos" };
@@ -47,7 +48,7 @@ export default async function PresupuestoPage() {
     };
 
     return (
-      <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
+      <main className="mx-auto flex w-full max-w-[84rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
         <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
         <h1 className="sr-only">Completar presupuesto</h1>
         <Editor key={huella(datosEditor)} inicial={datosEditor} />
@@ -63,7 +64,7 @@ export default async function PresupuestoPage() {
   );
 
   return (
-    <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0">
+    <main className="mx-auto flex w-full max-w-[84rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10">
       <Encabezado profesional={p.profesional} logoSrc={logoSrc} />
       <header className="flex flex-col items-start gap-1">
         <span className="estado estado-cerrado">Cerrado{p.version > 1 ? ` · Versión ${p.version}` : ""}</span>
@@ -74,7 +75,13 @@ export default async function PresupuestoPage() {
         <p className="text-muted">Para {p.cliente.nombre}</p>
       </header>
 
-      <Multimedia fotos={p.levantamiento.fotos} audios={p.levantamiento.audios} />
+      {(p.levantamiento.notas || p.levantamiento.medidas.length > 0 || p.levantamiento.fotos.length > 0 || p.levantamiento.audios.length > 0) && (
+        <DeLaVisita>
+          {p.levantamiento.notas && <p className="whitespace-pre-line">{p.levantamiento.notas}</p>}
+          <Medidas medidas={p.levantamiento.medidas} />
+          <Multimedia fotos={p.levantamiento.fotos} audios={p.levantamiento.audios} />
+        </DeLaVisita>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <section aria-labelledby="detalle" className="tarjeta items flex flex-col gap-2">
