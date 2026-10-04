@@ -3,19 +3,18 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
-import type { EstadoComercial, Presupuesto } from '@/api/types';
+import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
+import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, enDias } from '@/lib/fechas';
 import { pedirPermiso, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
-// Seguimiento comercial mínimo (CLAUDE.md §13): que no se olvide un presupuesto enviado. Aceptar o rechazar es manual.
-const ESTADOS = [
-  { id: 'SENT', texto: 'Enviado' }, { id: 'FOLLOW_UP', texto: 'Seguimiento' }, { id: 'ACCEPTED', texto: 'Aceptado' }, { id: 'REJECTED', texto: 'Rechazado' },
-] as const satisfies readonly { id: Exclude<EstadoComercial, 'NONE'>; texto: string }[];
+// Seguimiento comercial mínimo (CLAUDE.md §13): que no se olvide un presupuesto enviado. El estado se cambia desde las pestañas de
+// la lista; aquí van el próximo contacto, las notas, llamar, WhatsApp y el historial.
 const PLAZOS = [{ dias: 1, texto: 'Mañana' }, { dias: 3, texto: 'En 3 días' }, { dias: 7, texto: 'En 1 semana' }, { dias: 14, texto: 'En 2 semanas' }];
-const NOMBRE = Object.fromEntries(ESTADOS.map((s) => [s.id, s.texto]));
+const NOMBRE = Object.fromEntries(ESTADOS.map((s) => [s.id, s.texto])); // para el historial
 
 type Registro = { id: string; note: string | null; next_contact_date: string | null; commercial_status: string; created_at: string };
 
@@ -48,7 +47,6 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
     }
   }
 
-  const cambiarEstado = (status: string) => hacer(async () => { await api(`/quotes/${q.id}/commercial-status`, { method: 'PUT', body: { status, ...(nota.trim() ? { note: nota.trim() } : {}) } }); setNota(''); });
   // `dia` es 'YYYY-MM-DD'. La notificación de ese día se programa a las 9:00.
   const programar = async (dia: string) => {
     await pedirPermiso(); // primera vez: el sistema pregunta; si lo rechazan, la fecha igual se guarda en la app
@@ -65,18 +63,6 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
   return (
     <View style={e.seccion}>
       <Texto variante="subtitulo">Seguimiento</Texto>
-
-      <Texto variante="chico" fuerte>Estado</Texto>
-      <View style={e.chips}>
-        {ESTADOS.map((s) => {
-          const elegido = s.id === q.commercial_status;
-          return (
-            <Pressable key={s.id} accessibilityRole="radio" accessibilityState={{ selected: elegido, disabled: ocupado }} disabled={ocupado || elegido} onPress={() => void cambiarEstado(s.id)} style={[e.chip, { borderColor: elegido ? t.acento : t.borde, backgroundColor: elegido ? t.acento : t.tarjeta }]}>
-              <Texto color={elegido ? 'sobreAcento' : 'texto'} fuerte={elegido}>{s.texto}</Texto>
-            </Pressable>
-          );
-        })}
-      </View>
 
       {cerrada ? null : (
         <>

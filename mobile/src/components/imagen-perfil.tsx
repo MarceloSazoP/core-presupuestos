@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Keyboard, StyleSheet, View } from 'react-native';
+import { Alert, Keyboard, StyleSheet, Switch, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { api, fuenteDeArchivo, mensajeDe, subir } from '@/api/client';
 import type { Usuario } from '@/api/types';
@@ -20,6 +20,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
   const t = useTema();
   const { usuario, actualizar } = useSesion();
   const [ocupado, setOcupado] = useState(false);
+  const [cambiando, setCambiando] = useState(false);
   const [mensaje, setMensaje] = useState('Actualizado');
   const destello = useSharedValue(0);
   const estiloDestello = useAnimatedStyle(() => ({ opacity: destello.get() }));
@@ -33,6 +34,19 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
     destello.set(withSequence(withTiming(1, { duration: 160 }), withDelay(1200, withTiming(0, { duration: 500 }))));
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
+
+  // Solo la firma: incluirla es una opción del perfil (Contrato API §4), no de cada presupuesto: o va en todos o en ninguno.
+  async function incluir(valor: boolean) {
+    setCambiando(true);
+    try {
+      await actualizar(await api<Usuario>('/me', { method: 'PUT', body: { include_signature: valor } }));
+      encender('Actualizado');
+    } catch (err) {
+      Alert.alert('No se pudo cambiar', mensajeDe(err));
+    } finally {
+      setCambiando(false);
+    }
+  }
 
   async function elegir() {
     Keyboard.dismiss(); // con el teclado abierto, el selector descuadra el espacio de abajo
@@ -62,7 +76,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
           setOcupado(true);
           api(`/me/${ruta}`, { method: 'DELETE' })
             .then(() => {
-              if (usuario) void actualizar(ruta === 'logo' ? { ...usuario, has_logo: false, logo_id: null } : { ...usuario, has_signature: false, signature_id: null });
+              if (usuario) void actualizar(ruta === 'logo' ? { ...usuario, has_logo: false, logo_id: null } : { ...usuario, has_signature: false, signature_id: null, include_signature: false });
               encender('Quitado');
             })
             .catch((err) => Alert.alert(`No se pudo quitar ${nombre}`, mensajeDe(err)))
@@ -88,6 +102,15 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
           </View>
         </Animated.View>
       </View>
+      {ruta === 'signature' ? (
+        <>
+          <View style={e.filaSwitch}>
+            <Texto style={e.textoSwitch}>Incluir mi firma en todos mis presupuestos</Texto>
+            <Switch accessibilityLabel="Incluir mi firma en todos mis presupuestos" value={tiene && !!usuario?.include_signature} disabled={!tiene || cambiando} onValueChange={(v) => void incluir(v)} trackColor={{ true: t.acento }} />
+          </View>
+          <Texto variante="chico" suave>{tiene ? 'Activada, la firma sale en todos los presupuestos que termines; apagada, no sale en ninguno. El nombre, el teléfono y el correo siempre salen bajo la línea de firma.' : 'Sube tu firma para poder activarla.'}</Texto>
+        </>
+      ) : null}
       <Boton titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} variante="secundario" onPress={() => void elegir()} cargando={ocupado} />
       {tiene ? <Boton titulo={`Quitar ${nombre}`} variante="texto" onPress={quitar} disabled={ocupado} /> : null}
     </View>
@@ -98,6 +121,8 @@ const e = StyleSheet.create({
   seccion: { gap: espacio.m },
   vista: { height: 120, borderWidth: 1, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   imagen: { width: '100%', height: '100%' },
+  filaSwitch: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  textoSwitch: { flex: 1 },
   destello: { borderWidth: 2, borderRadius: 16, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: espacio.s },
   etiqueta: { borderRadius: 999, paddingHorizontal: espacio.m, paddingVertical: espacio.xs },
 });

@@ -7,7 +7,6 @@ import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Pastilla, Texto } from '@/components/ui';
 import { clp } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
-import { useSesion } from '@/session';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
@@ -54,9 +53,6 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
   );
   const [descuento, setDescuento] = useState(String(q.discount || ''));
   const [conIva, setConIva] = useState(q.include_vat);
-  const { usuario } = useSesion();
-  const hayFirma = !!usuario?.has_signature;
-  const [conFirma, setConFirma] = useState(!!q.include_signature && hayFirma);
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
   const [garantia, setGarantia] = useState<string>(q.warranty.kind === 'CUSTOM' ? 'NONE' : q.warranty.kind);
   const [obs, setObs] = useState(q.observations ?? '');
@@ -80,7 +76,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
     await api(`/quotes/${q.id}/items`, { method: 'PUT', body: { items } });
     await api(`/quotes/${q.id}`, {
       method: 'PATCH',
-      body: { discount: entero(descuento), include_vat: conIva, include_signature: conFirma && hayFirma, validity_days: Math.min(365, Math.max(1, entero(dias))), warranty: { kind: garantia }, observations: obs.trim() || null },
+      body: { discount: entero(descuento), include_vat: conIva, validity_days: Math.min(365, Math.max(1, entero(dias))), warranty: { kind: garantia }, observations: obs.trim() || null },
     });
   }
 
@@ -152,11 +148,6 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
         <Texto style={e.textoIva}>Agregar IVA (19%)</Texto>
         <Switch accessibilityLabel="Agregar IVA (19%)" value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
       </View>
-      <View style={e.filaIva}>
-        <Texto style={e.textoIva}>Incluir mi firma en el PDF</Texto>
-        <Switch accessibilityLabel="Incluir mi firma en el PDF" value={conFirma && hayFirma} disabled={!hayFirma} onValueChange={setConFirma} trackColor={{ true: t.acento }} />
-      </View>
-      {hayFirma ? null : <Boton titulo="Subir mi firma en Configurar" variante="texto" onPress={() => router.push('/configurar')} />}
       <Texto variante="chico" fuerte>Garantía</Texto>
       <Chips etiqueta="Garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={setGarantia} />
       <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />

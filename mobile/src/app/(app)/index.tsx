@@ -87,6 +87,10 @@ export default function Presupuestos() {
     <View style={{ flex: 1, backgroundColor: t.fondo }}>
       <Pestanas activa={pestana} cuentas={cuentas} alElegir={elegirPestana} />
       <FlashList
+        key={pestana} // al cambiar de pestaña la lista parte desde arriba
+        // FlashList 2 conserva por defecto lo que ya se veía cuando llegan elementos arriba: los presupuestos nuevos quedaban
+        // por encima de la pantalla, escondidos detrás de las pestañas. Aquí lo nuevo debe verse primero.
+        maintainVisibleContentPosition={{ disabled: true }}
         data={visibles}
         keyExtractor={(q) => q.id}
         renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}

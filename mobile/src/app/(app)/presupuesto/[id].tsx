@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, ScrollView, Share, StyleSheet, View } from 'r
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
+import { ContactoCliente } from '@/components/contacto-cliente';
 import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
@@ -106,7 +107,7 @@ export default function Detalle() {
         {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
         <Texto variante="titulo">{q.customer.name}</Texto>
-        <Texto suave>{q.customer.phone}</Texto>
+        <ContactoCliente key={`${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} />
         {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
         {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
       </View>
