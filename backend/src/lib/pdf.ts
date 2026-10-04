@@ -40,7 +40,7 @@ export type Image = { data: Buffer; mime: string };
 const dataUrl = (i: Image) => `data:${i.mime};base64,${i.data.toString('base64')}`;
 
 // Recibe el SNAPSHOT y las imágenes ya leídas; no toca la BD ni el disco (Arquitectura §3, PDF y QR).
-export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr?: Buffer } = {}): Promise<Buffer> {
+export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr?: Buffer; preview?: boolean } = {}): Promise<Buffer> {
   const totalRow = (label: string, value: string, bold = false): Content => ({
     columns: [
       { text: label, width: '*', alignment: 'right', bold },
@@ -51,6 +51,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
 
   const def: TDocumentDefinitions = {
     pageMargins: [40, 40, 40, 50],
+    ...(img.preview && { watermark: { text: 'VISTA PREVIA', color: '#b42318', opacity: 0.1, bold: true } }),
     defaultStyle: { font: 'Roboto', fontSize: 10 },
     info: { title: `Presupuesto ${s.number}${(s.version ?? 1) > 1 ? ` · Versión ${s.version}` : ''}` },
     content: [

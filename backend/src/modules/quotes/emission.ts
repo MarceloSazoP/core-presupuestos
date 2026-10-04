@@ -56,6 +56,20 @@ async function activeToken(quoteId: string): Promise<string> {
   return rows[0].token;
 }
 
+// Lo que se imprime, a partir de lo guardado. Lo comparten terminar (queda fijado) y la vista previa (no se guarda).
+function makeSnapshot(q: QuoteRow, items: ItemRow[], u: UserRow, customerName: string, o: { number: string; previousNumber: string | null; at: Date; validUntil: string }): Snapshot {
+  return {
+    number: o.number, version: q.version, previous_number: o.previousNumber, finalized_at: o.at.toISOString(), valid_until: o.validUntil,
+    professional: { name: u.name, phone: u.phone, email: u.email, logo_file_id: u.use_logo ? u.logo_file_id : null, signature_file_id: u.include_signature ? u.signature_file_id : null },
+    customer: { name: customerName },
+    service_description: (q.service_description ?? '').trim() || '(sin descripción)', service_address: q.address,
+    items: items.map((i) => ({ kind: i.kind, description: i.description, quantity: i.quantity, unit: i.unit, unit_price: i.unit_price, line_total: i.line_total })),
+    subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, vat_rate: VAT_RATE, total: q.total,
+    warranty: { kind: q.warranty_kind, text: warrantyText(q.warranty_kind, q.warranty_text) },
+    validity_days: q.validity_days ?? 15, observations: q.observations, include_signature: u.include_signature, include_qr: q.include_qr, // la firma sigue al perfil de este momento
+  };
+}
+
 export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLimit?: number }) {
   // ── Finalizar: snapshot + PDF + QR + enlace público, todo o nada ─────────────────────────────
   r.post('/:id/finalize', allow('USER', 'QUOTE_CODE'), async (req, res) => {
@@ -89,16 +103,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
         const number = `CP-${t[0]!.year}-${String(n[0]!.last_number).padStart(4, '0')}`;
 
         const u = user.rows[0]!;
-        const snapshot: Snapshot = {
-          number, version: q.version, previous_number: previousNumber, finalized_at: t[0]!.ts.toISOString(), valid_until: t[0]!.valid_until,
-          professional: { name: u.name, phone: u.phone, email: u.email, logo_file_id: u.use_logo ? u.logo_file_id : null, signature_file_id: u.include_signature ? u.signature_file_id : null },
-          customer: { name: customer.rows[0]!.name },
-          service_description: q.service_description!.trim(), service_address: q.address,
-          items: items.rows.map((i) => ({ kind: i.kind, description: i.description, quantity: i.quantity, unit: i.unit, unit_price: i.unit_price, line_total: i.line_total })),
-          subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, vat_rate: VAT_RATE, total: q.total,
-          warranty: { kind: q.warranty_kind, text: warrantyText(q.warranty_kind, q.warranty_text) },
-          validity_days: q.validity_days!, observations: q.observations, include_signature: u.include_signature, include_qr: q.include_qr, // la firma sigue al perfil de este momento
-        };
+        const snapshot = makeSnapshot(q, items.rows, u, customer.rows[0]!.name, { number, previousNumber, at: t[0]!.ts, validUntil: t[0]!.valid_until });
 
         const token = randomBytes(24).toString('base64url'); // 192 bits
         const pdf = await buildPdf(snapshot, {
@@ -127,6 +132,26 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     }
     await audit(req, 'QUOTE_FINALIZED', { userId: q0.user_id, quoteId: q0.id });
     res.json(await quoteDetail(await loadQuote(req, q0.id)));
+  });
+
+  // Vista previa del borrador (Contrato API §7): el PDF con lo guardado hoy, sin numerar ni fijar nada.
+  r.get('/:id/preview', allow('USER', 'QUOTE_CODE'), async (req, res) => {
+    const q = await loadQuote(req, req.params.id);
+    editable(q);
+    const [items, user, customer, fecha] = await Promise.all([
+      query<ItemRow>('SELECT kind, description, quantity, unit, unit_price, line_total FROM quote_items WHERE quote_id = $1 ORDER BY position', [q.id]),
+      query<UserRow>('SELECT name, COALESCE(contact_phone, phone) AS phone, COALESCE(contact_email, email) AS email, logo_file_id, signature_file_id, use_logo, include_signature FROM users WHERE id = $1', [q.user_id]),
+      query<{ name: string }>('SELECT name FROM customers WHERE id = $1 AND user_id = $2', [q.customer_id, q.user_id]),
+      query<{ ts: Date; valid_until: string }>(`SELECT now() AS ts, ((now() AT TIME ZONE 'America/Santiago')::date + $1::int)::text AS valid_until`, [q.validity_days ?? 15]),
+    ]);
+    const u = user.rows[0]!;
+    const snapshot = makeSnapshot(q, items.rows, u, customer.rows[0]!.name, { number: 'Borrador', previousNumber: null, at: fecha.rows[0]!.ts, validUntil: fecha.rows[0]!.valid_until });
+    const pdf = await buildPdf({ ...snapshot, include_qr: false }, {
+      logo: u.use_logo ? await readImage(u.logo_file_id) : undefined,
+      signature: u.include_signature ? await readImage(u.signature_file_id) : undefined,
+      preview: true,
+    });
+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="vista-previa.pdf"', 'Content-Length': String(pdf.length) }).end(pdf);
   });
 
   // Logo de quien emite: el actual mientras se edita, y el que quedó fijado en el snapshot una vez finalizado.

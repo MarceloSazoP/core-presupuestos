@@ -236,6 +236,7 @@ Todo se escribe solo si `doc_status ∈ {DRAFT, PENDING}`; en `FINALIZED` respon
 | `GET /quotes` | Filtros: `section` = `pending` \| `follow_up` \| `finalized`; `doc_status`; `commercial_status`; `customer_id`. Orden `updated_at` descendente. Devuelve `QuoteSummary`. |
 | `GET /quotes/{id}` | `Quote` completo. |
 | `GET /quotes/{id}/pdf` | PDF del snapshot. Solo `FINALIZED`. |
+| `GET /quotes/{id}/preview` | **Vista previa** (decisión del 2026-10-04): el PDF del borrador tal como quedaría con lo guardado hoy, con marca de agua «VISTA PREVIA». No numera, no fija snapshot ni enlace, no exige que esté completo (sin descripción dice «(sin descripción)»; sin validez usa 15 días) y no lleva QR. Sesión `USER` o `QUOTE_CODE`; solo mientras se edita (`FINALIZED` ⇒ 409, se usa `/pdf`). |
 | `DELETE /quotes/{id}` | **204**. Solo `DRAFT`/`PENDING`. |
 
 `section` aplica las definiciones del contrato de BD §4.
@@ -397,7 +398,7 @@ Es la forma de recuperar un presupuesto **sin una sesión `USER`** (Definición 
 
 | Estado del presupuesto | Permitido |
 |------------------------|-----------|
-| `DRAFT` / `PENDING` | `GET /quotes/{id}`; `PATCH`; `PUT survey|measurements|items`; subir y borrar fotos y notas de voz; `GET /files/*` de ese presupuesto; `GET logo`; `POST save`; `POST finalize`. |
+| `DRAFT` / `PENDING` | `GET /quotes/{id}`; `GET preview`; `PATCH`; `PUT survey|measurements|items`; subir y borrar fotos y notas de voz; `GET /files/*` de ese presupuesto; `GET logo`; `POST save`; `POST finalize`. |
 | `FINALIZED` | `GET /quotes/{id}` (solo lectura); `GET pdf`, `share`, `qr.png`, `logo`; `POST send-email`; `POST mark-sent`. |
 
 Todo lo demás responde **403 `INSUFFICIENT_SCOPE`**: borrar el presupuesto, estado comercial y seguimiento, gestionar el código, clientes, perfil, dashboard y cualquier otro presupuesto.
