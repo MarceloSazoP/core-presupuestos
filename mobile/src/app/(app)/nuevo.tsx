@@ -1,16 +1,17 @@
+import { randomUUID } from 'expo-crypto';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { api, mensajeDe } from '@/api/client';
-import type { PresupuestoCreado } from '@/api/types';
+import { mensajeDe } from '@/api/client';
+import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
-import { guardarCodigo } from '@/lib/codigos';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
+import { encolar, guardarBorrador } from '@/sync/cola';
 import { espacio, useTema } from '@/theme';
 
-// Etapa 1 del wizard (CLAUDE.md §10): cliente, ubicación y descripción inicial. Al crearlo, el servidor entrega el código
-// del presupuesto (una sola vez): se guarda en el teléfono y se muestra en el detalle.
+// Etapa 1 del wizard (CLAUDE.md §10): cliente, ubicación y descripción inicial. Funciona sin conexión: el presupuesto
+// nace en el teléfono con su propio id y se envía por la cola. El servidor entrega el código al recibirlo (sync/cola.ts).
 export default function Nuevo() {
   const t = useTema();
   const [nombre, setNombre] = useState('');
@@ -39,17 +40,21 @@ export default function Nuevo() {
     setCargando(true);
     setAviso(null);
     try {
-      const q = await api<PresupuestoCreado>('/quotes', {
-        method: 'POST',
+      const id = randomUUID();
+      const dir = direccion.trim() || null;
+      const mail = correo.trim().toLowerCase() || null;
+      await guardarBorrador(borradorNuevo(id, { name: nombre.trim(), phone: tel!, email: mail, address: dir }, servicio.trim(), dir));
+      await encolar({
+        quote_id: id, method: 'POST', path: '/quotes',
         body: {
-          customer: { name: nombre.trim(), phone: tel, ...(correo.trim() ? { email: correo.trim().toLowerCase() } : {}), ...(direccion.trim() ? { address: direccion.trim() } : {}) },
+          id,
+          customer: { name: nombre.trim(), phone: tel, ...(mail ? { email: mail } : {}), ...(dir ? { address: dir } : {}) },
           ...(servicio.trim() ? { service_description: servicio.trim() } : {}),
-          ...(direccion.trim() ? { address: direccion.trim() } : {}),
+          ...(dir ? { address: dir } : {}),
         },
       });
-      if (q.access_code) await guardarCodigo(q.id, q.access_code);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace({ pathname: '/presupuesto/[id]', params: { id: q.id, nuevo: '1' } });
+      router.replace({ pathname: '/presupuesto/[id]', params: { id, nuevo: '1' } });
     } catch (err) {
       setAviso(mensajeDe(err));
     } finally {
@@ -71,6 +76,14 @@ export default function Nuevo() {
     </ScrollView>
   );
 }
+
+// Copia local mientras el servidor no lo conoce: sin código (code_id vacío) ni número.
+const borradorNuevo = (id: string, customer: { name: string; phone: string; email: string | null; address: string | null }, servicio: string, direccion: string | null): Presupuesto => ({
+  id, code_id: '', number: null, doc_status: 'DRAFT', commercial_status: 'NONE',
+  customer: { id: '', ...customer }, service_description: servicio, address: direccion,
+  survey: { notes: null, measurements: [], photos: [], voice_notes: [] },
+  items: [], subtotal: 0, discount: 0, total: 0, warranty: { kind: 'NONE', text: null }, validity_days: null, next_contact_date: null, observations: null, public_url: null,
+});
 
 const e = StyleSheet.create({
   contenido: { padding: espacio.xl, gap: espacio.l },

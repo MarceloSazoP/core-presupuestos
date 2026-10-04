@@ -1,12 +1,20 @@
 import { Stack } from 'expo-router';
-import { Alert, Pressable } from 'react-native';
+import { useEffect } from 'react';
+import { Alert, AppState, Pressable } from 'react-native';
 import { Texto } from '@/components/ui';
 import { useSesion } from '@/session';
+import { iniciarCola, vaciar } from '@/sync/cola';
 import { MIN_TOQUE } from '@/theme';
 
 // Pila nativa de Expo Router (UINavigationController en iOS): título grande, gesto de volver y modal del sistema.
 export default function AppLayout() {
   const { salir, usuario } = useSesion();
+
+  useEffect(() => {
+    iniciarCola(); // al abrir la app
+    const s = AppState.addEventListener('change', (e) => e === 'active' && void vaciar()); // y al volver a primer plano
+    return () => s.remove();
+  }, []);
 
   const confirmarSalida = () =>
     Alert.alert('Cerrar sesión', `Saldrás de la cuenta de ${usuario?.name ?? 'tu usuario'}. Tus presupuestos quedan guardados.`, [

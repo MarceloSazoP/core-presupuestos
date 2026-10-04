@@ -5,6 +5,7 @@ import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Pastilla, Texto } from '@/components/ui';
 import { clp } from '@/lib/formato';
+import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
@@ -66,6 +67,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
     setTrabajando(que);
     setError(null);
     try {
+      await asegurarSincronizado(q.id);
       await guardar();
       if (que === 'terminar') {
         await api(`/quotes/${q.id}/finalize`, { method: 'POST', body: {} });
@@ -132,6 +134,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 
   async function avisar(ruta: string, body: unknown = {}) {
     try {
+      await asegurarSincronizado(q.id);
       await api(`/quotes/${q.id}/${ruta}`, { method: 'POST', body });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await recargar();

@@ -255,6 +255,14 @@ Reglas de la cola:
 8. Antes de finalizar, enviar o cambiar de estado se hace `flush()` de ese presupuesto; si no vacía la cola, se bloquea con un mensaje claro.
 9. Los archivos locales se conservan hasta que el presupuesto se finaliza, para poder verlos sin red; luego se purgan.
 
+**Implementado (app móvil, `mobile/src/sync/`):** `db.ts` (SQLite con tablas `ops` y `kv`; `db.web.ts` solo para la vista previa), `cola.ts` (encolar, colapso, `vaciar` con una sola ejecución a la vez, reintento con espera creciente, fallidas con reintentar/descartar) y `reglas.ts` (lógica pura con pruebas). Diferencias respecto del diseño de arriba, por simplicidad:
+
+- `quote_drafts` y `customers_cache` se reducen a un JSON por presupuesto (`kv`, clave `q:<id>`) y a la última lista (`kv`, clave `lista`); no hay tabla `media` (los archivos pendientes viajan en su fila de `ops` y se copian a `Paths.document/pendientes`) ni `reminders` (los recordatorios locales siguen pendientes).
+- La pantalla trabaja sobre la copia local; el servidor la reemplaza solo cuando ya no quedan operaciones del presupuesto en la cola.
+- Un presupuesto creado sin conexión no tiene código hasta sincronizar: el código llega en la respuesta `201` de `POST /quotes` y se guarda entonces en el teléfono. Si la respuesta se pierde y el reintento recibe `200`, el código ya no se puede leer y se genera uno nuevo.
+- Los datos locales pertenecen a un usuario: si entra otro en el mismo teléfono se borran (`usarDatosDe`).
+- Disparadores: abrir la app, volver a primer plano, cada edición y el reintento con espera (2 s, 4 s… tope 60 s). No se usa `expo-network`.
+
 ### Envío y seguimiento
 
 - **WhatsApp:** abrir `https://wa.me/<número>?text=<mensaje con public_url>`, con respaldo a la hoja de compartir. La app **no puede saber** si el usuario envió el mensaje: al volver pregunta "¿Lo enviaste?" y solo entonces llama a `mark-sent` (Contrato API §7).

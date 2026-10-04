@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { api, configurarApi } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { borrar, guardar, leer } from '@/lib/almacen';
+import { usarDatosDe } from '@/sync/cola';
 
 // La sesión vive en el almacenamiento seguro del teléfono (Keychain en iOS): el token y los datos del perfil, para
 // poder abrir la app sin conexión. Si la API responde 401, la sesión venció o fue revocada y se cierra.
@@ -34,7 +35,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciar = useCallback(async (t: string, u: Usuario) => {
-    await Promise.all([guardar(K_TOKEN, t), guardar(K_USUARIO, JSON.stringify(u))]);
+    await Promise.all([guardar(K_TOKEN, t), guardar(K_USUARIO, JSON.stringify(u)), usarDatosDe(u.id)]);
     token.current = t;
     setUsuario(u);
     setEstado('dentro');
@@ -46,7 +47,9 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       const [t, u] = await Promise.all([leer(K_TOKEN), leer(K_USUARIO)]);
       if (!t || !u) return setEstado('fuera');
       token.current = t;
-      setUsuario(JSON.parse(u) as Usuario);
+      const guardado = JSON.parse(u) as Usuario;
+      await usarDatosDe(guardado.id);
+      setUsuario(guardado);
       setEstado('dentro'); // entra de inmediato con lo guardado: en terreno puede no haber señal
       api<Usuario>('/me').then((fresco) => setUsuario(fresco)).catch(() => {}); // un 401 cierra la sesión (ver configurarApi)
     })();

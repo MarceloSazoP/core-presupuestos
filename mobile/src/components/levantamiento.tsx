@@ -6,14 +6,16 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { api, fuenteDeArchivo, mensajeDe, subir } from '@/api/client';
+import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
+import { guardarArchivo } from '@/sync/archivos';
+import { descartarSubida, encolar } from '@/sync/cola';
 import { espacio, letra, MIN_TOQUE, useTema } from '@/theme';
 
 // Etapa 2 del wizard (CLAUDE.md §10): lo que se ve en terreno. Notas, medidas, fotos y voz. Todo es interno: nada de esto
-// sale en el PDF. Por ahora requiere conexión; la captura sin conexión llega en un hito aparte.
+// sale en el PDF. Funciona sin conexión: cada cambio se guarda en el teléfono y la cola de envío (sync/cola.ts) lo sube después.
 const MAX_FOTOS = 30;
 const MAX_VOCES = 5;
 const MAX_MEDIDAS = 50;
@@ -27,22 +29,24 @@ const sinPermiso = (que: string) =>
 
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 
-type Props = { q: Presupuesto; recargar: () => Promise<void> };
+type Cambiar = (f: (q: Presupuesto) => Presupuesto) => void; // actualiza la copia local del presupuesto
+type Props = { q: Presupuesto; cambiar: Cambiar };
+const conSurvey = (q: Presupuesto, s: Partial<Presupuesto['survey']>): Presupuesto => ({ ...q, survey: { ...q.survey, ...s } });
 
-export function Levantamiento({ q, recargar }: Props) {
+export function Levantamiento({ q, cambiar }: Props) {
   return (
     <View style={e.seccion}>
       <Texto variante="subtitulo">Visita en terreno</Texto>
-      <Notas q={q} />
-      <Medidas q={q} />
-      <Fotos q={q} recargar={recargar} />
-      <Voz q={q} recargar={recargar} />
+      <Notas q={q} cambiar={cambiar} />
+      <Medidas q={q} cambiar={cambiar} />
+      <Fotos q={q} cambiar={cambiar} />
+      <Voz q={q} cambiar={cambiar} />
     </View>
   );
 }
 
 // ── Notas ─────────────────────────────────────────────────────────────────────────────────────
-function Notas({ q }: { q: Presupuesto }) {
+function Notas({ q, cambiar }: Props) {
   const [notas, setNotas] = useState(q.survey.notes ?? '');
   const guardado = useRef(q.survey.notes ?? '');
   const [estado, setEstado] = useState<string | null>(null);
@@ -50,7 +54,8 @@ function Notas({ q }: { q: Presupuesto }) {
   async function guardar() {
     if (notas === guardado.current) return;
     try {
-      await api(`/quotes/${q.id}/survey`, { method: 'PUT', body: { notes: notas.trim() || null } });
+      cambiar((p) => conSurvey(p, { notes: notas.trim() || null }));
+      await encolar({ quote_id: q.id, method: 'PUT', path: `/quotes/${q.id}/survey`, body: { notes: notas.trim() || null } });
       guardado.current = notas;
       setEstado('Guardado');
     } catch (err) {
@@ -64,26 +69,26 @@ function Notas({ q }: { q: Presupuesto }) {
 }
 
 // ── Medidas ───────────────────────────────────────────────────────────────────────────────────
-type FilaMedida = { clave: string; id?: string; label: string; value: string };
+type FilaMedida = { clave: string; id: string; label: string; value: string }; // el id lo genera el teléfono: así el reintento no duplica
 
-function Medidas({ q }: { q: Presupuesto }) {
+function Medidas({ q, cambiar }: Props) {
   const t = useTema();
   const [filas, setFilas] = useState<FilaMedida[]>(() => q.survey.measurements.map((m) => ({ clave: m.id, id: m.id, label: m.label, value: m.value })));
   const [error, setError] = useState<string | null>(null);
-  const contador = useRef(0);
 
   // El servidor reemplaza la lista completa y su orden (PUT): se envían solo las filas completas.
   async function guardar(lista: FilaMedida[]) {
-    const validas = lista.filter((f) => f.label.trim() && f.value.trim());
+    const medidas = lista.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ id: f.id, label: f.label.trim(), value: f.value.trim() }));
     try {
-      await api(`/quotes/${q.id}/measurements`, { method: 'PUT', body: { measurements: validas.map((f) => ({ ...(f.id ? { id: f.id } : {}), label: f.label.trim(), value: f.value.trim() })) } });
+      cambiar((p) => conSurvey(p, { measurements: medidas }));
+      await encolar({ quote_id: q.id, method: 'PUT', path: `/quotes/${q.id}/measurements`, body: { measurements: medidas } });
       setError(null);
     } catch (err) {
       setError(mensajeDe(err));
     }
   }
 
-  const cambiar = (clave: string, campo: 'label' | 'value', v: string) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, [campo]: v } : f)));
+  const editarFila = (clave: string, campo: 'label' | 'value', v: string) => setFilas((fs) => fs.map((f) => (f.clave === clave ? { ...f, [campo]: v } : f)));
   const quitar = (clave: string) => {
     const resto = filas.filter((f) => f.clave !== clave);
     setFilas(resto);
@@ -95,23 +100,23 @@ function Medidas({ q }: { q: Presupuesto }) {
       <Texto variante="chico" fuerte>Medidas</Texto>
       {filas.map((f) => (
         <View key={f.clave} style={e.filaMedida}>
-          <TextInput accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => cambiar(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
-          <TextInput accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => cambiar(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
+          <TextInput accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
+          <TextInput accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.borde }]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Quitar medida" onPress={() => quitar(f.clave)} hitSlop={4} style={e.quitar}>
             <Texto color="suave" variante="subtitulo">×</Texto>
           </Pressable>
         </View>
       ))}
       {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-      <Boton titulo="+ Agregar medida" variante="secundario" disabled={filas.length >= MAX_MEDIDAS} onPress={() => setFilas((fs) => [...fs, { clave: `n${++contador.current}`, label: '', value: '' }])} />
+      <Boton titulo="+ Agregar medida" variante="secundario" disabled={filas.length >= MAX_MEDIDAS} onPress={() => { const id = randomUUID(); setFilas((fs) => [...fs, { clave: id, id, label: '', value: '' }]); }} />
     </View>
   );
 }
 
 // ── Fotos ─────────────────────────────────────────────────────────────────────────────────────
-function Fotos({ q, recargar }: Props) {
+function Fotos({ q, cambiar }: Props) {
   const t = useTema();
-  const [subiendo, setSubiendo] = useState(0);
+  const [preparando, setPreparando] = useState(0);
   const fotos = q.survey.photos;
   const quedan = MAX_FOTOS - fotos.length;
 
@@ -125,25 +130,31 @@ function Fotos({ q, recargar }: Props) {
       ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 1 })
       : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1, allowsMultipleSelection: true, selectionLimit: quedan });
     if (r.canceled) return;
-    setSubiendo((n) => n + r.assets.length);
+    setPreparando((n) => n + r.assets.length);
     for (const a of r.assets) {
       try {
-        const uri = await prepararFoto(a.uri, a.width, a.height);
-        await subir(`/quotes/${q.id}/photos`, { uri, name: 'foto.jpg', type: 'image/jpeg' }, { id: randomUUID() });
+        const uri = guardarArchivo(await prepararFoto(a.uri, a.width, a.height), 'jpg');
+        const id = randomUUID();
+        cambiar((p) => conSurvey(p, { photos: [...p.survey.photos, { id, url: '', caption: null, local_uri: uri }] }));
+        await encolar({ quote_id: q.id, method: 'POST', path: `/quotes/${q.id}/photos`, archivo: { uri, name: 'foto.jpg', type: 'image/jpeg' }, fields: { id } });
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (err) {
-        Alert.alert('No se pudo subir la foto', mensajeDe(err));
+        Alert.alert('No se pudo guardar la foto', mensajeDe(err));
       } finally {
-        setSubiendo((n) => n - 1);
+        setPreparando((n) => n - 1);
       }
     }
-    await recargar();
+  }
+
+  async function quitarFoto(id: string) {
+    cambiar((p) => conSurvey(p, { photos: p.survey.photos.filter((f) => f.id !== id) }));
+    if (!(await descartarSubida(q.id, id))) await encolar({ quote_id: q.id, method: 'DELETE', path: `/quotes/${q.id}/photos/${id}` });
   }
 
   const quitar = (id: string) =>
     Alert.alert('¿Quitar esta foto?', 'Se elimina del presupuesto.', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Quitar', style: 'destructive', onPress: () => void api(`/quotes/${q.id}/photos/${id}`, { method: 'DELETE' }).then(recargar).catch((err) => Alert.alert('No se pudo quitar', mensajeDe(err))) },
+      { text: 'Quitar', style: 'destructive', onPress: () => void quitarFoto(id).catch((err) => Alert.alert('No se pudo quitar', mensajeDe(err))) },
     ]);
 
   return (
@@ -159,16 +170,16 @@ function Fotos({ q, recargar }: Props) {
             ItemSeparatorComponent={Espacio}
             renderItem={({ item }) => (
               <Pressable accessibilityRole="button" accessibilityLabel="Foto de la visita. Toca para quitarla" onPress={() => quitar(item.id)}>
-                <Image source={fuenteDeArchivo(item.url)} recyclingKey={item.id} contentFit="cover" transition={150} style={[e.miniatura, { backgroundColor: t.tarjeta }]} />
+                <Image source={item.local_uri ? { uri: item.local_uri } : fuenteDeArchivo(item.url)} recyclingKey={item.id} contentFit="cover" transition={150} style={[e.miniatura, { backgroundColor: t.tarjeta, opacity: item.local_uri ? 0.6 : 1 }]} />
               </Pressable>
             )}
           />
         </View>
       ) : null}
-      {subiendo > 0 ? (
+      {preparando > 0 ? (
         <View style={e.subiendo}>
           <ActivityIndicator color={t.suave} />
-          <Texto variante="chico" suave>Subiendo {subiendo} {subiendo === 1 ? 'foto' : 'fotos'}…</Texto>
+          <Texto variante="chico" suave>Guardando {preparando} {preparando === 1 ? 'foto' : 'fotos'}…</Texto>
         </View>
       ) : null}
       <View style={e.fila}>
@@ -182,7 +193,7 @@ function Fotos({ q, recargar }: Props) {
 const Espacio = () => <View style={{ width: espacio.s }} />;
 
 // ── Voz ───────────────────────────────────────────────────────────────────────────────────────
-function Voz({ q, recargar }: Props) {
+function Voz({ q, cambiar }: Props) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY); // .m4a (AAC) en iOS y Android
   const estado = useAudioRecorderState(recorder);
   const [guardando, setGuardando] = useState(false);
@@ -209,9 +220,11 @@ function Voz({ q, recargar }: Props) {
     if (!uri) return;
     setGuardando(true);
     try {
-      await subir(`/quotes/${q.id}/voice-notes`, { uri, name: 'nota.m4a', type: 'audio/mp4' }, { id: randomUUID(), duration_seconds: String(duracion) });
+      const local = guardarArchivo(uri, 'm4a');
+      const id = randomUUID();
+      cambiar((p) => conSurvey(p, { voice_notes: [...p.survey.voice_notes, { id, url: '', duration_seconds: duracion, local_uri: local }] }));
+      await encolar({ quote_id: q.id, method: 'POST', path: `/quotes/${q.id}/voice-notes`, archivo: { uri: local, name: 'nota.m4a', type: 'audio/mp4' }, fields: { id, duration_seconds: String(duracion) } });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await recargar();
     } catch (err) {
       Alert.alert('No se pudo guardar la nota de voz', mensajeDe(err));
     } finally {
@@ -227,7 +240,10 @@ function Voz({ q, recargar }: Props) {
     <View style={e.bloque}>
       <Texto variante="chico" fuerte>Notas de voz ({notas.length}/{MAX_VOCES})</Texto>
       {notas.map((n) => (
-        <NotaDeVoz key={n.id} nota={n} alBorrar={async () => { await api(`/quotes/${q.id}/voice-notes/${n.id}`, { method: 'DELETE' }); await recargar(); }} />
+        <NotaDeVoz key={n.id} nota={n} alBorrar={async () => {
+          cambiar((p) => conSurvey(p, { voice_notes: p.survey.voice_notes.filter((v) => v.id !== n.id) }));
+          if (!(await descartarSubida(q.id, n.id))) await encolar({ quote_id: q.id, method: 'DELETE', path: `/quotes/${q.id}/voice-notes/${n.id}` });
+        }} />
       ))}
       <Boton titulo={grabando ? `Detener · ${mmss(segundos)}` : 'Grabar nota de voz'} variante={grabando ? 'primario' : 'secundario'} cargando={guardando} onPress={() => void (grabando ? detener() : empezar())} />
     </View>
@@ -236,7 +252,7 @@ function Voz({ q, recargar }: Props) {
 
 function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_notes'][number]; alBorrar: () => Promise<void> }) {
   const t = useTema();
-  const fuente = useMemo(() => fuenteDeArchivo(nota.url), [nota.url]); // estable: un objeto nuevo en cada render reiniciaría el reproductor
+  const fuente = useMemo(() => (nota.local_uri ? { uri: nota.local_uri } : fuenteDeArchivo(nota.url)), [nota.url, nota.local_uri]); // estable: un objeto nuevo en cada render reiniciaría el reproductor
   const player = useAudioPlayer(fuente);
   const { playing } = useAudioPlayerStatus(player);
 

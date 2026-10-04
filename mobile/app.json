@@ -64,7 +64,8 @@
           "microphonePermission": "Necesitamos el micrófono para grabar notas de voz de la visita."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

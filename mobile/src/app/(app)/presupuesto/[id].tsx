@@ -8,9 +8,11 @@ import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
 import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
+import { Sincronizacion } from '@/components/sincronizacion';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
 import { clp } from '@/lib/formato';
+import { asegurarSincronizado, guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { espacio, useTema } from '@/theme';
 
 // Detalle del presupuesto. Lo central de este hito: el código que se escribe en la web para completar o cerrar el
@@ -24,18 +26,31 @@ export default function Detalle() {
   const [copiado, setCopiado] = useState(false);
   const [generando, setGenerando] = useState(false);
 
+  const { pendientes } = useCola();
+  const colaVacia = pendientes === 0;
+
+  // La pantalla trabaja sobre la copia local (q); el servidor la reemplaza solo cuando no quedan cambios sin enviar.
   const recargar = useCallback(async () => {
+    await vaciar();
+    void leerCodigo(id).then(setCodigo); // el código llega al sincronizar un presupuesto creado sin conexión
     try {
-      setQ(await api<Presupuesto>(`/quotes/${id}`));
+      const servidor = await api<Presupuesto>(`/quotes/${id}`);
+      if (!(await hayPendientesDe(id))) setQ(servidor);
     } catch (err) {
-      setError(mensajeDe(err));
+      setError(mensajeDe(err)); // sin conexión se sigue con la copia local, si la hay
     }
   }, [id]);
 
+  const cambiar = useCallback((f: (p: Presupuesto) => Presupuesto) => setQ((p) => (p ? f(p) : p)), []);
+
   useEffect(() => {
-    void leerCodigo(id).then(setCodigo);
-    api<Presupuesto>(`/quotes/${id}`).then(setQ).catch((err) => setError(mensajeDe(err)));
-  }, [id]);
+    void leerBorrador(id).then((b) => b && setQ((actual) => actual ?? b));
+    void vaciar().then(recargar);
+  }, [id, recargar, colaVacia]); // al vaciarse la cola se trae la versión del servidor (con las fotos ya subidas)
+
+  useEffect(() => {
+    if (q) void guardarBorrador(q);
+  }, [q]);
 
   const copiar = useCallback(async () => {
     if (!codigo) return;
@@ -48,6 +63,7 @@ export default function Detalle() {
   async function generar() {
     setGenerando(true);
     try {
+      await asegurarSincronizado(id);
       const r = await api<{ code: string }>(`/quotes/${id}/access-code`, { method: 'POST', body: {} });
       await guardarCodigo(id, r.code);
       setCodigo(r.code);
@@ -82,6 +98,7 @@ export default function Detalle() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <Stack.Screen options={{ title: q.number ?? 'Presupuesto' }} />
+      <Sincronizacion />
 
       <View style={e.bloque}>
         <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
@@ -111,13 +128,19 @@ export default function Detalle() {
           </>
         ) : (
           <>
-            <Texto suave>El código solo se muestra una vez, y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</Texto>
-            <Boton titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
+            {q.code_id ? (
+              <>
+                <Texto suave>El código solo se muestra una vez, y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</Texto>
+                <Boton titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
+              </>
+            ) : (
+              <Texto suave>Este presupuesto se creó sin conexión. Su código aparece aquí en cuanto se sincronice con el servidor.</Texto>
+            )}
           </>
         )}
       </View>
 
-      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento q={q} recargar={recargar} />}
+      {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento q={q} cambiar={cambiar} />}
       {cerrado && q.commercial_status !== 'NONE' ? <Seguimiento q={q} recargar={recargar} /> : null}
       {cerrado ? null : <Cierre q={q} recargar={recargar} />}
 

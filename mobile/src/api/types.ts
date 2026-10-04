@@ -28,8 +28,8 @@ export type Presupuesto = {
   survey: {
     notes: string | null;
     measurements: { id: string; label: string; value: string }[];
-    photos: { id: string; url: string; caption: string | null }[];
-    voice_notes: { id: string; url: string; duration_seconds: number }[];
+    photos: { id: string; url: string; caption: string | null; local_uri?: string }[]; // local_uri: aún no subida
+    voice_notes: { id: string; url: string; duration_seconds: number; local_uri?: string }[];
   };
   items: { id: string; description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
   subtotal: number;

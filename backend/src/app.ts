@@ -24,7 +24,7 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
   if (config.NODE_ENV === 'development') {
     app.use((req, res, next) => {
       const t0 = Date.now();
-      res.on('finish', () => console.log(`${req.method} ${req.path} ${res.statusCode} ${Date.now() - t0}ms`));
+      res.on('finish', () => console.log(`${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t0}ms`));
       next();
     });
   }

@@ -5,6 +5,7 @@ import { api, mensajeDe } from '@/api/client';
 import type { EstadoComercial, Presupuesto } from '@/api/types';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { diaCorto, enDias } from '@/lib/fechas';
+import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Seguimiento comercial mínimo (CLAUDE.md §13): que no se olvide un presupuesto enviado. Aceptar o rechazar es manual.
@@ -31,6 +32,7 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
     setOcupado(true);
     setError(null);
     try {
+      await asegurarSincronizado(q.id);
       await accion();
       void Haptics.selectionAsync();
       await Promise.all([recargar(), cargarHistorial()]);
