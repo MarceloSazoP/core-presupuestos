@@ -107,6 +107,7 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
         service_description: String(datos.get('descripcion') ?? ''),
         address: String(datos.get('direccion') ?? '').trim() || null,
         discount: aEntero(String(datos.get('descuento') ?? '0')),
+        include_vat: datos.get('iva') === '1',
         warranty: { kind: garantia },
         validity_days: validez,
         observations: String(datos.get('observaciones') ?? '').trim() || null,

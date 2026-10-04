@@ -22,7 +22,10 @@ export type QuoteApi = {
   address: string | null;
   survey: { notes: string | null; measurements: { label: string; value: string }[]; photos: { id: string }[]; voice_notes: { id: string; duration_seconds: number }[] };
   items: { description: string; quantity: number; unit: string; unit_price: number }[];
+  subtotal: number;
   discount: number;
+  include_vat: boolean;
+  vat: number;
   total: number;
   warranty: { kind: string; text: string | null };
   validity_days: number | null;
@@ -43,7 +46,11 @@ export type Presupuesto = {
   direccion: string | null;
   levantamiento: { notas: string | null; medidas: { etiqueta: string; valor: string }[]; fotos: string[]; audios: { id: string; segundos: number }[] };
   items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
+  subtotal: number;
   descuento: number;
+  conIva: boolean;
+  iva: number;
+  total: number;
   garantia: string;
   validezDias: number;
   observaciones: string | null;
@@ -68,7 +75,11 @@ export const aPresupuesto = (q: QuoteApi): Presupuesto => ({
     audios: q.survey.voice_notes.map((v) => ({ id: v.id, segundos: v.duration_seconds })),
   },
   items: q.items.map((i) => ({ descripcion: i.description, cantidad: i.quantity, unidad: i.unit, precioUnitario: i.unit_price })),
+  subtotal: q.subtotal,
   descuento: q.discount,
+  conIva: q.include_vat,
+  iva: q.vat,
+  total: q.total,
   garantia: textoGarantia(q.warranty.kind, q.warranty.text),
   validezDias: q.validity_days ?? VALIDEZ_POR_DEFECTO, // el presupuesto que crea la app puede no traer vigencia
   observaciones: q.observations,

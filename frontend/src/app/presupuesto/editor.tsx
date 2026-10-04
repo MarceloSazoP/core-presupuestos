@@ -15,6 +15,7 @@ type Inicial = {
   direccion: string | null;
   items: { descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
+  conIva: boolean;
   garantia: string;
   validezDias: number;
   observaciones: string | null;
@@ -45,6 +46,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   );
   const [descuento, setDescuento] = useState(inicial.descuento > 0 ? String(inicial.descuento) : "");
   const [servicio, setServicio] = useState(inicial.descripcion);
+  const [conIva, setConIva] = useState(inicial.conIva);
   const [direccion, setDireccion] = useState(inicial.direccion ?? "");
   const [garantia, setGarantia] = useState(inicial.garantia);
   const [validez, setValidez] = useState(String(inicial.validezDias));
@@ -81,6 +83,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   const totales = calcularTotales(
     filas.map((f) => ({ descripcion: f.descripcion, cantidad: aNumero(f.cantidad), precioUnitario: aEntero(f.precio) })),
     aEntero(descuento),
+    conIva,
   );
   const descuentoExcesivo = totales.total < 0;
 
@@ -272,6 +275,22 @@ export function Editor({ inicial }: { inicial: Inicial }) {
                 />
               </dd>
             </div>
+            <div className="flex items-center justify-between gap-3">
+              <dt>
+                <label htmlFor="iva" className="etiqueta">
+                  Agregar IVA (19%)
+                </label>
+              </dt>
+              <dd>
+                <input id="iva" name="iva" value="1" type="checkbox" checked={conIva} onChange={(e) => setConIva(e.target.checked)} className="size-5 accent-[var(--acento-texto)]" />
+              </dd>
+            </div>
+            {conIva && (
+              <div className="flex justify-between gap-3 text-muted">
+                <dt>IVA (19%)</dt>
+                <dd>{clp(totales.iva)}</dd>
+              </div>
+            )}
             <div className="flex items-baseline justify-between gap-3 border-t-2 border-foreground pt-3">
               <dt className="font-bold uppercase">Total</dt>
               <dd className={`text-3xl font-bold ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">

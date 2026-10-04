@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { clp, cant, enmascararCorreo } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
 import { cargarPresupuesto, esFinalizado } from "@/lib/presupuesto";
-import { calcularTotales, totalLinea } from "@/lib/totales";
+import { totalLinea } from "@/lib/totales";
 import { enlaceWhatsApp, mensajePresupuesto } from "@/lib/whatsapp";
 import { salirAction } from "../actions";
 import { Editor } from "./editor";
@@ -34,6 +34,7 @@ export default async function PresupuestoPage() {
             direccion: p.direccion,
             items: p.items,
             descuento: p.descuento,
+            conIva: p.conIva,
             garantia: p.garantia,
             validezDias: p.validezDias,
             observaciones: p.observaciones,
@@ -45,7 +46,8 @@ export default async function PresupuestoPage() {
     );
   }
 
-  const { subtotal, descuento, total } = calcularTotales(p.items, p.descuento);
+  // Presupuesto cerrado: se muestran los montos que fijó el servidor, no un cálculo nuevo.
+  const { subtotal, descuento, iva, total } = p;
   const whatsappUrl = enlaceWhatsApp(
     p.cliente.telefono,
     mensajePresupuesto({ nombre: p.cliente.nombre, numero: p.numero, total: clp(total), descripcion: p.descripcion, enlace: p.publicUrl ?? "" }),
@@ -97,6 +99,12 @@ export default async function PresupuestoPage() {
               <div className="flex justify-between text-muted">
                 <dt>Descuento</dt>
                 <dd>-{clp(descuento)}</dd>
+              </div>
+            )}
+            {p.conIva && (
+              <div className="flex justify-between text-muted">
+                <dt>IVA (19%)</dt>
+                <dd>{clp(iva)}</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between">

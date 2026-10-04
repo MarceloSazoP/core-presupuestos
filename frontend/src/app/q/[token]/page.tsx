@@ -20,6 +20,9 @@ type Publico = {
   items: { description: string; quantity: number; unit: string; unit_price: number; line_total: number }[];
   subtotal: number;
   discount: number;
+  include_vat: boolean;
+  vat: number;
+  vat_rate: number;
   total: number;
   warranty: { text: string };
   validity_days: number;
@@ -106,6 +109,12 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
               <div className="flex justify-between text-muted">
                 <dt>Descuento</dt>
                 <dd>-{clp(q.discount)}</dd>
+              </div>
+            )}
+            {q.include_vat && (
+              <div className="flex justify-between text-muted">
+                <dt>IVA ({q.vat_rate}%)</dt>
+                <dd>{clp(q.vat)}</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between border-t-2 border-foreground pt-2">
