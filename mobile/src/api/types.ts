@@ -6,6 +6,7 @@ export type EstadoComercial = 'NONE' | 'SENT' | 'FOLLOW_UP' | 'ACCEPTED' | 'REJE
 
 export type ResumenPresupuesto = {
   id: string;
+  version?: number; // 2.ª, 3.ª versión de un presupuesto rechazado (las listas guardadas antes no lo traen)
   code_id?: string; // ID corto; las listas guardadas por una versión anterior no lo traen
   number: string | null;
   customer: { id: string; name: string };
@@ -20,6 +21,9 @@ export type ResumenPresupuesto = {
 export type Presupuesto = {
   id: string;
   code_id: string;
+  version?: number;
+  previous_number?: string | null; // número del rechazado al que reemplaza
+  next_version_id?: string | null; // la versión que lo reemplazó
   number: string | null;
   doc_status: Estado;
   commercial_status: EstadoComercial;

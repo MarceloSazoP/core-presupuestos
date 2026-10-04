@@ -8,6 +8,7 @@ import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
 import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
+import { NuevaVersion } from '@/components/nueva-version';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { Boton, Pastilla, Texto } from '@/components/ui';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
@@ -102,6 +103,8 @@ export default function Detalle() {
 
       <View style={e.bloque}>
         <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
+        {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
+        {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
         <Texto variante="titulo">{q.customer.name}</Texto>
         <Texto suave>{q.customer.phone}</Texto>
         {q.service_description ? <Texto>{q.service_description}</Texto> : <Texto suave>Sin descripción todavía.</Texto>}
@@ -141,6 +144,7 @@ export default function Detalle() {
         )}
       </View>
 
+      {cerrado && q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
       {cerrado ? <Envio q={q} recargar={recargar} /> : <Levantamiento q={q} cambiar={cambiar} />}
       {cerrado && q.commercial_status !== 'NONE' ? <Seguimiento q={q} recargar={recargar} /> : null}
       {cerrado ? null : <Cierre q={q} recargar={recargar} />}

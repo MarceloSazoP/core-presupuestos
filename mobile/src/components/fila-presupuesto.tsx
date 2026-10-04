@@ -52,7 +52,7 @@ export function FilaPresupuesto({
   const estado = estadoVisible(q);
   const titulo = sinCliente ? (q.number ?? 'Sin número todavía') : q.customer.name;
   // El ID corto es con lo que la persona nombra cada presupuesto; el número CP aparece al terminarlo.
-  const identificador = [q.code_id, sinCliente ? null : q.number].filter(Boolean).join(' · ');
+  const identificador = [q.code_id, (q.version ?? 1) > 1 ? `Versión ${q.version}` : null, sinCliente ? null : q.number].filter(Boolean).join(' · ');
   const fila = (
     <Pressable
       accessibilityRole="button"
