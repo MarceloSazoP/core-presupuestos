@@ -1,13 +1,15 @@
 import { FlashList } from '@shopify/flash-list';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
 import { Boton, Texto } from '@/components/ui';
-import { cancelarRecordatorio, reconciliar } from '@/lib/notificaciones';
+import type { EstadoElegible } from '@/lib/estados';
+import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { Pestanas } from '@/components/pestanas';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
@@ -55,6 +57,20 @@ export default function Presupuestos() {
     void cancelarRecordatorio(q.id);
   }, []);
 
+  // Cambio manual de estado (Contrato API §8). Necesita conexión: si falla, la fila queda como estaba y se avisa.
+  const cambiarEstado = useCallback(async (q: ResumenPresupuesto, estado: EstadoElegible) => {
+    try {
+      await api(`/quotes/${q.id}/commercial-status`, { method: 'PUT', body: { status: estado } });
+      // Aceptar o rechazar cierra el seguimiento: el servidor borra el próximo contacto.
+      const cierra = estado === 'ACCEPTED' || estado === 'REJECTED';
+      setLista((l) => l && l.map((x) => (x.id === q.id ? { ...x, commercial_status: estado, next_contact_date: cierra ? null : x.next_contact_date } : x)));
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      void sincronizarRecordatorios();
+    } catch (err) {
+      Alert.alert('No se pudo cambiar el estado', mensajeDe(err));
+    }
+  }, []);
+
   // La última pestaña vista se recuerda.
   useEffect(() => void leerKv('pestana').then((p) => PESTANAS.some((x) => x.id === p) && setPestana(p as Pestana)), []);
   const elegirPestana = (p: Pestana) => {
@@ -73,7 +89,7 @@ export default function Presupuestos() {
       <FlashList
         data={visibles}
         keyExtractor={(q) => q.id}
-        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} />}
+        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: espacio.l, paddingBottom: insets.bottom + MIN_TOQUE + espacio.xxl }}
         ItemSeparatorComponent={Separador}
