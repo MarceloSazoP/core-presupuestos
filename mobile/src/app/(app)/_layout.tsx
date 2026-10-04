@@ -2,7 +2,6 @@ import { router, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import { Texto } from '@/components/ui';
 import { Notifications } from '@/lib/notificaciones';
 import { iniciarCola, vaciar } from '@/sync/cola';
 import { MIN_TOQUE, useTema } from '@/theme';
@@ -27,9 +26,8 @@ export default function AppLayout() {
           title: 'Presupuestos',
           // Título normal (no grande): las pestañas de la lista quedan fijas debajo, y el título grande se encoge al desplazar.
           headerRight: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <SymbolView name="gearshape" size={20} tintColor={t.acento} fallback={<View />} />
-              <Texto color="acento">Configurar</Texto>
+            <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
+              <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
             </Pressable>
           ),
         }}
