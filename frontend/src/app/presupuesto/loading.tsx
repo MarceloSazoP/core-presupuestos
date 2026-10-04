@@ -4,7 +4,7 @@ export default function Cargando() {
   return (
     <main className="mx-auto flex w-full flex-col gap-6 px-4 py-6 sm:px-6 lg:w-4/5 lg:px-0" aria-busy="true" aria-label="Cargando presupuesto">
       <div className="esqueleto h-20 w-full" />
-      <div className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
+      <div className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 sm:p-8 lg:p-10">
         <div className="flex items-baseline justify-between gap-2 border-b-2 border-borde pb-3">
           <div className="esqueleto h-8 w-48" />
           <div className="esqueleto h-6 w-24 rounded-full" />

@@ -8,7 +8,7 @@ type Profesional = { nombre: string; telefono: string; correo: string };
 export function Encabezado({ profesional, logoSrc }: { profesional: Profesional; logoSrc: string | null }) {
   const telefono = profesional.telefono.replace(/[^\d+]/g, "");
   return (
-    <header className="tarjeta flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <header className="flex flex-col gap-4 border-b border-borde pb-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex min-w-0 flex-col gap-3">
         {/* El logo va en su propia fila, encima del nombre: un logo horizontal se ve entero y sin deformarse. */}
         {logoSrc && (

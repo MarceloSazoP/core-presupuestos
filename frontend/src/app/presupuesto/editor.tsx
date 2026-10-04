@@ -205,9 +205,9 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </button>
         </p>
       )}
-    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 shadow-sm sm:p-8 lg:p-10">
+    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="@container flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 sm:p-8 lg:p-10">
       {/* Como el PDF: cliente y visita arriba, servicio, ítems, condiciones a la izquierda y totales a la derecha */}
-      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b-2 border-foreground pb-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-borde pb-3">
         <h2 className="text-2xl font-semibold leading-tight">Presupuesto de {inicial.cliente.nombre}</h2>
         <span className="estado estado-pendiente">Borrador{inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}</span>
         {inicial.numeroAnterior && <p className="basis-full text-sm font-normal normal-case text-muted">Reemplaza al presupuesto {inicial.numeroAnterior}</p>}
