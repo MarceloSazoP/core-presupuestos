@@ -54,7 +54,8 @@ export async function api<T = unknown>(path: string, { method = 'GET', body, tok
 
 // Mensaje legible para mostrar en pantalla.
 export function mensajeDe(e: unknown): string {
-  if (!(e instanceof ApiError)) return 'Ocurrió un error inesperado. Inténtalo de nuevo.';
+  // En desarrollo se muestra el motivo real (cámara, recorte de la foto, etc.) para poder diagnosticarlo en el teléfono.
+  if (!(e instanceof ApiError)) return `Ocurrió un error inesperado. Inténtalo de nuevo.${__DEV__ ? ` (${e instanceof Error ? e.message : String(e)})` : ''}`;
   if (e.status === 429) return 'Demasiados intentos. Espera un momento e inténtalo de nuevo.';
   if (e.status === 422 && e.details.length) return e.details.map((d) => d.message).join('. ');
   return e.message;

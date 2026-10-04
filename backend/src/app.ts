@@ -19,6 +19,15 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY); // 0 = sin proxy; configurar según el hosting para que el límite use la IP real
+  // Solo en desarrollo: una línea por pedido (método, ruta sin parámetros de consulta, estado, tiempo). Nunca cabeceras ni
+  // cuerpos: así se ve qué llega desde el teléfono sin exponer tokens ni códigos.
+  if (config.NODE_ENV === 'development') {
+    app.use((req, res, next) => {
+      const t0 = Date.now();
+      res.on('finish', () => console.log(`${req.method} ${req.path} ${res.statusCode} ${Date.now() - t0}ms`));
+      next();
+    });
+  }
   app.use(cors(deps.corsOrigins ?? config.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean)));
   app.use(express.json({ limit: '100kb' }));
   app.use((_req, res, next) => {
