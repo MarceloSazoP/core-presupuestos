@@ -2,8 +2,8 @@ import nodemailer from 'nodemailer';
 import { config } from '../config';
 import { AppError } from '../errors';
 
-export type Correo = { to: string; subject: string; text: string; attachment?: { filename: string; content: Buffer } };
-export type QuoteMail = Correo & { attachment: { filename: string; content: Buffer } };
+export type Correo = { to: string; subject: string; text: string; attachment?: { filename: string; content: Buffer; contentType?: string } };
+export type QuoteMail = Correo & { attachment: { filename: string; content: Buffer; contentType?: string } };
 export type SendMail = (m: QuoteMail) => Promise<void>;
 
 const fail = (msg = 'No se pudo enviar el correo. Intenta de nuevo.') => new AppError(502, 'DELIVERY_FAILED', msg);
@@ -24,7 +24,7 @@ export async function mandarCorreo(m: Correo): Promise<void> {
         .createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: false, requireTLS: true, auth: { user: SMTP_USER, pass: SMTP_PASSWORD }, connectionTimeout: 10_000, socketTimeout: 20_000 })
         .sendMail({
           from: `"CorePresupuesto" <${from ?? SMTP_USER}>`, to: m.to, subject: m.subject, text: m.text,
-          ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content, contentType: 'application/pdf' }] }),
+          ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content, contentType: m.attachment.contentType ?? 'application/pdf' }] }),
         });
       return;
     } catch (e) {

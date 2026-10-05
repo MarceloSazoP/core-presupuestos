@@ -49,9 +49,10 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
   });
 
   const api = express.Router();
-  api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit));
+  const correo = deps.sendMail ?? defaultSendMail;
+  api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit, correo));
   api.get('/countries', (_req, res) => void res.json(PAISES)); // sin sesión: se usa para elegir el país
-  api.use('/me', meRoutes());
+  api.use('/me', meRoutes(correo));
   api.use('/customers', customerRoutes());
   api.use('/quotes', quoteRoutes({ sendMail: deps.sendMail ?? defaultSendMail, mailLimit: deps.mailLimit }));
   api.use('/files', fileRoutes());

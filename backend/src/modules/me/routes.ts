@@ -3,12 +3,16 @@ import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import { query, withTx } from '../../db';
 import { requireSession, requireUser, type AuthedRequest } from '../../http/session';
-import { notFound } from '../../errors';
+import { AppError, notFound } from '../../errors';
 import { upload, uploaded } from '../../http/upload';
 import { parse } from '../../http/validate';
 import { IMAGES } from '../../lib/filetype';
 import { discardUpload, removeMany, storeFile, type FileKind } from '../../lib/files';
+import { audit } from '../../lib/audit';
+import type { SendMail } from '../../lib/mail';
 import { pathOf } from '../../lib/storage';
+import { enviarQrRecuperacion } from '../auth/recuperacion';
+import { maskDestination } from '../../lib/deliver';
 import { PAISES, zonaValida } from '../../lib/paises';
 import { email, name, phone } from '../auth/schemas';
 
@@ -40,7 +44,7 @@ async function setSlot(c: PoolClient, userId: string, column: 'logo_file_id' | '
      RETURNING f.storage_key`, [old, userId])).rows[0]?.storage_key ?? null;
 }
 
-export const meRoutes = () => {
+export const meRoutes = (sendMail?: SendMail) => {
   const r = Router();
   r.use(requireSession, requireUser);
 
@@ -69,6 +73,16 @@ export const meRoutes = () => {
       [uid(req), 'name' in body, body.name ?? null, 'contact_phone' in body, body.contact_phone ?? null, 'contact_email' in body, body.contact_email ?? null, 'include_signature' in body, body.include_signature ?? false, 'use_logo' in body, body.use_logo ?? false, 'country' in body, body.country ?? null, 'timezone' in body, body.timezone ?? null],
     );
     res.json(await profile(uid(req)));
+  });
+
+  // Un QR de recuperación nuevo, al correo de la cuenta (Recuperación de cuenta con QR.md). Invalida el anterior. 3 por hora y usuario.
+  r.post('/recovery-qr', async (req, res) => {
+    if (!sendMail) throw new AppError(502, 'DELIVERY_FAILED', 'El envío por correo no está configurado.');
+    const { rows } = await query<{ n: number }>(`SELECT count(*)::int AS n FROM audit_events WHERE user_id = $1 AND event = 'RECOVERY_QR_SENT' AND created_at > now() - interval '1 hour'`, [uid(req)]);
+    if (rows[0]!.n >= 3) throw new AppError(429, 'RATE_LIMITED', 'Ya pediste varios QR. Intenta de nuevo más tarde.', undefined, { 'Retry-After': '3600' });
+    const { email } = await enviarQrRecuperacion(uid(req), sendMail, 'pedido');
+    await audit(req, 'RECOVERY_QR_SENT', { userId: uid(req), metadata: { motivo: 'pedido' } });
+    res.status(202).json({ destination_masked: maskDestination('EMAIL', email) });
   });
 
   // Logo y firma: PNG/JPEG ≤ 2 MB; reemplazan al anterior.
