@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
-import type { Arrastre } from '@/components/arrastre';
+import type { Arrastre, Rect } from '@/components/arrastre';
 import { PESTANAS, type Pestana } from '@/lib/pestanas';
 import { espacio, letra, useTema, type Color } from '@/theme';
 
@@ -31,36 +31,14 @@ export function Pestanas({ activa, cuentas, alElegir, arrastre }: { activa: Pest
   const medidas = useRef<Partial<Record<Pestana, { x: number; ancho: number }>>>({});
   const desplazado = useRef(0); // cuánto se ha deslizado la fila
   const visible = useRef(0); // ancho de la fila en pantalla
-  const cont = useRef<View>(null);
-  const contenido = useRef(0); // ancho de todo lo que hay en la fila
+  const chips = useRef<Partial<Record<Pestana, View | null>>>({});
   const quien = arrastre?.quien ?? null;
 
-  // Al empezar a arrastrar se mide dónde está la fila en la ventana; con eso y la posición de cada pestaña dentro de ella se sabe
-  // sobre cuál se suelta. Y si el dedo se acerca a una orilla de la fila, esta se desliza sola para llegar a las pestañas ocultas.
+  // Al empezar a arrastrar se mide dónde está cada pestaña en la ventana, para saber sobre cuál se suelta.
   useEffect(() => {
     if (!quien || !arrastre) return;
-    let vivo = true;
-    arrastre.scroll.set(desplazado.current);
-    let banda = { y: 0, h: 0 };
-    const ancho = Dimensions.get('window').width;
-    const maximo = () => Math.max(0, contenido.current - visible.current);
-    cont.current?.measureInWindow((bx, by, _bw, bh) => {
-      if (!vivo) return;
-      banda = { y: by, h: bh };
-      arrastre.rects.set(PESTANAS.map((p) => { const m = medidas.current[p.id]; return m ? { x: m.x + bx, y: by, w: m.ancho, h: bh } : { x: -1000, y: -1000, w: 0, h: 0 }; }));
-    });
-    const reloj = setInterval(() => {
-      const dedoX = arrastre.x.get();
-      const dedoY = arrastre.y.get();
-      if (dedoY < banda.y - 90 || dedoY > banda.y + banda.h + 90) return; // solo cerca de la fila
-      const zona = 64;
-      const paso = dedoX < zona ? -Math.ceil(((zona - dedoX) / zona) * 14) : dedoX > ancho - zona ? Math.ceil(((dedoX - (ancho - zona)) / zona) * 14) : 0;
-      if (paso) barra.current?.scrollTo({ x: Math.min(maximo(), Math.max(0, desplazado.current + paso)), animated: false });
-    }, 16);
-    return () => {
-      vivo = false;
-      clearInterval(reloj);
-    };
+    const lista: Rect[] = PESTANAS.map(() => ({ x: -1000, y: -1000, w: 0, h: 0 }));
+    PESTANAS.forEach((p, i) => chips.current[p.id]?.measureInWindow((x, y, w, h) => { lista[i] = { x, y, w, h }; arrastre.rects.set([...lista]); }));
   }, [quien, arrastre]);
 
   // Mueve la fila solo si el estado no se ve entero, y lo justo.
@@ -74,18 +52,14 @@ export function Pestanas({ activa, cuentas, alElegir, arrastre }: { activa: Pest
   useEffect(() => mostrar(activa, true), [activa]);
 
   return (
-    <View ref={cont} accessibilityRole="tablist">
+    <View accessibilityRole="tablist">
       <ScrollView
         ref={barra}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={e.barra}
-        scrollEventThrottle={16}
-        onContentSizeChange={(w) => (contenido.current = w)}
-        onScroll={(ev) => {
-          desplazado.current = ev.nativeEvent.contentOffset.x;
-          arrastre?.scroll.set(desplazado.current);
-        }}
+        scrollEventThrottle={32}
+        onScroll={(ev) => (desplazado.current = ev.nativeEvent.contentOffset.x)}
         onLayout={(ev) => {
           visible.current = ev.nativeEvent.layout.width;
           mostrar(activa, false);
@@ -97,6 +71,7 @@ export function Pestanas({ activa, cuentas, alElegir, arrastre }: { activa: Pest
           return (
             <Pressable
               key={p.id}
+              ref={(v) => void (chips.current[p.id] = v)}
               accessibilityRole="tab"
               accessibilityState={{ selected: elegida }}
               accessibilityLabel={`${p.texto}, ${cuentas[p.id]}`}
