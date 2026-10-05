@@ -5,7 +5,7 @@ import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
-import { Boton, Campo, Icono, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Campo, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { clp, montoEscrito, soloDigitos } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';

@@ -23,15 +23,21 @@ export default function AppLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Presupuestos',
-          // Título normal (no grande): las pestañas de la lista quedan fijas debajo, y el título grande se encoge al desplazar.
+          title: 'Inicio',
+          // Dos íconos: la lista de presupuestos por estado (las pestañas) y configurar.
           headerRight: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-              <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
-            </Pressable>
+            <View style={{ flexDirection: 'row' }}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los presupuestos" onPress={() => router.push('/presupuestos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
+                <SymbolView name={{ ios: 'list.bullet', android: 'list', web: 'list' }} size={22} tintColor={t.acento} fallback={<View />} />
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
+                <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
+              </Pressable>
+            </View>
           ),
         }}
       />
+      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio' }} /> {/* título normal: las pestañas quedan fijas debajo */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} /> {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
       <Stack.Screen name="escanear" options={{ presentation: 'modal', title: 'Ver en la web', headerBackTitle: 'Atrás' }} />
