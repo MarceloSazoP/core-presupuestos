@@ -3,10 +3,12 @@ import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { CampoTelefono } from '@/components/campo-telefono';
 import { ElegirPais } from '@/components/elegir-pais';
 import { ImagenPerfil } from '@/components/imagen-perfil';
 import { Boton, Campo, Icono, Presionable, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
+import { bandera, separarTelefono } from '@/lib/paises';
 import { elegirTema, leerPreferenciaTema, OPCIONES_TEMA, type PreferenciaTema } from '@/lib/preferencia-tema';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
@@ -17,14 +19,15 @@ import { espacio, useTema } from '@/theme';
 export default function Configurar() {
   const t = useTema();
   const { usuario, actualizar, salir } = useSesion();
+  const pais = usePais();
   const [nombre, setNombre] = useState(usuario?.name ?? '');
-  const [telefono, setTelefono] = useState(usuario?.contact_phone ?? '');
+  const [telefono, setTelefono] = useState(separarTelefono(usuario?.contact_phone ?? '', pais.calling_code).nacional);
+  const [codigo, setCodigo] = useState(separarTelefono(usuario?.contact_phone ?? '', pais.calling_code).codigo);
   const [correo, setCorreo] = useState(usuario?.contact_email ?? '');
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [tema, setTema] = useState<PreferenciaTema>('sistema');
-  const pais = usePais();
   const [eligiendoPais, setEligiendoPais] = useState(false);
   async function cambiarPais(country: string) {
     setEligiendoPais(false);
@@ -43,7 +46,9 @@ export default function Configurar() {
     api<Usuario>('/me')
       .then((u) => {
         setNombre(u.name);
-        setTelefono(u.contact_phone ?? '');
+        const sep = separarTelefono(u.contact_phone ?? '', pais.calling_code);
+        setTelefono(sep.nacional);
+        setCodigo(sep.codigo);
         setCorreo(u.contact_email ?? '');
         void actualizar(u);
       })
@@ -52,10 +57,10 @@ export default function Configurar() {
   }, []);
 
   async function guardar() {
-    const tel = telefono.trim() ? normalizarTelefono(telefono, pais.calling_code) : null;
+    const tel = telefono.trim() ? normalizarTelefono(telefono, codigo) : null;
     const e = {
       nombre: nombre.trim() ? undefined : 'Escribe tu nombre o el de tu negocio',
-      telefono: telefono.trim() && !tel ? 'Escribe un teléfono válido, con su código de país si es de otro (+51…)' : undefined,
+      telefono: telefono.trim() && !tel ? 'Escribe un teléfono válido, con su código de país' : undefined,
       correo: correo.trim() && !esCorreo(correo) ? 'Revisa el correo' : undefined,
     };
     setErrores(e);
@@ -98,19 +103,19 @@ export default function Configurar() {
         <Tarjeta style={e.tarjetaPais}>
           <Presionable accessibilityRole="button" accessibilityLabel={`País: ${pais.name}. Cambiar`} onPress={() => setEligiendoPais(true)} estilo={e.filaPais}>
             <View style={e.flexPais}>
-              <Texto fuerte>{pais.name}</Texto>
+              <Texto fuerte>{bandera(pais.country)} {pais.name}</Texto>
               <Texto variante="chico" suave>{pais.currency} · {pais.vat_label} {pais.vat_rate} %</Texto>
             </View>
             <Icono nombre="despliegue" tamano={12} color={t.suave} />
           </Presionable>
         </Tarjeta>
       </Seccion>
-      {eligiendoPais ? <ElegirPais actual={pais.country} alElegir={(c) => void cambiarPais(c)} alCerrar={() => setEligiendoPais(false)} /> : null}
+      {eligiendoPais ? <ElegirPais titulo="País" nota="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian." detalle={(p) => `${p.currency} · ${p.vat_label} ${p.vat_rate} %`} actual={pais.country} alElegir={(c) => void cambiarPais(c)} alCerrar={() => setEligiendoPais(false)} /> : null}
 
       <Seccion titulo="Tus datos en los presupuestos" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
         <Tarjeta>
         <Campo etiqueta="Nombre o negocio" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoComplete="name" />
-        <Campo etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" placeholder={usuario?.phone ?? '9 1234 5678'} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
+        <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} placeholder="9 1234 5678" ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         <Campo etiqueta="Correo de contacto" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder={usuario?.email ?? ''} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />

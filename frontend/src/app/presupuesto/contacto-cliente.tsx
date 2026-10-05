@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { bandera, PAISES_ORDENADOS, separarTelefono } from "@/lib/paises";
 import { corregirClienteAction } from "../actions";
 
 // Teléfono y correo del cliente, siempre corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
@@ -8,7 +9,8 @@ import { corregirClienteAction } from "../actions";
 export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?: string; telefono: string; correo: string | null; prefijo?: string }) {
   const [editando, setEditando] = useState(false);
   const [nom, setNom] = useState(nombre ?? "");
-  const [tel, setTel] = useState(telefono);
+  const [cod, setCod] = useState(() => separarTelefono(telefono, prefijo ?? "+56").codigo); // el país del número (su prefijo)
+  const [tel, setTel] = useState(() => separarTelefono(telefono, prefijo ?? "+56").nacional);
   const [mail, setMail] = useState(correo ?? "");
   const [error, setError] = useState<string | null>(null);
   const [enCurso, empezar] = useTransition();
@@ -16,7 +18,7 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
   const guardar = () =>
     empezar(async () => {
       setError(null);
-      const r = await corregirClienteAction(tel, mail, nombre === undefined ? undefined : nom, prefijo);
+      const r = await corregirClienteAction(tel, mail, nombre === undefined ? undefined : nom, cod);
       if (r.error) return setError(r.error);
       setEditando(false);
     });
@@ -33,7 +35,9 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
           type="button"
           onClick={() => {
             setNom(nombre ?? "");
-            setTel(telefono);
+            const sep = separarTelefono(telefono, prefijo ?? "+56");
+            setTel(sep.nacional);
+            setCod(sep.codigo);
             setMail(correo ?? "");
             setError(null);
             setEditando(true);
@@ -58,10 +62,20 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
           <input type="text" autoComplete="off" value={nom} onChange={(e) => setNom(e.target.value)} className="campo" />
         </label>
       )}
-      <label className="flex flex-col gap-1">
-        <span className="etiqueta">Teléfono del cliente</span>
-        <input type="tel" inputMode="tel" autoComplete="off" value={tel} onChange={(e) => setTel(e.target.value)} placeholder="9 1234 5678" className="campo" />
-      </label>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="tel-cliente" className="etiqueta">Teléfono del cliente</label>
+        <div className="flex gap-2">
+          {/* El código de país: Chile, Perú y México primero, y luego los demás por nombre. */}
+          <select aria-label="Código de país" value={cod} onChange={(e) => setCod(e.target.value)} className="campo w-auto shrink-0">
+            {PAISES_ORDENADOS.map((p) => (
+              <option key={p.country} value={p.calling_code}>
+                {bandera(p.country)} {p.name} {p.calling_code}
+              </option>
+            ))}
+          </select>
+          <input id="tel-cliente" type="tel" inputMode="tel" autoComplete="off" value={tel} onChange={(e) => setTel(e.target.value)} placeholder="9 1234 5678" className="campo min-w-0 flex-1" />
+        </div>
+      </div>
       <label className="flex flex-col gap-1">
         <span className="etiqueta">Correo del cliente</span>
         <input type="email" inputMode="email" autoComplete="off" autoCapitalize="none" value={mail} onChange={(e) => setMail(e.target.value)} placeholder="Déjalo vacío si no tiene" className="campo" />

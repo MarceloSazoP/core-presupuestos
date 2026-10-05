@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { CampoTelefono } from '@/components/campo-telefono';
 import { Boton, Campo, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar, guardarBorrador } from '@/sync/cola';
@@ -20,6 +21,7 @@ export default function Nuevo() {
   const pais = usePais();
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [codigo, setCodigo] = useState(pais.calling_code); // el país del número del cliente (propuesto: el de tu cuenta)
   const [correo, setCorreo] = useState('');
   const [direccion, setDireccion] = useState('');
   const [servicio, setServicio] = useState('');
@@ -42,10 +44,10 @@ export default function Nuevo() {
   };
 
   async function crear() {
-    const tel = normalizarTelefono(telefono, pais.calling_code);
+    const tel = normalizarTelefono(telefono, codigo);
     const e = {
       nombre: nombre.trim() ? undefined : 'Escribe el nombre del cliente',
-      telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país si es de otro (+51…)',
+      telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país',
       correo: !correo.trim() || esCorreo(correo) ? undefined : 'Revisa el correo',
     };
     setErrores(e);
@@ -93,7 +95,7 @@ export default function Nuevo() {
       <Seccion titulo="Cliente">
         <Tarjeta>
           <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoFocus autoCapitalize="words" autoComplete="off" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
-          <Campo ref={refTelefono} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" placeholder="9 1234 5678" />
+          <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} placeholder="9 1234 5678" />
           <Campo ref={refCorreo} etiqueta="Correo (opcional)" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" onSubmitEditing={() => refDireccion.current?.focus()} ayuda="Con correo, el PDF se envía solo al terminar." />
         </Tarjeta>
       </Seccion>

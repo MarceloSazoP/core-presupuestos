@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { CampoTelefono } from '@/components/campo-telefono';
 import { Boton, Campo, Icono, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
+import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -16,14 +18,17 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
   const t = useTema();
   const [editando, setEditando] = useState(false);
   const [nombre, setNombre] = useState(q.customer.name);
-  const [telefono, setTelefono] = useState(q.customer.phone);
+  const [telefono, setTelefono] = useState(separarTelefono(q.customer.phone, pais.calling_code).nacional);
+  const [codigo, setCodigo] = useState(separarTelefono(q.customer.phone, pais.calling_code).codigo);
   const [correo, setCorreo] = useState(q.customer.email ?? '');
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<string | null>(null);
 
   function empezar() {
     setNombre(q.customer.name);
-    setTelefono(q.customer.phone);
+    const sep = separarTelefono(q.customer.phone, pais.calling_code);
+    setTelefono(sep.nacional);
+    setCodigo(sep.codigo);
     setCorreo(q.customer.email ?? '');
     setErrores({});
     setAviso(null);
@@ -31,11 +36,11 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
   }
 
   async function guardar() {
-    const tel = normalizarTelefono(telefono, pais.calling_code);
+    const tel = normalizarTelefono(telefono, codigo);
     const nom = nombre.trim();
     const e = {
       nombre: !nombreEditable || nom ? undefined : 'Escribe el nombre del cliente',
-      telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país si es de otro (+51…)',
+      telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país',
       correo: !correo.trim() || esCorreo(correo) ? undefined : 'Revisa el correo',
     };
     setErrores(e);
@@ -70,7 +75,7 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
   return (
     <View style={e.form}>
       {nombreEditable ? <Campo etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoFocus /> : null}
-      <Campo etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" autoFocus={!nombreEditable} />
+      <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} autoFocus={!nombreEditable} />
       <Campo etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
       {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
       <View style={e.fila}>

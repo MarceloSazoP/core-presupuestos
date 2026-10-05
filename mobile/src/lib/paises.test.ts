@@ -22,3 +22,21 @@ test('el país desconocido cae en Chile y el impuesto usa la tasa del presupuest
   assert.deepEqual(totalesDe(100000, 0, true, 16), { iva: 16000, total: 116000 });
   assert.deepEqual(totalesDe(100000, 0, true), { iva: 19000, total: 119000 });
 });
+
+test('un teléfono guardado se parte en el prefijo de su país y el número; uno de otro país queda entero', async () => {
+  const { separarTelefono } = await import('./paises.ts');
+  assert.deepEqual(separarTelefono('+51987654321', '+56'), { codigo: '+51', nacional: '987654321' });
+  assert.deepEqual(separarTelefono('+59899123456', '+56'), { codigo: '+598', nacional: '99123456' });
+  assert.deepEqual(separarTelefono('+34600111222', '+56'), { codigo: '+56', nacional: '+34600111222' }, 'de un país que no está en la lista: se deja como se escribió');
+  assert.deepEqual(separarTelefono('954822089', '+51'), { codigo: '+51', nacional: '954822089' });
+});
+
+test('la bandera sale del código del país; las listas van Chile, Perú, México y luego el resto por nombre', async () => {
+  const { bandera, PAISES_ORDENADOS } = await import('./paises.ts');
+  assert.equal(bandera('CL'), '\u{1F1E8}\u{1F1F1}');
+  assert.equal(bandera('pe'), '\u{1F1F5}\u{1F1EA}');
+  assert.deepEqual(PAISES_ORDENADOS.slice(0, 3).map((p) => p.country), ['CL', 'PE', 'MX']);
+  const resto = PAISES_ORDENADOS.slice(3).map((p) => p.name);
+  assert.deepEqual(resto, [...resto].sort((a, b) => a.localeCompare(b, 'es')));
+  assert.equal(PAISES_ORDENADOS.length, 12);
+});

@@ -132,7 +132,7 @@ export function BarraTeclado({ id = TECLADO_ID }: { id?: string }) {
 }
 
 // Campo con su etiqueta arriba. Relleno gris sobre la tarjeta blanca y borde de 3:1; al escribir, el borde toma el azul de la acción.
-export function Campo({ etiqueta, error, ayuda, ref, style, onFocus, onBlur, ...props }: TextInputProps & { etiqueta: string; error?: string | null; ayuda?: string; ref?: React.Ref<TextInput> }) {
+export function Campo({ etiqueta, error, ayuda, izquierda, ref, style, onFocus, onBlur, ...props }: TextInputProps & { etiqueta: string; error?: string | null; ayuda?: string; izquierda?: ReactNode; ref?: React.Ref<TextInput> }) {
   const t = useTema();
   const [enfocado, setEnfocado] = useState(false);
   return (
@@ -140,6 +140,9 @@ export function Campo({ etiqueta, error, ayuda, ref, style, onFocus, onBlur, ...
       <Texto variante="chico" fuerte>
         {etiqueta}
       </Texto>
+      {/* `izquierda`: algo antes de la caja en la misma fila (el selector de país del teléfono). */}
+      <View style={izquierda ? e.filaCampo : undefined}>
+      {izquierda}
       <TextInput
         ref={ref}
         accessibilityLabel={etiqueta}
@@ -155,8 +158,9 @@ export function Campo({ etiqueta, error, ayuda, ref, style, onFocus, onBlur, ...
           setEnfocado(false);
           onBlur?.(ev);
         }}
-        style={[e.entrada, { color: t.texto, backgroundColor: t.campo, borderColor: error ? t.error : enfocado ? t.acento : t.bordeCampo }, enfocado || error ? e.entradaActiva : null, props.multiline ? e.multilinea : null, style]}
+        style={[e.entrada, { color: t.texto, backgroundColor: t.campo, borderColor: error ? t.error : enfocado ? t.acento : t.bordeCampo }, enfocado || error ? e.entradaActiva : null, props.multiline ? e.multilinea : null, izquierda ? e.crece : null, style]}
       />
+      </View>
       {error ? (
         <Texto variante="chico" color="error" accessibilityRole="alert">
           {error}
@@ -273,6 +277,8 @@ const e = StyleSheet.create({
   agarreTeclado: { position: 'absolute', alignSelf: 'center', left: '50%', marginLeft: -20, top: 6, width: 40, height: 5, borderRadius: 3, opacity: 0.5 },
   listo: { minHeight: 44, minWidth: 64, alignItems: 'flex-end', justifyContent: 'center' },
   entrada: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: espacio.l, fontSize: letra.cuerpo }, // 16 pt: iOS no hace zoom al enfocar
+  filaCampo: { flexDirection: 'row', gap: espacio.s },
+  crece: { flex: 1 },
   entradaActiva: { borderWidth: 2, paddingHorizontal: espacio.l - 1 }, // el borde crece sin mover el texto
   multilinea: { minHeight: 96, paddingTop: espacio.m, textAlignVertical: 'top' },
   pastilla: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },

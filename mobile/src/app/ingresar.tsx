@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { CampoTelefono } from '@/components/campo-telefono';
 import { Boton, Campo, Tarjeta, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -22,6 +23,7 @@ export default function Ingresar() {
   const [paso, setPaso] = useState<Paso>('datos');
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [prefijo, setPrefijo] = useState(pais.calling_code); // el país del número que se escribe (propuesto: el de la región del teléfono)
   const [correo, setCorreo] = useState('');
   const [canal, setCanal] = useState<Canal>('EMAIL'); // el SMS necesita Twilio (pendiente): el correo ya funciona
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
@@ -32,12 +34,12 @@ export default function Ingresar() {
   const refTelefono = useRef<TextInput>(null);
   const refCorreo = useRef<TextInput>(null);
 
-  const telefonoE164 = normalizarTelefono(telefono, pais.calling_code);
+  const telefonoE164 = normalizarTelefono(telefono, prefijo);
 
   function continuar() {
     const e = {
       nombre: nombre.trim() ? undefined : 'Escribe tu nombre',
-      telefono: telefonoE164 ? undefined : 'Escribe un teléfono válido, por ejemplo 9 1234 5678',
+      telefono: telefonoE164 ? undefined : 'Escribe un teléfono válido, con su código de país',
       correo: esCorreo(correo) ? undefined : 'Escribe un correo válido',
     };
     setErrores(e);
@@ -101,7 +103,7 @@ export default function Ingresar() {
         <Tarjeta style={e.bloque}>
           <Texto variante="subtitulo">Tus datos</Texto>
           <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoComplete="name" textContentType="name" autoCapitalize="words" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
-          <Campo ref={refTelefono} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="9 1234 5678" ayuda="Es tu identidad en la app." />
+          <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" placeholder="9 1234 5678" ayuda="Es tu identidad en la app." />
           <Campo ref={refCorreo} etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
           <Boton titulo="Continuar" onPress={continuar} />
         </Tarjeta>

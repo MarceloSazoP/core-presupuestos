@@ -18,8 +18,28 @@ export const PAISES: readonly Pais[] = [
   { country: 'GT', name: 'Guatemala', currency: 'GTQ', symbol: 'Q', thousands: ',', vat_label: 'IVA', vat_rate: 12, calling_code: '+502' },
 ];
 
+// Para las listas que se muestran: primero Chile, Perú y México (en ese orden) y después todos los demás por orden alfabético.
+const PRIMEROS = ['CL', 'PE', 'MX'];
+export const PAISES_ORDENADOS: readonly Pais[] = [...PAISES].sort((a, b) => {
+  const [i, j] = [PRIMEROS.indexOf(a.country), PRIMEROS.indexOf(b.country)];
+  if (i >= 0 || j >= 0) return (i < 0 ? 99 : i) - (j < 0 ? 99 : j);
+  return a.name.localeCompare(b.name, 'es');
+});
+
+// La bandera de un país a partir de su código de dos letras (CL → 🇨🇱): cada letra se vuelve su «indicador regional» Unicode.
+export const bandera = (country: string) => String.fromCodePoint(...[...country.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+
 export const PAIS_POR_DEFECTO = PAISES[0]!; // Chile: lo que había antes de los varios países
 export const paisDe = (codigo: string | null | undefined) => PAISES.find((p) => p.country === codigo) ?? PAIS_POR_DEFECTO;
+
+// El país de un teléfono E.164 por su prefijo (el más largo que coincida), y el teléfono partido en prefijo y número nacional: así un
+// número guardado se muestra en el selector de país y su caja. Un teléfono de otro país no listado queda entero, con «+», en la caja.
+export const paisDelTelefono = (telefono: string) => [...PAISES].sort((a, b) => b.calling_code.length - a.calling_code.length).find((p) => telefono.startsWith(p.calling_code));
+export function separarTelefono(telefono: string, prefijoPorDefecto: string): { codigo: string; nacional: string } {
+  const p = telefono.startsWith('+') ? paisDelTelefono(telefono) : undefined;
+  if (p) return { codigo: p.calling_code, nacional: telefono.slice(p.calling_code.length) };
+  return { codigo: prefijoPorDefecto, nacional: telefono };
+}
 
 // Monto entero con el símbolo y el separador de su moneda; sin depender del ICU del teléfono (no agrupa igual en todos lados).
 // El dólar (Ecuador y Panamá) va siempre al estilo de dólar. Una moneda desconocida cae en la de Chile.
