@@ -16,6 +16,9 @@ const claro = {
   sobreAcento: '#FFFFFF',
   naranja: '#F9890D', // naranja de la marca: solo para destacar (no para texto sobre blanco)
   sobreNaranja: '#0B1B3A',
+  azul: '#0E3578', // el azul de la marca en gráficos (en oscuro uno más claro, para que se vea sobre azul noche)
+  azulFuerte: '#0E3578', // fondo de la tarjeta destacada del inicio
+  sobreAzul: '#FFFFFF',
   aviso: '#8A5A00',
   ok: '#1A7F37',
   seguimiento: '#7C3AED', // violeta: el estado «Seguimiento» tiene su propio color
@@ -37,6 +40,9 @@ const oscuro = {
   sobreAcento: '#0B1B3A',
   naranja: '#F9890D',
   sobreNaranja: '#0B1B3A',
+  azul: '#5B84E6', // 4,7:1 sobre la tarjeta; distinto del naranja también en tono
+  azulFuerte: '#2B53B5', // con texto blanco 7:1
+  sobreAzul: '#FFFFFF',
   aviso: '#E3B341',
   ok: '#56D364',
   seguimiento: '#B197FC',
