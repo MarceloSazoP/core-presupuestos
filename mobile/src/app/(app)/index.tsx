@@ -32,7 +32,8 @@ export default function Inicio() {
         }
       >
         <Sincronizacion />
-        <Resumen key={actualizar} /> {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
+        {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
+        <Resumen key={actualizar} />
       </ScrollView>
       <View pointerEvents="box-none" style={[e.cta, { paddingBottom: insets.bottom + espacio.m }]}>
         <Boton titulo="Crear presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
