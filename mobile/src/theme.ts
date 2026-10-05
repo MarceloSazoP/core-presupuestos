@@ -1,18 +1,21 @@
 import { useColorScheme } from 'react-native';
 
-// La misma paleta que la web (pasada de OKLCH a hex): página apenas gris y tarjetas blancas, como papel sobre la mesa; azul de
-// tinta para la acción; y la copia amarilla del talonario para lo que es solo del profesional (las notas de la visita).
-// Pares verificados: texto y suave ≥ 4,5:1 sobre tarjeta, página y campo; borde de campo ≥ 3:1 contra el campo (WCAG 1.4.11).
+// Identidad de CORE Presupuestos, sacada del logo: azul marino (la C y las barras) como color de la acción y naranja (la flecha)
+// como acento para lo que se quiere destacar. Los grises llevan un tinte azul, como el logo. En oscuro la acción pasa a naranja y
+// las superficies son azul noche (el azul marino sobre oscuro no se lee). Pares verificados: texto, suave y acento ≥ 4,5:1 sobre
+// tarjeta, página y campo; borde de campo ≥ 3:1 contra el campo (WCAG 1.4.11); texto sobre naranja 7:1.
 const claro = {
-  fondo: '#F5F7F9',
+  fondo: '#F3F5FA',
   tarjeta: '#FFFFFF',
-  campo: '#F5F7F9', // relleno de los campos: un hueco gris sobre la tarjeta blanca
-  borde: '#DBDEE4', // divisiones y tarjetas
-  bordeCampo: '#82868F', // 3,4:1 contra el campo
-  texto: '#181B20',
-  suave: '#535861',
-  acento: '#2C5DBD',
+  campo: '#F3F5FA', // relleno de los campos: un hueco gris sobre la tarjeta blanca
+  borde: '#DDE3EE', // divisiones y tarjetas
+  bordeCampo: '#7C879E', // 3,3:1 contra el campo
+  texto: '#0B1B3A',
+  suave: '#4F5B74',
+  acento: '#0E3578', // azul marino de la marca: botones, pestaña elegida, enlaces
   sobreAcento: '#FFFFFF',
+  naranja: '#F9890D', // naranja de la marca: solo para destacar (no para texto sobre blanco)
+  sobreNaranja: '#0B1B3A',
   aviso: '#8A5A00',
   ok: '#1A7F37',
   seguimiento: '#7C3AED', // violeta: el estado «Seguimiento» tiene su propio color
@@ -23,15 +26,17 @@ const claro = {
 } as const;
 
 const oscuro = {
-  fondo: '#090A0D',
-  tarjeta: '#121418',
-  campo: '#171A1E',
-  borde: '#2D3037',
-  bordeCampo: '#686C75', // 3,3:1 contra el campo
-  texto: '#ECEEF3',
-  suave: '#A0A5AE',
-  acento: '#87B1FD',
-  sobreAcento: '#090A0D',
+  fondo: '#0A1226',
+  tarjeta: '#111C38',
+  campo: '#15213F',
+  borde: '#243357',
+  bordeCampo: '#6C7BA0', // 3,8:1 contra el campo
+  texto: '#EEF2FA',
+  suave: '#9AA7C2',
+  acento: '#F9890D', // en oscuro la acción es el naranja de la marca
+  sobreAcento: '#0B1B3A',
+  naranja: '#F9890D',
+  sobreNaranja: '#0B1B3A',
   aviso: '#E3B341',
   ok: '#56D364',
   seguimiento: '#B197FC',

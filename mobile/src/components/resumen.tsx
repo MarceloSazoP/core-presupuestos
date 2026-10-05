@@ -119,7 +119,7 @@ function Grafico({ meses }: { meses: Indicadores[] }) {
           <View key={m.month} style={e.mes}>
             <View style={[e.par, { height: ALTO }]}>
               <Barra alto={Math.max(3, (m.quoted_amount / max) * ALTO)} color={t.acento} orden={i * 2} />
-              <Barra alto={Math.max(3, (m.accepted_amount / max) * ALTO)} color="#F9890D" orden={i * 2 + 1} />
+              <Barra alto={Math.max(3, (m.accepted_amount / max) * ALTO)} color={t.naranja} orden={i * 2 + 1} />
             </View>
             <Texto variante="chico" suave>{NOMBRES[Number(m.month.slice(5)) - 1]}</Texto>
           </View>
@@ -127,7 +127,7 @@ function Grafico({ meses }: { meses: Indicadores[] }) {
       </View>
       <View style={e.leyenda}>
         <View style={e.item}><View style={[e.punto, { backgroundColor: t.acento }]} /><Texto variante="chico" suave>Presupuestado</Texto></View>
-        <View style={e.item}><View style={[e.punto, { backgroundColor: '#F9890D' }]} /><Texto variante="chico" suave>Aceptado</Texto></View>
+        <View style={e.item}><View style={[e.punto, { backgroundColor: t.naranja }]} /><Texto variante="chico" suave>Aceptado</Texto></View>
       </View>
     </Tarjeta>
   );
