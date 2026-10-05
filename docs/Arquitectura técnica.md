@@ -119,8 +119,8 @@ Sin clase base genérica de CRUD ni capa `services` que solo reenvíe: la ruta v
 2. **Toda función de consulta recibe `userId`.** Nunca se consulta por `id` solo.
 3. **Escrituras multi-tabla en `withTx`.** Obligatorio en `finalize`, creación de presupuesto con cliente en línea y reemplazo de ítems o medidas.
 4. **Totales** los calcula una función única en `modules/quotes`; los clientes nunca los envían (Contrato API §6).
-5. **Numeración atómica:** `INSERT INTO quote_counters … ON CONFLICT (user_id, year) DO UPDATE SET last_number = quote_counters.last_number + 1 RETURNING last_number`, con el año en `America/Santiago`.
-6. **"Hoy"** se calcula en SQL: `(now() AT TIME ZONE 'America/Santiago')::date`.
+5. **Numeración atómica:** `INSERT INTO quote_counters … ON CONFLICT (user_id, year) DO UPDATE SET last_number = quote_counters.last_number + 1 RETURNING last_number`, con el año en la zona horaria del dueño del presupuesto (`users.timezone`, que envía el teléfono; `America/Santiago` si no hay).
+6. **"Hoy"** se calcula en SQL con la zona horaria del dueño del presupuesto: `(now() AT TIME ZONE (SELECT timezone FROM users WHERE id = q.user_id))::date`. Esa zona es la del teléfono (`Internacionalización.md` §3.4).
 7. **Respuestas con serializadores explícitos**, nunca `SELECT *` hacia el cliente. El snapshot público se arma desde `quote_documents.snapshot`, no desde las tablas vivas.
 8. **Cabeceras:** `X-Content-Type-Options: nosniff` en todo; `Cache-Control: no-store` en la API y en lo público; `X-Robots-Tag: noindex` en `/public/*`. CORS con lista de orígenes permitidos (solo el web); Mobile no usa CORS.
 9. **Límites:** `express.json({ limit: '100kb' })`; `trust proxy` configurado según el hosting para que el límite por IP use la IP real.
@@ -288,7 +288,7 @@ Una notificación local por presupuesto con `next_contact_date`, a las 09:00 de 
 
 - **WhatsApp:** abrir `https://wa.me/<número>?text=<mensaje con public_url>`, con respaldo a la hoja de compartir. La app **no puede saber** si el usuario envió el mensaje: al volver pregunta "¿Lo enviaste?" y solo entonces llama a `mark-sent` (Contrato API §7).
 - **PDF:** se descarga `GET /quotes/{id}/pdf` al caché y se comparte con `expo-sharing`.
-- **Recordatorios:** una notificación local a las 09:00 (`America/Santiago`) del `next_contact_date`. Al abrir la app y tras cada cambio de seguimiento se reconcilian con `GET /quotes?commercial_status=SENT` y `FOLLOW_UP` (el resumen ya trae `next_contact_date`). Se cancelan al pasar a `ACCEPTED` o `REJECTED`. Hora aproximada, así que **no** se pide el permiso de alarmas exactas. Solo suenan en el dispositivo que las programó.
+- **Recordatorios:** una notificación local a las 09:00 (hora local del teléfono) del `next_contact_date`. Al abrir la app y tras cada cambio de seguimiento se reconcilian con `GET /quotes?commercial_status=SENT` y `FOLLOW_UP` (el resumen ya trae `next_contact_date`). Se cancelan al pasar a `ACCEPTED` o `REJECTED`. Hora aproximada, así que **no** se pide el permiso de alarmas exactas. Solo suenan en el dispositivo que las programó.
 - Los SO limitan las notificaciones locales pendientes: se programan solo las más próximas (cantidad a definir al implementar).
 
 ### Compilaciones

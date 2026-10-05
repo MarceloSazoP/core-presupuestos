@@ -77,7 +77,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 **QuoteSummary** (listados). `code_id` es el ID corto del presupuesto (la primera parte del código): la app lo muestra en las listas como el identificador con el que el usuario reconoce y nombra cada presupuesto. No es secreto ni da acceso por sí solo.
 ```json
 { "id": "uuid", "code_id": "7K4M2Q", "number": null, "version": 1, "customer": { "id": "uuid", "name": "Juan Pérez" },
-  "service_description": "Mantención calefont", "total": 20000,
+  "service_description": "Mantención calefont", "total": 20000, "currency": "CLP",
   "doc_status": "PENDING", "commercial_status": "NONE",
   "next_contact_date": null, "sent_at": null, "updated_at": "…" }
 ```
@@ -97,6 +97,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
   },
   "items": [{ "id": "uuid", "kind": "ITEM", "description": "", "quantity": 1, "unit": "un", "unit_price": 5000, "line_total": 5000 }],
   "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "total": 0,
+  "country": "CL", "currency": "CLP", "vat_label": "IVA", "vat_rate": 19,
   "warranty": { "kind": "NONE", "text": null },
   "validity_days": null, "observations": null,
   "include_qr": false,
@@ -194,8 +195,9 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 
 | Método y ruta | Descripción |
 |---------------|-------------|
-| `GET /me` | `{ id, name, phone, email, contact_phone, contact_email, has_logo, has_signature, use_logo, include_signature, logo_id, signature_id }`. `logo_id` y `signature_id` cambian con cada imagen nueva (o son `null`): se usan en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre una imagen vieja guardada en caché. |
-| `PUT /me` | Parcial: `{ "name"?, "contact_phone"?, "contact_email"?, "use_logo"?, "include_signature"? }` (al menos uno). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
+| `GET /me` | `{ id, name, phone, email, country, timezone, contact_phone, contact_email, has_logo, has_signature, use_logo, include_signature, logo_id, signature_id }`. `logo_id` y `signature_id` cambian con cada imagen nueva (o son `null`): se usan en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre una imagen vieja guardada en caché. |
+| `PUT /me` | Parcial: `{ "name"?, "country"?, "timezone"?, "contact_phone"?, "contact_email"?, "use_logo"?, "include_signature"? }` (al menos uno). `country` ∈ la lista de `GET /countries` (422 si no); `timezone` es un nombre IANA válido, como `America/Lima` (422 si no). Cambiar el país **no** modifica los presupuestos ya creados (`Internacionalización.md` §3.2). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
+| `GET /countries` | Sin sesión. Los países disponibles: `[{ country, name, currency, symbol, thousands, vat_label, vat_rate, calling_code }]`. Es la tabla de `Internacionalización.md` §2; la app la usa para elegir el país y le basta con la guardada si no hay conexión. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `GET /me/logo` | Descarga el logo propio (404 si no hay). Es lo que muestra «Configurar». |
 | `DELETE /me/logo` | **204** |
@@ -255,7 +257,7 @@ Alternativa: en vez de `customer_id`, un objeto `"customer": { name, phone, emai
 `customer_id, service_description, address, latitude, longitude, discount, include_vat, warranty {kind, text}, validity_days, observations, include_qr`. La firma ya no se elige por presupuesto: sigue el perfil (§4).
 `latitude` y `longitude` van juntas o ninguna. El backend recalcula `vat` y `total` cuando cambian `discount` o `include_vat`.
 
-**IVA (decisión del 2026-10-04).** `include_vat = true` agrega el IVA al presupuesto. Los precios que se escriben son **netos** (sin IVA). El IVA es el 19 % de `subtotal − discount` (el descuento va antes del IVA), redondeado al peso con `.5` hacia arriba, y `total = subtotal − discount + vat`. Con `include_vat = false`, `vat = 0` y `total = subtotal − discount`, como antes. Es una línea informativa de un presupuesto comercial: **no** emite documentos tributarios (el pie del PDF sigue diciéndolo). La tasa vive solo en el servidor; los clientes pueden mostrar una vista previa pero siempre muestran lo que devuelve el servidor.
+**Impuesto (decisión del 2026-10-04, varios países desde `Internacionalización.md`).** `include_vat = true` agrega el impuesto al presupuesto (se llama «IVA» en la mayoría de los países; `vat_label` dice cuál). Los precios que se escriben son **netos** (sin impuesto). La tasa es `vat_rate` del presupuesto, copiada de su país al crearlo (19 % en Chile, 18 % en Perú, 16 % en México…); el impuesto es esa tasa de `subtotal − discount` (el descuento va antes del IVA), redondeado al peso con `.5` hacia arriba, y `total = subtotal − discount + vat`. Con `include_vat = false`, `vat = 0` y `total = subtotal − discount`, como antes. Es una línea informativa de un presupuesto comercial: **no** emite documentos tributarios (el pie del PDF sigue diciéndolo). La tasa vive solo en el servidor; los clientes pueden mostrar una vista previa pero siempre muestran lo que devuelve el servidor.
 
 ### Rehacer un presupuesto rechazado: versiones (decisión del 2026-10-04)
 
@@ -432,7 +434,8 @@ Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`,
 ### `GET /public/quotes/{token}`
 **200** — el snapshot del contrato de BD §5, **sin** teléfono ni correo del cliente:
 ```json
-{ "number": "CP-2026-0001", "version": 1, "previous_number": null, "finalized_at": "…", "valid_until": "2026-10-18",
+{ "number": "CP-2026-0001", "version": 1, "previous_number": null, "finalized_at": "…", "issued_on": "2026-10-03", "valid_until": "2026-10-18",
+  "timezone": "America/Santiago", "country": "CL", "currency": "CLP", "vat_label": "IVA",
   "professional": { "name": "Pedro Soto", "phone": "+56912345678", "email": "pedro@mail.cl",
                     "has_logo": true, "has_signature": false },
   "customer": { "name": "Juan Pérez" },
@@ -464,7 +467,7 @@ Token inexistente o revocado ⇒ **404** idéntico (sin distinguir). Cabeceras: 
 Las listas completas se piden con `GET /quotes?section=…`.
 
 ### `GET /dashboard/kpis?month=2026-10`
-Opcional; la preferencia de mostrarlos la guarda el cliente.
+Opcional; la preferencia de mostrarlos la guarda el cliente. El mes y «hoy» son los de la zona horaria del usuario (`users.timezone`), no los de Santiago.
 ```json
 { "month": "2026-10", "quotes_count": 12, "quoted_amount": 2850000,
   "accepted_count": 7, "accepted_amount": 1920000,

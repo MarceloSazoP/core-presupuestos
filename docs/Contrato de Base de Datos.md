@@ -731,3 +731,28 @@ END $$;
 - Canal `quote_changed`; el mensaje es solo el id del presupuesto (nada sensible). Postgres junta los avisos iguales de una misma transacción.
 - La API mantiene **una** conexión `LISTEN` y reparte los avisos a quienes tienen abierto `events` de ese presupuesto. Funciona con varias instancias de la API (cada una escucha el canal).
 - **Pruebas que acompañan:** cambiar ítems, notas o datos del cliente emite `changed` al suscriptor de ese presupuesto y a nadie más; un presupuesto ajeno responde 404; sin sesión, 401.
+
+---
+
+## 21. Migración `0012` (varios países, decisión del 2026-10-04)
+
+País, moneda, impuesto y zona horaria dejan de ser fijos (Chile). Diseño completo en `Internacionalización.md`.
+
+```sql
+ALTER TABLE users
+  ADD COLUMN country  char(2) NOT NULL DEFAULT 'CL',
+  ADD COLUMN timezone text    NOT NULL DEFAULT 'America/Santiago';
+
+ALTER TABLE quotes
+  ADD COLUMN country   char(2)  NOT NULL DEFAULT 'CL',
+  ADD COLUMN currency  char(3)  NOT NULL DEFAULT 'CLP',
+  ADD COLUMN vat_label text     NOT NULL DEFAULT 'IVA',
+  ADD COLUMN vat_rate  smallint NOT NULL DEFAULT 19 CHECK (vat_rate BETWEEN 0 AND 100);
+```
+
+- Los usuarios y presupuestos que ya existen quedan como Chile con la hora de Santiago: nada cambia para ellos.
+- `country` y `currency` no llevan `CHECK` contra una lista: la tabla de países vive en el código (`backend/src/lib/paises.ts`) y se valida en la API, para poder agregar uno sin migrar.
+- Un presupuesto copia país, moneda, nombre y tasa del impuesto de su dueño **al crearse** (`POST /quotes`) y no cambian aunque el usuario cambie de país. Un presupuesto de una versión nueva (`POST /quotes/{id}/new-version`) conserva los del original.
+- `users.timezone` es un nombre IANA validado con `Intl` en la API; el cliente lo envía.
+- «Hoy» deja de ser `(now() AT TIME ZONE 'America/Santiago')::date`: usa la zona del dueño del presupuesto (`SELECT timezone FROM users WHERE id = q.user_id`).
+- **Pruebas que acompañan:** ver `Internacionalización.md` §6.
