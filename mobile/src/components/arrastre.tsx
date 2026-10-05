@@ -22,7 +22,8 @@ export type Arrastre = {
   x: SharedValue<number>; // posición del dedo en la ventana
   y: SharedValue<number>;
   hover: SharedValue<number>; // índice de la pestaña bajo el dedo, o -1
-  rects: SharedValue<Rect[]>; // dónde está cada pestaña en la ventana (se mide al empezar)
+  rects: SharedValue<Rect[]>; // dónde está cada pestaña en la ventana cuando la fila está sin desplazar (se mide al empezar)
+  scroll: SharedValue<number>; // cuánto se ha deslizado la fila de pestañas: la posición real es la de `rects` menos esto
   validas: SharedValue<boolean[]>; // a qué pestañas puede ir el que se arrastra
   empezar: (q: ResumenPresupuesto) => void;
   soltar: (indice: number) => void;
@@ -36,6 +37,7 @@ export function useArrastre(alSoltar: (q: ResumenPresupuesto, estado: EstadoEleg
   const y = useSharedValue(0);
   const hover = useSharedValue(-1);
   const rects = useSharedValue<Rect[]>([]);
+  const scroll = useSharedValue(0);
   const validas = useSharedValue<boolean[]>(PESTANAS.map(() => false));
 
   const empezar = useCallback(
@@ -66,12 +68,12 @@ export function useArrastre(alSoltar: (q: ResumenPresupuesto, estado: EstadoEleg
     [activo, alSoltar, hover, validas],
   );
 
-  return { quien, activo, x, y, hover, rects, validas, empezar, soltar };
+  return { quien, activo, x, y, hover, rects, scroll, validas, empezar, soltar };
 }
 
 // Envuelve la tarjeta: el gesto empieza tras 350 ms apretada (antes, el toque y el desplazado de la lista siguen normales).
 export function Arrastrable({ q, arrastre, children }: { q: ResumenPresupuesto; arrastre: Arrastre; children: ReactNode }) {
-  const { x, y, hover, rects, validas, empezar, soltar } = arrastre;
+  const { x, y, hover, rects, scroll, validas, empezar, soltar } = arrastre;
   const gesto = useMemo(
     () =>
       Gesture.Pan()
@@ -86,10 +88,11 @@ export function Arrastrable({ q, arrastre, children }: { q: ResumenPresupuesto; 
           y.set(e.absoluteY);
           const lista = rects.get();
           const ok = validas.get();
+          const dx = scroll.get(); // la fila de pestañas se desliza sola al acercar el dedo a una orilla
           let h = -1;
           for (let i = 0; i < lista.length; i++) {
             const r = lista[i];
-            if (r && ok[i] && e.absoluteX >= r.x - 6 && e.absoluteX <= r.x + r.w + 6 && e.absoluteY >= r.y - 12 && e.absoluteY <= r.y + r.h + 12) {
+            if (r && ok[i] && e.absoluteX >= r.x - dx - 6 && e.absoluteX <= r.x - dx + r.w + 6 && e.absoluteY >= r.y - 12 && e.absoluteY <= r.y + r.h + 12) {
               h = i;
               break;
             }
@@ -99,7 +102,7 @@ export function Arrastrable({ q, arrastre, children }: { q: ResumenPresupuesto; 
         .onFinalize((_e, exito) => {
           scheduleOnRN(soltar, exito ? hover.get() : -1);
         }),
-    [empezar, hover, q, rects, soltar, validas, x, y],
+    [empezar, hover, q, rects, scroll, soltar, validas, x, y],
   );
   return (
     <GestureDetector gesture={gesto}>
