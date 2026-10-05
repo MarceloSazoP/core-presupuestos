@@ -1,14 +1,11 @@
 import { FlashList } from '@shopify/flash-list';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
-import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
-import { Fantasma, useArrastre } from '@/components/arrastre';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
 import { Boton, Icono, Texto } from '@/components/ui';
 import type { EstadoElegible } from '@/lib/estados';
@@ -76,17 +73,6 @@ export default function ListaPresupuestos() {
     }
   }, []);
 
-  // Arrastrar un presupuesto enviado a una pestaña le cambia el estado (atajo del botón de estado de la tarjeta).
-  const arrastre = useArrastre(cambiarEstado);
-  const raiz = useRef<View>(null);
-  const origen = useSharedValue({ x: 0, y: 0 });
-  useAnimatedReaction(
-    () => arrastre.hover.get(),
-    (h, antes) => {
-      if (h >= 0 && h !== antes) scheduleOnRN(Haptics.selectionAsync); // cae sobre una pestaña válida
-    },
-  );
-
   // La última pestaña vista se recuerda.
   useEffect(() => void leerKv('pestana').then((p) => !pedida && PESTANAS.some((x) => x.id === p) && setPestana(p as Pestana)), [pedida]);
   const elegirPestana = (p: Pestana) => {
@@ -101,18 +87,16 @@ export default function ListaPresupuestos() {
   useRefrescar(() => void cargar()); // y cuando cambia algo en la web
 
   return (
-    <View ref={raiz} onLayout={() => raiz.current?.measureInWindow((x, y) => origen.set({ x, y }))} style={{ flex: 1, backgroundColor: t.fondo }}>
-      <Pestanas activa={pestana} cuentas={cuentas} alElegir={elegirPestana} arrastre={arrastre} />
+    <View style={{ flex: 1, backgroundColor: t.fondo }}>
+      <Pestanas activa={pestana} cuentas={cuentas} alElegir={elegirPestana} />
       <FlashList
         key={pestana} // al cambiar de pestaña la lista parte desde arriba
         // FlashList 2 conserva por defecto lo que ya se veía cuando llegan elementos arriba: los presupuestos nuevos quedaban
         // por encima de la pantalla, escondidos detrás de las pestañas. Aquí lo nuevo debe verse primero.
         maintainVisibleContentPosition={{ disabled: true }}
         data={visibles}
-        extraData={arrastre.quien?.id}
-        scrollEnabled={!arrastre.quien}
         keyExtractor={(q) => q.id}
-        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} arrastre={arrastre} />}
+        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: espacio.l, paddingBottom: insets.bottom + MIN_TOQUE + espacio.xxl }}
         ItemSeparatorComponent={Separador}
@@ -150,7 +134,6 @@ export default function ListaPresupuestos() {
           )
         }
       />
-      <Fantasma arrastre={arrastre} origen={origen} />
       {/* Acción principal en la zona del pulgar (tercio inferior) */}
       <View pointerEvents="box-none" style={[e.cta, { paddingBottom: insets.bottom + espacio.m }]}>
         <Boton titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
