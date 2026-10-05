@@ -158,12 +158,18 @@ describe('API: seguimiento comercial y dashboard (Contrato API §8, §11 y §14)
     assert.deepEqual(k, {
       month: mes(), quotes_count: 4, quoted_amount: 200000, accepted_count: 2, accepted_amount: 150000,
       avg_ticket: 75000, acceptance_rate: 2 / 3, follow_up_pending: 0,
+      waiting_count: 1, waiting_amount: 20000, todo_count: 0, // el de $20.000 sigue esperando respuesta; ninguno falta por terminar
     });
     assert.equal((await app.api('GET', `/dashboard/kpis?month=${mes()}`, { token: a.token })).json.quotes_count, 4);
     const otro = (await app.api('GET', '/dashboard/kpis?month=2020-01', { token: a.token })).json;
     assert.deepEqual([otro.quotes_count, otro.quoted_amount, otro.accepted_count, otro.avg_ticket, otro.acceptance_rate], [0, 0, 0, 0, null]);
     for (const malo of ['2026-13', '26-10', 'octubre', '2026-1']) assert.equal((await app.api('GET', `/dashboard/kpis?month=${malo}`, { token: a.token })).status, 422, malo);
     assert.equal((await app.api('GET', '/dashboard/kpis', { token: b.token })).json.quotes_count, 0);
+    // Un borrador y un terminado sin enviar cuentan como «por terminar o enviar» (igual que la pestaña Pendientes), sin tocar lo que espera respuesta.
+    await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Borrador', phone: '+56933333333' } } });
+    await finalizado();
+    const k2 = (await app.api('GET', '/dashboard/kpis', { token: a.token })).json;
+    assert.deepEqual([k2.todo_count, k2.waiting_count, k2.waiting_amount], [2, 1, 20000]);
   });
 
   it('el rechazo se fecha por su último cambio: uno rechazado el mes pasado no cuenta este mes', async () => {

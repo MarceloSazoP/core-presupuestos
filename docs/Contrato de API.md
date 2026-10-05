@@ -468,7 +468,8 @@ Opcional; la preferencia de mostrarlos la guarda el cliente.
 ```json
 { "month": "2026-10", "quotes_count": 12, "quoted_amount": 2850000,
   "accepted_count": 7, "accepted_amount": 1920000,
-  "avg_ticket": 274285, "acceptance_rate": 0.78, "follow_up_pending": 3 }
+  "avg_ticket": 274285, "acceptance_rate": 0.78, "follow_up_pending": 3,
+  "waiting_count": 5, "waiting_amount": 1460000, "todo_count": 5 }
 ```
 
 | Indicador | Definición |
@@ -477,6 +478,8 @@ Opcional; la preferencia de mostrarlos la guarda el cliente.
 | `accepted_count`, `accepted_amount`, `avg_ticket` | Presupuestos con `accepted_at` en el mes; ticket = monto / cantidad |
 | `acceptance_rate` | `aceptados / (aceptados + rechazados)` decididos en el mes; `null` si no hubo ninguno. La fecha de un rechazo es la de su último cambio de estado a `REJECTED` (no existe `rejected_at`) |
 | `follow_up_pending` | Tamaño de la sección Seguimiento hoy |
+| `waiting_count`, `waiting_amount` | **Esperando respuesta**, hoy y sin importar el mes: presupuestos terminados con estado comercial `SENT` o `FOLLOW_UP`, y la suma de sus totales. Es el dinero que está en juego |
+| `todo_count` | **Por terminar o enviar**, hoy y sin importar el mes: borradores y pendientes (`DRAFT`, `PENDING`) más los terminados que aún no se envían (`NONE`). Coincide con la pestaña «Pendientes» de la app |
 
 ---
 

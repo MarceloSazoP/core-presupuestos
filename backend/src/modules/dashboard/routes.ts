@@ -43,7 +43,7 @@ export const dashboardRoutes = () => {
          FROM p`, [month ?? null]);
     const { month: label, from, to } = m[0]!;
     const uid = session(req).userId;
-    const [quoted, accepted, rejected, follow] = await Promise.all([
+    const [quoted, accepted, rejected, follow, estado] = await Promise.all([
       query<{ n: number; amount: number }>(`SELECT count(*)::int AS n, COALESCE(sum(total), 0)::bigint AS amount FROM quotes WHERE user_id = $1 AND finalized_at >= $2 AND finalized_at < $3`, [uid, from, to]),
       query<{ n: number; amount: number }>(`SELECT count(*)::int AS n, COALESCE(sum(total), 0)::bigint AS amount FROM quotes WHERE user_id = $1 AND accepted_at >= $2 AND accepted_at < $3`, [uid, from, to]),
       // No hay `rejected_at`: la fecha del rechazo es la del último cambio de estado a REJECTED, de los que siguen rechazados.
@@ -53,6 +53,12 @@ export const dashboardRoutes = () => {
             AND (SELECT e.created_at FROM audit_events e WHERE e.quote_id = q.id AND e.event = 'COMMERCIAL_STATUS_CHANGED' AND e.metadata->>'to' = 'REJECTED' ORDER BY e.id DESC LIMIT 1) >= $2
             AND (SELECT e.created_at FROM audit_events e WHERE e.quote_id = q.id AND e.event = 'COMMERCIAL_STATUS_CHANGED' AND e.metadata->>'to' = 'REJECTED' ORDER BY e.id DESC LIMIT 1) < $3`, [uid, from, to]),
       query<{ n: number }>(`SELECT count(*)::int AS n FROM quotes q WHERE q.user_id = $1 AND ${FOLLOW_UP}`, [uid]),
+      // Estado de hoy (no del mes): lo que espera respuesta del cliente y lo que falta terminar o enviar. Las mismas reglas que las pestañas de la app.
+      query<{ waiting_count: number; waiting_amount: number; todo_count: number }>(
+        `SELECT count(*) FILTER (WHERE doc_status = 'FINALIZED' AND commercial_status IN ('SENT','FOLLOW_UP'))::int AS waiting_count,
+                COALESCE(sum(total) FILTER (WHERE doc_status = 'FINALIZED' AND commercial_status IN ('SENT','FOLLOW_UP')), 0)::bigint AS waiting_amount,
+                count(*) FILTER (WHERE doc_status <> 'FINALIZED' OR commercial_status = 'NONE')::int AS todo_count
+           FROM quotes WHERE user_id = $1`, [uid]),
     ]);
     const a = accepted.rows[0]!;
     const decided = a.n + rejected.rows[0]!.n;
@@ -62,6 +68,7 @@ export const dashboardRoutes = () => {
       accepted_count: a.n, accepted_amount: a.amount, avg_ticket: a.n ? Math.round(a.amount / a.n) : 0,
       acceptance_rate: decided ? a.n / decided : null, // sin presupuestos decididos en el mes no hay tasa
       follow_up_pending: follow.rows[0]!.n,
+      waiting_count: estado.rows[0]!.waiting_count, waiting_amount: estado.rows[0]!.waiting_amount, todo_count: estado.rows[0]!.todo_count,
     });
   });
 
