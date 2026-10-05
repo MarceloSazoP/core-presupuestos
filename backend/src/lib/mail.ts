@@ -2,8 +2,9 @@ import nodemailer from 'nodemailer';
 import { config } from '../config';
 import { AppError } from '../errors';
 
-export type Correo = { to: string; subject: string; text: string; attachment?: { filename: string; content: Buffer; contentType?: string } };
-export type QuoteMail = Correo & { attachment: { filename: string; content: Buffer; contentType?: string } };
+// `html`: el cuerpo con formato. `cid` en el adjunto lo vuelve una imagen incrustada que el HTML cita (`<img src="cid:…">`): se ve dentro del correo, no como archivo.
+export type Correo = { to: string; subject: string; text: string; html?: string; attachment?: { filename: string; content: Buffer; contentType?: string; cid?: string } };
+export type QuoteMail = Correo & { attachment: { filename: string; content: Buffer; contentType?: string; cid?: string } };
 export type SendMail = (m: QuoteMail) => Promise<void>;
 
 const fail = (msg = 'No se pudo enviar el correo. Intenta de nuevo.') => new AppError(502, 'DELIVERY_FAILED', msg);
@@ -23,8 +24,8 @@ export async function mandarCorreo(m: Correo): Promise<void> {
       await nodemailer
         .createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: false, requireTLS: true, auth: { user: SMTP_USER, pass: SMTP_PASSWORD }, connectionTimeout: 10_000, socketTimeout: 20_000 })
         .sendMail({
-          from: `"CorePresupuesto" <${from ?? SMTP_USER}>`, to: m.to, subject: m.subject, text: m.text,
-          ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content, contentType: m.attachment.contentType ?? 'application/pdf' }] }),
+          from: `"CorePresupuesto" <${from ?? SMTP_USER}>`, to: m.to, subject: m.subject, text: m.text, ...(m.html && { html: m.html }),
+          ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content, contentType: m.attachment.contentType ?? 'application/pdf', ...(m.attachment.cid && { cid: m.attachment.cid }) }] }),
         });
       return;
     } catch (e) {
@@ -34,8 +35,8 @@ export async function mandarCorreo(m: Correo): Promise<void> {
   }
   if (!key || !from) throw fail('El envío por correo no está configurado.');
   const body = JSON.stringify({
-    from, to: [m.to], subject: m.subject, text: m.text,
-    ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content.toString('base64') }] }),
+    from, to: [m.to], subject: m.subject, text: m.text, ...(m.html && { html: m.html }),
+    ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content.toString('base64'), ...(m.attachment.cid && { content_id: m.attachment.cid }) }] }),
   });
   for (let intento = 0; intento < 2; intento++) {
     try {

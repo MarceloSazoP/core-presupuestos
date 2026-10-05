@@ -17,10 +17,11 @@ Teléfono nuevo:  «Entrar con el QR de mi correo» → se lee el QR (o se escri
 ```
 
 1. **Confirmar los datos.** Antes de pedir el código, la app muestra el teléfono y el correo escritos y pregunta si son correctos (ya existía este paso). Se avisa que **a ese correo llegará un QR de recuperación**: un correo mal escrito no recibiría nada útil y la persona lo ve a tiempo.
-2. **Al terminar el registro** (código válido, cuenta nueva) el servidor crea un token de recuperación y lo envía **solo al correo de la cuenta**, como imagen QR adjunta y como código de texto.
+2. **Al terminar el registro** (código válido, cuenta nueva) el servidor crea un token de recuperación y lo envía **solo al correo de la cuenta**, con el **QR dentro del cuerpo del correo** (imagen incrustada, lista para escanear, no un archivo adjunto) y el código de texto. El correo es para personas de todas las edades: letra grande, pasos cortos y en orden.
 3. **En un teléfono nuevo**, en la pantalla de ingreso, «Entrar con el QR de mi correo» abre la cámara; leer el QR (o escribir su código) abre sesión sin pedir teléfono ni correo.
 4. **Cada uso consume el QR y envía el siguiente** al correo, con un aviso de que se usó. Así un QR viejo (por ejemplo en un correo reenviado) deja de servir.
-5. **Cuentas anteriores a esta función** (o quien perdió el correo con el QR) piden uno nuevo en Configurar → «Enviar QR de recuperación a mi correo», con la sesión abierta. Pedir uno nuevo **invalida el anterior**.
+5. **Cuentas anteriores a esta función:** al ingresar, si la cuenta **no tiene un QR vigente**, el servidor le envía uno sin que tenga que pedirlo. Con uno vigente no manda otro (cada QR nuevo invalida el anterior y llenaría el correo de mensajes donde solo sirve el último).
+6. **Pedir uno nuevo a mano** (quien perdió el correo con el QR, o quiere cambiarlo): Configurar → «Enviar QR de recuperación a mi correo», con la sesión abierta. Invalida el anterior.
 
 ## 2. Seguridad
 
@@ -50,7 +51,7 @@ Ver `Contrato de Base de Datos.md` §23 y `Contrato de API.md` §3 (`POST /auth/
 
 ## 5. Pruebas que acompañan
 
-- Un registro nuevo envía un correo con el QR **solo al correo de la cuenta**; un ingreso de una cuenta existente no.
+- Un registro nuevo envía un correo con el QR **solo al correo de la cuenta**; un ingreso de una cuenta que ya tiene un QR vigente no envía otro, y uno de una cuenta antigua **sin** QR vigente sí.
 - Entrar con el QR abre sesión del usuario correcto y cierra las otras; el QR queda **usado** (segundo intento: 401) y llega uno nuevo al correo.
 - Un token inventado, usado o revocado responde lo mismo (401). Dos lecturas simultáneas: solo una entra.
 - Pedir uno nuevo (`POST /me/recovery-qr`) invalida el anterior y respeta el límite por hora; sin sesión, 401.

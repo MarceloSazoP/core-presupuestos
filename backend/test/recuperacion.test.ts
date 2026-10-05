@@ -38,12 +38,28 @@ describe('API: recuperar la cuenta con el QR del correo', () => {
     assert.equal(m.attachment.filename, 'qr-recuperacion.png');
     assert.deepEqual(m.attachment.content.subarray(0, 4), PNG, 'el adjunto es un PNG');
     assert.equal(m.attachment.contentType, 'image/png');
+    assert.equal(m.attachment.cid, 'qr-recuperacion', 'va incrustado en el cuerpo, no como archivo aparte');
+    assert.ok(m.html?.includes('src="cid:qr-recuperacion"'), 'el HTML muestra el QR listo para escanear');
+    assert.ok(m.html?.includes(tokenDelCorreo(m.text)), 'y trae el código de texto');
+    assert.ok(m.html?.includes('font-size:19px'), 'letra grande');
     await app.login('+56911111111', 'ana@test.cl', 'Ana'); // la cuenta ya existe
     assert.equal(app.mails.length, 1);
     const { rows } = await pool.query<{ token_hash: string }>('SELECT token_hash FROM recovery_tokens');
     assert.equal(rows.length, 1);
     assert.equal(rows[0]!.token_hash, sha256(ultimoToken()), 'se guarda el hash, no el token');
     assert.notEqual(rows[0]!.token_hash, ultimoToken());
+  });
+
+  it('una cuenta antigua sin QR recibe uno al ingresar, sin tener que pedirlo; con uno vigente no se manda otro', async () => {
+    await app.login('+56911111111', 'ana@test.cl', 'Ana');
+    await pool.query('DELETE FROM recovery_tokens'); // una cuenta de antes de esta función
+    app.mails.length = 0;
+    await app.login('+56911111111', 'ana@test.cl', 'Ana');
+    assert.equal(app.mails.length, 1, 'al ingresar le llega su QR');
+    assert.equal(app.mails[0]!.to, 'ana@test.cl');
+    await app.login('+56911111111', 'ana@test.cl', 'Ana');
+    assert.equal(app.mails.length, 1, 'ya tiene uno vigente: no se manda otro');
+    assert.equal((await pool.query('SELECT 1 FROM recovery_tokens WHERE used_at IS NULL AND revoked_at IS NULL')).rows.length, 1);
   });
 
   it('entrar con el QR abre sesión de esa cuenta, cierra las otras, se gasta y manda el siguiente', async () => {

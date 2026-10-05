@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { api, ApiError, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { BarraListo } from '@/components/barra-listo';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { tokenDeRecuperacion } from '@/lib/recuperacion';
 import { useSesion } from '@/session';
@@ -59,6 +60,7 @@ export default function Recuperar() {
         <Boton titulo="Entrar" onPress={() => void entrar(codigo)} cargando={entrando} disabled={!codigo.trim()} />
         {permiso?.canAskAgain !== false ? <Boton titulo="Mejor leo el QR con la cámara" variante="texto" onPress={() => setEscribiendo(false)} /> : null}
         <Boton titulo="Volver" variante="texto" onPress={() => router.back()} />
+        <BarraListo />
       </View>
     );
   }

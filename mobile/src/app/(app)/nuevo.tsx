@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { BarraListo } from '@/components/barra-listo';
 import { CampoTelefono } from '@/components/campo-telefono';
 import { Boton, Campo, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -111,6 +112,7 @@ export default function Nuevo() {
         <Boton titulo="Cancelar" variante="texto" onPress={cancelar} disabled={cargando} />
       </View>
     </ScrollView>
+    <BarraListo />
     </View>
   );
 }

@@ -110,11 +110,17 @@ export function authRoutes(sendCode: SendCode, ipStartLimit = 10, sendMail?: Sen
       return { token, expires_at: s[0]!.expires_at, isNew, user: u[0] };
     });
     await audit(req, 'LOGIN', { userId: result.user.id });
-    // Cuenta nueva: el QR de recuperación llega al correo. Si el correo falla, igual entra (se puede pedir otro desde Configurar).
-    if (result.isNew && sendMail) {
-      await enviarQrRecuperacion(result.user.id, sendMail, 'registro')
-        .then(() => audit(req, 'RECOVERY_QR_SENT', { userId: result.user.id, metadata: { motivo: 'registro' } }))
-        .catch((e: unknown) => console.error('[recuperación] no se pudo enviar el QR del registro:', (e as Error).message));
+    // Cuenta nueva, o cuenta antigua que no tiene un QR vigente (nunca lo pidió): el QR de recuperación llega al correo, sin que la persona
+    // tenga que acordarse de pedirlo. Con uno vigente no se manda otro: cada QR nuevo invalida el anterior y llenaría el correo.
+    // Si el correo falla, igual entra (se puede pedir otro desde Configurar).
+    if (sendMail) {
+      const vigente = result.isNew ? false : (await query('SELECT 1 FROM recovery_tokens WHERE user_id = $1 AND used_at IS NULL AND revoked_at IS NULL', [result.user.id])).rows.length > 0;
+      if (!vigente) {
+        const motivo = result.isNew ? 'registro' : 'ingreso';
+        await enviarQrRecuperacion(result.user.id, sendMail, motivo)
+          .then(() => audit(req, 'RECOVERY_QR_SENT', { userId: result.user.id, metadata: { motivo } }))
+          .catch((e: unknown) => console.error('[recuperación] no se pudo enviar el QR:', (e as Error).message));
+      }
     }
     res.json({
       token: result.token,

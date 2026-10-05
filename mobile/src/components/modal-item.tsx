@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Dimensions, Keyboard, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { BarraListo } from '@/components/barra-listo';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -35,12 +36,6 @@ export function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }:
 export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }: { fila: Fila; nueva: boolean; moneda: string; alGuardar: (f: Fila) => void; alQuitar: () => void; alCerrar: () => void }) {
   const t = useTema();
   const [f, setF] = useState(fila);
-  const [teclado, setTeclado] = useState(0); // alto del teclado: la barra «Listo» se apoya encima (el accessory nativo no llega a esta ventana)
-  useEffect(() => {
-    const a = Keyboard.addListener('keyboardWillChangeFrame', (ev) => setTeclado(ev.endCoordinates.screenY >= Dimensions.get('window').height ? 0 : ev.endCoordinates.height));
-    const b = Keyboard.addListener('keyboardWillHide', () => setTeclado(0));
-    return () => (a.remove(), b.remove());
-  }, []);
   const [error, setError] = useState<string | null>(null);
   const tarea = f.tipo === 'tarea';
   const cambiar = (campo: keyof Fila, v: string) => {
@@ -110,21 +105,13 @@ export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }
           {nueva ? null : <Boton titulo={tarea ? 'Quitar esta tarea' : 'Quitar este ítem'} icono="cerrar" variante="peligro" onPress={alQuitar} />}
         </ScrollView>
       </View>
-      {teclado ? (
-        <View style={[e.barraTeclado, { bottom: teclado, backgroundColor: t.tarjeta, borderTopColor: t.borde }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Ocultar teclado" onPress={() => Keyboard.dismiss()} hitSlop={8} style={[e.listo, { backgroundColor: t.acento }]}>
-            <Texto color="sobreAcento" fuerte>Listo</Texto>
-          </Pressable>
-        </View>
-      ) : null}
+      <BarraListo />
     </Modal>
   );
 }
 
 const e = StyleSheet.create({
   hoja: { flex: 1 },
-  listo: { minHeight: 36, minWidth: 80, borderRadius: radio.m, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', paddingHorizontal: espacio.l },
-  barraTeclado: { position: 'absolute', left: 0, right: 0, minHeight: 52, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: espacio.l, borderTopWidth: StyleSheet.hairlineWidth },
   barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
   lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
   derecha: { alignItems: 'flex-end' },
