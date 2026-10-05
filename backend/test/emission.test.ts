@@ -35,6 +35,7 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     app = await startApp();
     a = await app.login('+56911111111', 'a@test.cl', 'Ana');
     b = await app.login('+56922222222', 'b@test.cl', 'Beto');
+    app.mails.length = 0; // los QR de recuperación del registro no son parte de lo que se prueba aquí
   });
   afterEach(async () => {
     await app.close();

@@ -140,7 +140,7 @@ describe('API: autenticación (Contrato API §3 y §14)', () => {
   it('la auditoría registra el envío y el ingreso sin guardar el código', async () => {
     await app.login(PHONE, 'pedro@test.cl');
     const { rows } = await pool.query<{ event: string; metadata: unknown }>('SELECT event, metadata FROM audit_events ORDER BY id');
-    assert.deepEqual(rows.map((r) => r.event), ['AUTH_CODE_SENT', 'LOGIN']);
+    assert.deepEqual(rows.map((r) => r.event), ['AUTH_CODE_SENT', 'LOGIN', 'RECOVERY_QR_SENT']);
     assert.ok(!JSON.stringify(rows).includes(app.sent[0]!.code));
   });
 });
