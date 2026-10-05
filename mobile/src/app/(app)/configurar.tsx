@@ -29,6 +29,7 @@ export default function Configurar() {
   const [guardando, setGuardando] = useState(false);
   const [tema, setTema] = useState<PreferenciaTema>('sistema');
   const [eligiendoPais, setEligiendoPais] = useState(false);
+  const [parte, setParte] = useState<'datos' | 'imagenes'>('datos'); // dos pestañas: tus datos, y el logo y la firma
   async function cambiarPais(country: string) {
     setEligiendoPais(false);
     if (country === pais.country) return;
@@ -87,6 +88,15 @@ export default function Configurar() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
+      <Segmentos
+        opciones={[{ id: 'datos' as const, texto: 'Mis datos' }, { id: 'imagenes' as const, texto: 'Logo y firma' }]}
+        valor={parte}
+        alElegir={setParte}
+        etiqueta="Secciones de configuración"
+      />
+
+      {parte === 'datos' ? (
+        <>
       <Seccion titulo="Apariencia" descripcion="Automático sigue el modo claro u oscuro de tu iPhone.">
         <Segmentos
           opciones={OPCIONES_TEMA}
@@ -122,6 +132,12 @@ export default function Configurar() {
         </Tarjeta>
       </Seccion>
 
+      <Seccion titulo="Tu cuenta" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
+        <Boton titulo="Cerrar sesión" variante="secundario" onPress={confirmarSalida} />
+      </Seccion>
+        </>
+      ) : (
+        <>
       <Tarjeta>
         <ImagenPerfil ruta="logo" titulo="Logo" nombre="el logo" ayuda="Sale arriba en tus presupuestos, en su propia fila: sirve un logo horizontal. PNG o JPEG; se ajusta solo a un tamaño liviano." vacio="Todavía no subes un logo" />
       </Tarjeta>
@@ -130,9 +146,8 @@ export default function Configurar() {
         <ImagenPerfil ruta="signature" titulo="Firma" nombre="la firma" ayuda="Se imprime sobre la línea de firma del PDF en todos tus presupuestos. Mejor sobre fondo blanco o transparente. Bajo la línea siempre salen tu nombre, teléfono y correo." vacio="Todavía no subes tu firma" />
       </Tarjeta>
 
-      <Seccion titulo="Tu cuenta" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
-        <Boton titulo="Cerrar sesión" variante="secundario" onPress={confirmarSalida} />
-      </Seccion>
+        </>
+      )}
     </ScrollView>
   );
 }
