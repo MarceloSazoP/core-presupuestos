@@ -1,7 +1,9 @@
 import { router, Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { AppState, Platform, Pressable, View } from 'react-native';
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
+import { iniciarAvisos, marcarLeido, registrarAviso, traerPendientes, useAvisos } from '@/lib/avisos';
+import { deNotificacion, sinLeer } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
 import { iniciarCola, vaciar } from '@/sync/cola';
 import { MIN_TOQUE, useTema } from '@/theme';
@@ -12,7 +14,12 @@ export default function AppLayout() {
 
   useEffect(() => {
     iniciarCola(); // al abrir la app
-    const s = AppState.addEventListener('change', (e) => e === 'active' && void vaciar()); // y al volver a primer plano
+    void iniciarAvisos(); // la bandeja de avisos del teléfono
+    const s = AppState.addEventListener('change', (e) => {
+      if (e !== 'active') return;
+      void vaciar(); // al volver a primer plano
+      void traerPendientes(); // y se recogen los avisos que llegaron mientras no estaba
+    });
     return () => s.remove();
   }, []);
 
@@ -31,13 +38,17 @@ export default function AppLayout() {
             </Pressable>
           ),
           headerRight: () => (
+            <View style={{ flexDirection: 'row' }}>
+              <CampanaAvisos />
             <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los presupuestos" onPress={() => router.push('/presupuestos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
               <SymbolView name={{ ios: 'list.bullet', android: 'list', web: 'list' }} size={22} tintColor={t.acento} fallback={<View />} />
             </Pressable>
+            </View>
           ),
         }}
       />
       {/* título normal: las pestañas quedan fijas debajo */}
+      <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio' }} />
       <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio' }} />
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
@@ -55,7 +66,32 @@ function AbrirAlTocarAviso() {
   const aviso = Notifications.useLastNotificationResponse();
   const quoteId = aviso?.notification.request.content.data?.quoteId;
   useEffect(() => {
+    if (!aviso) return;
+    const a = deNotificacion(aviso.notification); // quedó en la bandeja de avisos, ya leído
+    registrarAviso(a);
+    marcarLeido(a.id);
     if (typeof quoteId === 'string') router.push({ pathname: '/presupuesto/[id]', params: { id: quoteId } });
-  }, [quoteId]);
+  }, [aviso, quoteId]);
   return null;
 }
+
+// La campana de la barra: abre los avisos y muestra cuántos hay sin leer.
+function CampanaAvisos() {
+  const t = useTema();
+  const sin = sinLeer(useAvisos());
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={sin ? `Avisos, ${sin} sin leer` : 'Avisos'} onPress={() => router.push('/avisos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
+      <SymbolView name={{ ios: 'bell', android: 'notifications', web: 'notifications' }} size={22} tintColor={t.acento} fallback={<View />} />
+      {sin ? (
+        <View style={[e.insignia, { backgroundColor: t.error }]}>
+          <Text style={e.insigniaTexto}>{sin > 9 ? '9+' : sin}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+}
+
+const e = StyleSheet.create({
+  insignia: { position: 'absolute', top: 6, right: 4, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
+  insigniaTexto: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+});
