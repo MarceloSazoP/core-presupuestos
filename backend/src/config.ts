@@ -16,6 +16,9 @@ const schema = z
     // Verificación por código (Arquitectura §3, Autenticación)
     AUTH_CODE_PEPPER: z.string().min(16, 'debe tener al menos 16 caracteres'),
     SMS_DAILY_CAP: z.coerce.number().int().min(0).default(200),
+    // Solicitudes por hora y por IP a `POST /auth/start` y a `POST /auth/recovery` (10 en producción). En desarrollo, probando el ingreso
+    // una y otra vez, se agota rápido: se puede subir en el .env.
+    AUTH_IP_LIMIT_PER_HOUR: z.coerce.number().int().min(1).default(10),
     OTP_LOG_CODES: bool,
 
     // Proveedores: opcionales en desarrollo, obligatorios en producción

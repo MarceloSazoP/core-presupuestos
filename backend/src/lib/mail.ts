@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { config } from '../config';
 import { AppError } from '../errors';
 
@@ -7,6 +7,7 @@ export type Correo = { to: string; subject: string; text: string; html?: string;
 export type QuoteMail = Correo & { attachment: { filename: string; content: Buffer; contentType?: string; cid?: string } };
 export type SendMail = (m: QuoteMail) => Promise<void>;
 
+let transporte: Transporter | null = null;
 const fail = (msg = 'No se pudo enviar el correo. Intenta de nuevo.') => new AppError(502, 'DELIVERY_FAILED', msg);
 
 const hayResend = () => !!config.RESEND_API_KEY && !!config.EMAIL_FROM;
@@ -21,15 +22,19 @@ export async function mandarCorreo(m: Correo): Promise<void> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, RESEND_API_KEY: key, EMAIL_FROM: from } = config;
   if (haySmtp()) {
     try {
-      await nodemailer
-        .createTransport({ host: SMTP_HOST, port: SMTP_PORT, secure: false, requireTLS: true, auth: { user: SMTP_USER, pass: SMTP_PASSWORD }, connectionTimeout: 10_000, socketTimeout: 20_000 })
+      await (transporte ??= nodemailer.createTransport({
+        host: SMTP_HOST, port: SMTP_PORT, secure: false, requireTLS: true, auth: { user: SMTP_USER, pass: SMTP_PASSWORD }, connectionTimeout: 10_000, socketTimeout: 20_000,
+        // Una conexión que se reutiliza: abrir y autenticar una nueva por cada correo hace que Gmail responda «Too many login attempts»
+        // cuando salen varios seguidos (el código de ingreso y el QR de recuperación, por ejemplo).
+        pool: true, maxConnections: 1, maxMessages: 100,
+      }))
         .sendMail({
           from: `"CorePresupuesto" <${from ?? SMTP_USER}>`, to: m.to, subject: m.subject, text: m.text, ...(m.html && { html: m.html }),
           ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content, contentType: m.attachment.contentType ?? 'application/pdf', ...(m.attachment.cid && { cid: m.attachment.cid }) }] }),
         });
       return;
     } catch (e) {
-      console.error('[correo] fallo SMTP:', (e as Error).message);
+      console.error('[correo] fallo SMTP:', (e as { code?: string }).code ?? '', (e as Error).message);
       throw fail();
     }
   }
