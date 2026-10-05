@@ -124,16 +124,16 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
         {meses.map((m, i) => (
           <View key={m.month} style={e.mes}>
             <View style={[e.par, { height: ALTO }]}>
-              <Barra alto={Math.max(3, (m.quoted_amount / max) * ALTO)} color={t.azul} orden={i * 2} />
-              <Barra alto={Math.max(3, (m.accepted_amount / max) * ALTO)} color={t.naranja} orden={i * 2 + 1} />
+              <Barra alto={Math.max(3, (m.quoted_amount / max) * ALTO)} color={t.serie1} orden={i * 2} />
+              <Barra alto={Math.max(3, (m.accepted_amount / max) * ALTO)} color={t.serie2} orden={i * 2 + 1} />
             </View>
             <Texto variante="chico" suave>{NOMBRES[Number(m.month.slice(5)) - 1]}</Texto>
           </View>
         ))}
       </View>
       <View style={e.leyenda}>
-        <View style={e.item}><View style={[e.punto, { backgroundColor: t.azul }]} /><Texto variante="chico" suave>Presupuestado</Texto></View>
-        <View style={e.item}><View style={[e.punto, { backgroundColor: t.naranja }]} /><Texto variante="chico" suave>Aceptado</Texto></View>
+        <View style={e.item}><View style={[e.punto, { backgroundColor: t.serie1 }]} /><Texto variante="chico" suave>Presupuestado</Texto></View>
+        <View style={e.item}><View style={[e.punto, { backgroundColor: t.serie2 }]} /><Texto variante="chico" suave>Aceptado</Texto></View>
       </View>
     </Tarjeta>
   );
