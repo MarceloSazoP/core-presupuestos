@@ -2,6 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Alert, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import { Boton, Texto } from '@/components/ui';
@@ -66,7 +67,9 @@ export default function Codigo() {
             <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
           </View>
           <View style={e.fila}>
-            <Boton titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={() => void copiar()} style={e.mitad} />
+            <Animated.View key={copiado ? 'copiado' : 'copiar'} entering={FadeIn.duration(120)} style={e.mitad}>
+              <Boton titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={() => void copiar()} />
+            </Animated.View>
             <Boton titulo="Compartir" icono="compartir" variante="secundario" onPress={() => void Share.share({ message: `Código de tu presupuesto en CORE Presupuestos: ${codigo}` })} style={e.mitad} />
           </View>
           <Texto variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web. No se lo des a tu cliente: a él se le envía el enlace del PDF.</Texto>

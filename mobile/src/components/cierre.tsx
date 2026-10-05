@@ -1,6 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
@@ -19,7 +20,7 @@ const GARANTIAS = [
 ] as const;
 const MAX_ITEMS = 100;
 
-export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
+export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: () => Promise<void>; alTerminar?: () => void }) {
   const t = useTema();
   const contador = useRef(0);
   // Ítem o tarea abierto en la hoja: `nueva` si todavía no está en la lista (se agrega al guardar).
@@ -40,7 +41,9 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
 
   const subtotal = filas.reduce((s, f) => s + valorDe(f), 0); // vista previa; manda el servidor
   const agregar = (tipo: Fila['tipo']) => setAbierta({ nueva: true, fila: { clave: `n${++contador.current}`, tipo, description: '', quantity: '1', unit: 'un', unit_price: '' } });
+  const [recien, setRecien] = useState<string | null>(null); // la fila recién agregada entra con un fundido; las que ya estaban no se mueven
   const guardarFila = (f: Fila) => {
+    if (!filas.some((x) => x.clave === f.clave)) setRecien(f.clave);
     setFilas((fs) => (fs.some((x) => x.clave === f.clave) ? fs.map((x) => (x.clave === f.clave ? f : x)) : [...fs, f]));
     void Haptics.selectionAsync();
     setAbierta(null);
@@ -71,6 +74,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
       if (que === 'terminar') {
         await api(`/quotes/${q.id}/finalize`, { method: 'POST', body: {} });
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        alTerminar?.();
       }
       await recargar();
       // «Guardar y volver» deja el presupuesto pendiente (ya visible en la web) y vuelve a la lista; «Terminar» se queda para mostrar el envío.
@@ -104,8 +108,8 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
               <Texto variante="chico" suave fuerte style={e.colMonto}>Total</Texto>
             </View>
             {filas.map((f, n) => (
+              <Animated.View key={f.clave} entering={f.clave === recien ? FadeIn.duration(180) : undefined}>
               <Presionable
-                key={f.clave}
                 accessibilityRole="button"
                 accessibilityLabel={`${f.tipo === 'tarea' ? 'Tarea' : 'Ítem'} ${n + 1}: ${f.description || 'sin descripción'}. Editar`}
                 onPress={() => setAbierta({ fila: f, nueva: false })}
@@ -118,6 +122,7 @@ export function Cierre({ q, recargar }: { q: Presupuesto; recargar: () => Promis
                 <Texto suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${f.unit === 'm2' ? 'm²' : f.unit}`}</Texto>
                 <Texto fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.monto]}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</Texto>
               </Presionable>
+              </Animated.View>
             ))}
           </Tarjeta>
         ) : (

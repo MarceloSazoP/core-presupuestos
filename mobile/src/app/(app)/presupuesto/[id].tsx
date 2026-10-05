@@ -1,5 +1,6 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
@@ -16,6 +17,8 @@ import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
 import { guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
+
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
 
 // Detalle del presupuesto. Lo central de este hito: el código que se escribe en la web para completar o cerrar el
 // presupuesto desde el computador (CLAUDE.md §16). Se muestra con letras grandes y se copia o comparte con un toque.
@@ -63,6 +66,9 @@ export default function Detalle() {
   useEffect(() => {
     if (q) void guardarBorrador(q);
   }, [q]);
+
+  // Al terminar el presupuesto desde esta pantalla, la tarjeta de envío entra con un asentado suave (no al abrir uno ya cerrado).
+  const [recienTerminado, setRecienTerminado] = useState(false);
 
   if (!q) {
     return (
@@ -122,7 +128,9 @@ export default function Detalle() {
         <>
           <View style={[e.parte, oculta('enviar')]}>
             {q.commercial_status === 'REJECTED' ? <NuevaVersion q={q} /> : null}
-            <Envio q={q} recargar={recargar} />
+            <Animated.View entering={recienTerminado ? FadeInDown.duration(300).easing(EASE_OUT) : undefined}>
+              <Envio q={q} recargar={recargar} />
+            </Animated.View>
           </View>
           {q.commercial_status !== 'NONE' ? (
             <View style={[e.parte, oculta('seguimiento')]}>
@@ -173,7 +181,7 @@ export default function Detalle() {
             <Boton titulo="Seguir con el presupuesto" onPress={() => setParte('presupuesto')} />
           </View>
           <View style={[e.parte, oculta('presupuesto')]}>
-            <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} />
+            <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} alTerminar={() => setRecienTerminado(true)} />
           </View>
         </>
       )}

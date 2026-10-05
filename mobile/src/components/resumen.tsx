@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
 import { Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
@@ -46,7 +47,8 @@ export function Resumen() {
   const tasa = k.acceptance_rate === null ? '—' : `${Math.round(k.acceptance_rate * 100)} %`;
 
   return (
-    <View style={e.bloque}>
+    // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
+    <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
       <Seccion titulo="Este mes">
         <View style={e.grilla}>
           <Dato titulo="Presupuestado" valor={clp(k.quoted_amount)} nota={`${k.quotes_count} ${k.quotes_count === 1 ? 'presupuesto' : 'presupuestos'}`} fuerte />
@@ -88,7 +90,7 @@ export function Resumen() {
           </Tarjeta>
         )}
       </Seccion>
-    </View>
+    </Animated.View>
   );
 }
 
