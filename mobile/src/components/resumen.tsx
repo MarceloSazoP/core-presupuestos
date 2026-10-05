@@ -137,15 +137,15 @@ function Grafico({ meses }: { meses: Indicadores[] }) {
 
 function Dato({ indice, titulo, valor, nota, variacion, fuerte }: { indice: number; titulo: string; valor: string; nota: string; variacion?: Variacion | null; fuerte?: boolean }) {
   const t = useTema();
-  // El número principal del mes va con el azul de la marca; el resto, en tarjetas neutras.
+  // El número principal del mes va con el color de acción de la marca (azul en claro, naranja en oscuro); el resto, en tarjetas neutras.
   return (
     // Las cuatro tarjetas entran una tras otra (60 ms de diferencia) subiendo un poco.
-    <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: fuerte ? t.azulFuerte : t.tarjeta, borderColor: fuerte ? t.azulFuerte : t.borde }]}>
-      <Texto variante="chico" color={fuerte ? 'sobreAzul' : undefined} suave={!fuerte}>{titulo}</Texto>
-      <Texto variante="titulo" color={fuerte ? 'sobreAzul' : undefined} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Texto>
-      <Texto variante="chico" color={fuerte ? 'sobreAzul' : undefined} suave={!fuerte} numberOfLines={1}>{nota}</Texto>
+    <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: fuerte ? t.acento : t.tarjeta, borderColor: fuerte ? t.acento : t.borde }]}>
+      <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte}>{titulo}</Texto>
+      <Texto variante="titulo" color={fuerte ? 'sobreAcento' : undefined} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Texto>
+      <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte} numberOfLines={1}>{nota}</Texto>
       {/* Frente al mes anterior: verde si mejora, rojo si empeora; en la tarjeta azul, del mismo color que el resto para no perder contraste. */}
-      {variacion ? <Texto variante="chico" fuerte numberOfLines={1} color={fuerte ? 'sobreAzul' : variacion.sube === null ? undefined : variacion.sube ? 'ok' : 'error'} suave={!fuerte && variacion.sube === null}>{variacion.texto}</Texto> : null}
+      {variacion ? <Texto variante="chico" fuerte numberOfLines={1} color={fuerte ? 'sobreAcento' : variacion.sube === null ? undefined : variacion.sube ? 'ok' : 'error'} suave={!fuerte && variacion.sube === null}>{variacion.texto}</Texto> : null}
     </Animated.View>
   );
 }
