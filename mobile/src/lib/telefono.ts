@@ -54,3 +54,10 @@ export function formatearTelefono(texto: string, prefijo: string): string {
   if (i < digitos.length) partes.push(digitos.slice(i)); // dígitos de más (variantes de numeración): al final, sin grupo
   return partes.join(' ');
 }
+
+// Lo que se ve en la caja vacía: la forma del número de cada país con X (no un número de ejemplo).
+const PLANTILLAS: Record<string, string> = {
+  '+56': '9 XXXX XXXX', '+51': '9XX XXX XXX', '+57': '3XX XXX XXXX', '+52': 'XX XXXX XXXX', '+54': '9 XX XXXX XXXX', '+598': '9X XXX XXX', '+595': '9XX XXX XXX',
+  '+591': 'XXXXXXXX', '+593': '9X XXX XXXX', '+506': 'XXXX XXXX', '+507': 'XXXX XXXX', '+502': 'XXXX XXXX', '+34': 'XXX XXX XXX',
+};
+export const plantillaTelefono = (prefijo: string) => PLANTILLAS[prefijo] ?? 'XXXXXXXX';

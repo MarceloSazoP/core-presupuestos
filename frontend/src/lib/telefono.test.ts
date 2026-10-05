@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { esCorreo, formatearTelefono, normalizarTelefono } from "./telefono.ts";
+import { esCorreo, formatearTelefono, normalizarTelefono, plantillaTelefono } from "./telefono.ts";
 
 test("el teléfono se lleva a E.164; sin prefijo se asume Chile", () => {
   assert.equal(normalizarTelefono("9 5482 2089"), "+56954822089");
@@ -32,4 +32,10 @@ test("el teléfono se ve con el formato de su país mientras se escribe", () => 
   assert.equal(formatearTelefono("+56 9 5482 2089", "+51"), "+56 9 5482 2089", "con «+» no se toca");
   assert.equal(formatearTelefono("95 48-22 089", "+56"), "9 5482 2089", "se ignoran espacios y guiones al escribir");
   assert.equal(formatearTelefono("", "+56"), "");
+});
+
+test("la caja vacía muestra la forma del número de cada país con X", () => {
+  assert.equal(plantillaTelefono("+56"), "9 XXXX XXXX");
+  assert.equal(plantillaTelefono("+34"), "XXX XXX XXX");
+  assert.equal(plantillaTelefono("+999"), "XXXXXXXX");
 });

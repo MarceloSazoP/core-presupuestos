@@ -103,7 +103,7 @@ export default function Ingresar() {
         <Tarjeta style={e.bloque}>
           <Texto variante="subtitulo">Tus datos</Texto>
           <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoComplete="name" textContentType="name" autoCapitalize="words" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
-          <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" placeholder="9 5482 2089" ayuda="Es tu identidad en la app." />
+          <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" ayuda="Es tu identidad en la app." />
           <Campo ref={refCorreo} etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
           <Boton titulo="Continuar" onPress={continuar} />
         </Tarjeta>

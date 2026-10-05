@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { bandera, PAISES_ORDENADOS, separarTelefono } from "@/lib/paises";
-import { formatearTelefono } from "@/lib/telefono";
+import { formatearTelefono, plantillaTelefono } from "@/lib/telefono";
 import { corregirClienteAction } from "../actions";
 
 // Teléfono y correo del cliente, siempre corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
@@ -82,7 +82,7 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
               </option>
             ))}
           </select>
-          <input id="tel-cliente" type="tel" inputMode="tel" autoComplete="off" value={formatearTelefono(tel, cod)} onChange={(e) => setTel(formatearTelefono(e.target.value, cod))} maxLength={24} placeholder="9 5482 2089" className="campo min-w-0 flex-1" />
+          <input id="tel-cliente" type="tel" inputMode="tel" autoComplete="off" value={formatearTelefono(tel, cod)} onChange={(e) => setTel(formatearTelefono(e.target.value, cod))} maxLength={24} placeholder={plantillaTelefono(cod)} className="campo min-w-0 flex-1" />
         </div>
       </div>
       <label className="flex flex-col gap-1">

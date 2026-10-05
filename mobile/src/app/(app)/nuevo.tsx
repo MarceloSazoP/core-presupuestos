@@ -95,7 +95,7 @@ export default function Nuevo() {
       <Seccion titulo="Cliente">
         <Tarjeta>
           <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoFocus autoCapitalize="words" autoComplete="off" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
-          <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} placeholder="9 5482 2089" />
+          <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
           <Campo ref={refCorreo} etiqueta="Correo (opcional)" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" onSubmitEditing={() => refDireccion.current?.focus()} ayuda="Con correo, el PDF se envía solo al terminar." />
         </Tarjeta>
       </Seccion>

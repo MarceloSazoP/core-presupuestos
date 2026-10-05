@@ -3,7 +3,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { Campo, Icono, Texto } from '@/components/ui';
 import { ElegirPais } from '@/components/elegir-pais';
 import { bandera, PAISES } from '@/lib/paises';
-import { formatearTelefono } from '@/lib/telefono';
+import { formatearTelefono, plantillaTelefono } from '@/lib/telefono';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Teléfono: el código de país (un botón que abre la lista) y el número. El número se escribe sin código; uno que empiece con «+» se
@@ -20,6 +20,7 @@ export function CampoTelefono({ codigo, alCodigo, ...props }: Omit<ComponentProp
         value={formatearTelefono(props.value ?? '', codigo)}
         onChangeText={(v) => props.onChangeText?.(formatearTelefono(v, codigo))}
         maxLength={24}
+        placeholder={plantillaTelefono(codigo)} // la forma del número del país, con X
         keyboardType="phone-pad"
         autoComplete="tel"
         izquierda={
