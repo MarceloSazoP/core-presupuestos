@@ -109,7 +109,7 @@ export default function Detalle() {
           {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
         </View>
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
-        <ContactoCliente key={`${q.customer.name}|${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} nombreEditable={!cerrado} />
+        <ContactoCliente key={`${q.customer.name}|${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} />
       </View>
 
       {nuevo === '1' ? (

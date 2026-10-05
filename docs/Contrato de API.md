@@ -277,7 +277,7 @@ Un presupuesto terminado sigue siendo inmutable: lo que se envió al cliente no 
 
 **`PATCH /quotes/{id}/customer`** (sesión `USER` o `QUOTE_CODE` del presupuesto) → **200** `Quote`. Cuerpo parcial, al menos un campo: `{ "phone"?, "email"? (puede ser null), "name"? }`.
 - El teléfono y el correo se pueden corregir **siempre, también con el presupuesto terminado ni enviado**: normalmente el cliente se equivoca al dárselos y los confirma después. No cambian el PDF ni el snapshot (solo llevan el nombre del cliente), y el siguiente envío por correo o WhatsApp usa los datos corregidos.
-- El `name` solo se cambia mientras el presupuesto se puede editar (**409 `INVALID_STATE`** si ya está terminado: el nombre sale en el PDF).
+- El `name` se puede corregir **en cualquier estado** (decisión del 2026-10-05; antes solo mientras se editaba). Lo que ya se emitió no cambia: el PDF y la vista pública de un presupuesto terminado conservan el nombre con que se emitió (el snapshot es inmutable); el nuevo nombre se ve en la app, en la web de edición y en los envíos siguientes.
 - Modifica al **cliente**, así que el cambio se ve en todos sus presupuestos. Solo toca al cliente de ese presupuesto (nunca a otro). `phone` va en formato internacional como en `POST /customers`; un dato inválido da **422**.
 - Queda en la auditoría (`CUSTOMER_CONTACT_UPDATED`).
 

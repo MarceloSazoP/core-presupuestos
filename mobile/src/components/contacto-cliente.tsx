@@ -13,7 +13,7 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Nombre, teléfono y correo del cliente, corregibles con el lápiz (Contrato API §6): el cliente suele equivocarse al dárselos y los
 // confirma después. Teléfono y correo, siempre (incluso con el presupuesto terminado); el nombre solo mientras se edita, porque sale en el PDF. Funciona sin conexión: se guarda en el teléfono y viaja por la cola.
-export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto; cambiar: (f: (p: Presupuesto) => Presupuesto) => void; nombreEditable: boolean }) {
+export function ContactoCliente({ q, cambiar }: { q: Presupuesto; cambiar: (f: (p: Presupuesto) => Presupuesto) => void }) {
   const pais = usePais();
   const t = useTema();
   const [editando, setEditando] = useState(false);
@@ -39,7 +39,7 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
     const tel = normalizarTelefono(telefono, codigo);
     const nom = nombre.trim();
     const e = {
-      nombre: !nombreEditable || nom ? undefined : 'Escribe el nombre del cliente',
+      nombre: nom ? undefined : 'Escribe el nombre del cliente',
       telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país',
       correo: !correo.trim() || esCorreo(correo) ? undefined : 'Revisa el correo',
     };
@@ -47,8 +47,8 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
     if (e.nombre || e.telefono || e.correo || !tel) return;
     const mail = correo.trim().toLowerCase() || null;
     try {
-      cambiar((p) => ({ ...p, customer: { ...p.customer, ...(nombreEditable && { name: nom }), phone: tel, email: mail } }));
-      await encolar({ quote_id: q.id, method: 'PATCH', path: `/quotes/${q.id}/customer`, body: { phone: tel, email: mail, ...(nombreEditable && { name: nom }) } });
+      cambiar((p) => ({ ...p, customer: { ...p.customer, name: nom, phone: tel, email: mail } }));
+      await encolar({ quote_id: q.id, method: 'PATCH', path: `/quotes/${q.id}/customer`, body: { phone: tel, email: mail, name: nom } });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setEditando(false);
     } catch (err) {
@@ -74,8 +74,8 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
   }
   return (
     <View style={e.form}>
-      {nombreEditable ? <Campo etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoFocus /> : null}
-      <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} autoFocus={!nombreEditable} />
+      <Campo etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoFocus />
+      <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
       <Campo etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
       {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
       <View style={e.fila}>

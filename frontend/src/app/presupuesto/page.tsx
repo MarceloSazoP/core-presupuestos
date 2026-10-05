@@ -174,7 +174,7 @@ export default async function PresupuestoPage() {
             <h2 id="cliente-cerrado" className="seccion">
               Contacto del cliente
             </h2>
-            <ContactoCliente telefono={p.cliente.telefono} correo={p.cliente.correo} prefijo={paisDe(p.pais).calling_code} />
+            <ContactoCliente nombre={p.cliente.nombre} telefono={p.cliente.telefono} correo={p.cliente.correo} prefijo={paisDe(p.pais).calling_code} />
           </section>
 
           <div className="flex flex-col gap-3">

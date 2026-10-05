@@ -213,12 +213,11 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
   });
 
   // ── Corregir el teléfono o el correo del cliente (Contrato API §6) ─────────────────────────
-  // Siempre se puede (el cliente se equivoca al dárselos y los confirma después): no están en el PDF ni en el snapshot. El
-  // nombre sí sale en el PDF, así que solo cambia mientras el presupuesto se edita. Modifica al cliente, no solo a este presupuesto.
+  // Siempre se puede, en cualquier estado (el cliente se equivoca al dárselos y los confirma después). El snapshot de un
+  // presupuesto terminado es inmutable: su PDF y su vista pública conservan el nombre con que se emitió. Modifica al cliente, no solo a este presupuesto.
   r.patch('/:id/customer', allow('USER', 'QUOTE_CODE'), async (req, res) => {
     const q = await loadQuote(req, req.params.id);
     const b = parse(z.strictObject({ name, phone, email: email.nullable() }).partial().refine((x) => Object.keys(x).length > 0, { message: 'Envía al menos un campo' }), req.body);
-    if (b.name !== undefined && q.doc_status === 'FINALIZED') throw new AppError(409, 'INVALID_STATE', 'El nombre del cliente ya no se puede cambiar: sale en el PDF del presupuesto terminado');
     await query(
       `UPDATE customers SET name = CASE WHEN $3 THEN $4 ELSE name END,
                             phone = CASE WHEN $5 THEN $6 ELSE phone END,

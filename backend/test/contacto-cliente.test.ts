@@ -57,7 +57,7 @@ describe('API: corregir el teléfono y el correo del cliente (Contrato API §6)'
     assert.deepEqual(rows[0], { phone: '+56933333333', email: 'juan@mal.cl' });
   });
 
-  it('con el presupuesto terminado el teléfono y el correo se siguen corrigiendo, pero el nombre no (sale en el PDF)', async () => {
+  it('con el presupuesto terminado el teléfono, el correo y el nombre se siguen corrigiendo, y lo ya emitido (snapshot) no cambia', async () => {
     const q = await crear();
     const fin = await terminar(q.id);
     assert.equal(fin.status, 200, JSON.stringify(fin.json));
@@ -66,10 +66,10 @@ describe('API: corregir el teléfono y el correo del cliente (Contrato API §6)'
     assert.equal(r.status, 200);
     assert.equal(r.json.doc_status, 'FINALIZED');
     const nombre = await corregir(q.id, { name: 'Otro Nombre' });
-    assert.equal(nombre.status, 409);
-    assert.equal(nombre.json.error.code, 'INVALID_STATE');
+    assert.equal(nombre.status, 200);
+    assert.equal(nombre.json.customer.name, 'Otro Nombre');
     const despues = (await pool.query('SELECT snapshot FROM quote_documents WHERE quote_id = $1', [q.id])).rows[0].snapshot;
-    assert.deepEqual(despues, antes, 'el snapshot no cambia: solo lleva el nombre del cliente');
+    assert.deepEqual(despues, antes, 'el snapshot no cambia: el documento emitido conserva el nombre con que salió');
     // el siguiente correo usa el dato corregido
     const envio = await app.api('POST', `/quotes/${q.id}/send-email`, { token: a.token, body: {} });
     assert.equal(envio.status, 200);
