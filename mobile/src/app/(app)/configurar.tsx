@@ -80,6 +80,20 @@ export default function Configurar() {
     }
   }
 
+  const [enviandoQr, setEnviandoQr] = useState(false);
+  async function enviarQr() {
+    setEnviandoQr(true);
+    try {
+      const r = await api<{ destination_masked: string }>('/me/recovery-qr', { method: 'POST' });
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Te lo enviamos', `Llegará a ${r.destination_masked}. El QR anterior ya no sirve.`);
+    } catch (err) {
+      Alert.alert('No se pudo enviar el QR', mensajeDe(err));
+    } finally {
+      setEnviandoQr(false);
+    }
+  }
+
   const confirmarSalida = () =>
     Alert.alert('Cerrar sesión', `Saldrás de la cuenta de ${usuario?.name ?? 'tu usuario'}. Tus presupuestos quedan guardados.`, [
       { text: 'Cancelar', style: 'cancel' },
@@ -133,6 +147,8 @@ export default function Configurar() {
       </Seccion>
 
       <Seccion titulo="Tu cuenta" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
+        <Boton titulo="Enviar QR de recuperación a mi correo" variante="secundario" onPress={() => void enviarQr()} cargando={enviandoQr} />
+        <Texto variante="chico" suave>Sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número. Pedir uno nuevo deja sin efecto el anterior.</Texto>
         <Boton titulo="Cerrar sesión" variante="secundario" onPress={confirmarSalida} />
       </Seccion>
         </>

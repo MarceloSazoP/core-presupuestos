@@ -1,7 +1,8 @@
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
@@ -72,9 +73,10 @@ export default function Ingresar() {
     setCargando(true);
     setAviso(null);
     try {
-      const r = await api<{ token: string; user: Usuario }>('/auth/verify', { method: 'POST', token: null, body: { challenge_id: desafio.id, code: valor } });
+      const r = await api<{ token: string; user: Usuario; is_new_user?: boolean }>('/auth/verify', { method: 'POST', token: null, body: { challenge_id: desafio.id, code: valor } });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await iniciar(r.token, r.user); // al cambiar la sesión, el navegador pasa solo a la app
+      if (r.is_new_user) Alert.alert('Revisa tu correo', `Te enviamos a ${r.user.email} un QR de recuperación. Guárdalo: sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número.`);
     } catch (e) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setAviso(mensajeDe(e));
@@ -106,6 +108,7 @@ export default function Ingresar() {
           <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" ayuda="Es tu identidad en la app." />
           <Campo ref={refCorreo} etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
           <Boton titulo="Continuar" onPress={continuar} />
+          <Boton titulo="Entrar con el QR de mi correo" variante="texto" onPress={() => router.push('/recuperar')} />
         </Tarjeta>
       ) : null}
 
@@ -116,7 +119,9 @@ export default function Ingresar() {
             <Texto suave>{telefonoE164}</Texto>
             <Texto suave>{correo.trim().toLowerCase()}</Texto>
           </View>
-          <Texto variante="subtitulo">¿Dónde te enviamos el código?</Texto>
+          <Texto variante="subtitulo">¿Son correctos tu teléfono y tu correo?</Texto>
+          <Texto variante="chico" suave>Si es tu primera vez, te enviaremos a este correo un QR para recuperar tu cuenta si pierdes o cambias de teléfono. Revísalos bien.</Texto>
+          <Texto fuerte>¿Dónde te enviamos el código?</Texto>
           {(['EMAIL', 'SMS'] as const).map((c) => {
             const elegido = canal === c;
             return (

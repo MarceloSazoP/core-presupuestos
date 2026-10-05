@@ -33,6 +33,7 @@ function Navegador() {
       </Stack.Protected>
       <Stack.Protected guard={estado === 'fuera'}>
         <Stack.Screen name="ingresar" />
+        <Stack.Screen name="recuperar" options={{ headerShown: true, title: 'Entrar con el QR', presentation: 'modal', headerBackTitle: 'Atrás' }} />
       </Stack.Protected>
     </Stack>
   );
