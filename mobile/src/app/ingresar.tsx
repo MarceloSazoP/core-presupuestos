@@ -1,14 +1,15 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
 import { Boton, Campo, Tarjeta, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
-import { esCorreo, normalizarTelefono } from '@/lib/telefono';
+import { esCorreo, formatearTelefono, normalizarTelefono } from '@/lib/telefono';
+import { cargarUltimoAcceso, olvidarAcceso, recordarAcceso } from '@/lib/ultimo-acceso';
 import { useSesion } from '@/session';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
@@ -33,6 +34,26 @@ export default function Ingresar() {
   const [desafio, setDesafio] = useState<{ id: string; destino: string } | null>(null);
   const [codigo, setCodigo] = useState('');
   const refTelefono = useRef<TextInput>(null);
+  // Los datos de la última vez se sugieren ya escritos; «Recordar mis datos» los guarda en este teléfono para la próxima.
+  const [recordar, setRecordar] = useState(true);
+  const [sugeridos, setSugeridos] = useState(false);
+  useEffect(() => {
+    void cargarUltimoAcceso().then((d) => {
+      if (!d) return;
+      setPrefijo(d.prefijo);
+      setTelefono(formatearTelefono(d.telefono, d.prefijo));
+      setCorreo(d.correo);
+      setNombre(d.nombre);
+      setSugeridos(true);
+    });
+  }, []);
+  const otrosDatos = () => {
+    setTelefono('');
+    setCorreo('');
+    setNombre('');
+    setSugeridos(false);
+    void olvidarAcceso();
+  };
   const refCorreo = useRef<TextInput>(null);
 
   const telefonoE164 = normalizarTelefono(telefono, prefijo);
@@ -75,6 +96,8 @@ export default function Ingresar() {
     try {
       const r = await api<{ token: string; user: Usuario; is_new_user?: boolean }>('/auth/verify', { method: 'POST', token: null, body: { challenge_id: desafio.id, code: valor } });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (recordar) await recordarAcceso({ prefijo, telefono, correo: correo.trim().toLowerCase(), nombre: nombre.trim() });
+      else await olvidarAcceso();
       await iniciar(r.token, r.user); // al cambiar la sesión, el navegador pasa solo a la app
       if (r.is_new_user) Alert.alert('Revisa tu correo', `Te enviamos a ${r.user.email} un QR de recuperación. Guárdalo: sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número.`);
     } catch (e) {
@@ -104,9 +127,24 @@ export default function Ingresar() {
       {paso === 'datos' ? (
         <Tarjeta style={e.bloque}>
           <Texto variante="subtitulo">Tus datos</Texto>
+          {sugeridos ? (
+            <View style={e.sugerencia}>
+              <Texto variante="chico" suave style={e.flexTexto}>Escribimos los datos con que entraste la última vez. Si son otros, cámbialos.</Texto>
+              <Pressable accessibilityRole="button" accessibilityLabel="Borrar los datos recordados y escribir otros" onPress={otrosDatos} hitSlop={8} style={e.otros}>
+                <Texto color="acento" fuerte>Usar otros datos</Texto>
+              </Pressable>
+            </View>
+          ) : null}
           <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoComplete="name" textContentType="name" autoCapitalize="words" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
           <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" ayuda="Es tu identidad en la app." />
           <Campo ref={refCorreo} etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
+          <View style={e.recordar}>
+            <View style={e.flexTexto}>
+              <Texto>Recordar mis datos en este teléfono</Texto>
+              <Texto variante="chico" suave>Así la próxima vez no tendrás que escribirlos.</Texto>
+            </View>
+            <Switch accessibilityLabel="Recordar mis datos en este teléfono" value={recordar} onValueChange={setRecordar} trackColor={{ true: t.acento }} />
+          </View>
           <Boton titulo="Continuar" onPress={continuar} />
           <Boton titulo="Entrar con el QR de mi correo" variante="texto" onPress={() => router.push('/recuperar')} />
         </Tarjeta>
@@ -171,6 +209,10 @@ export default function Ingresar() {
 }
 
 const e = StyleSheet.create({
+  sugerencia: { gap: espacio.xs },
+  flexTexto: { flex: 1 },
+  otros: { minHeight: MIN_TOQUE, justifyContent: 'center', alignSelf: 'flex-start' },
+  recordar: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   contenido: { padding: espacio.l, gap: espacio.xl },
   encabezado: { gap: espacio.xs, paddingTop: espacio.xl, paddingHorizontal: espacio.s },
   marca: { width: 72, height: 64, marginBottom: espacio.m },
