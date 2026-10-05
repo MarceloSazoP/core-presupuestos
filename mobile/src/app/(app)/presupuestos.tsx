@@ -73,12 +73,8 @@ export default function ListaPresupuestos() {
     }
   }, []);
 
-  // La última pestaña vista se recuerda.
-  useEffect(() => void leerKv('pestana').then((p) => !pedida && PESTANAS.some((x) => x.id === p) && setPestana(p as Pestana)), [pedida]);
-  const elegirPestana = (p: Pestana) => {
-    setPestana(p);
-    void guardarKv('pestana', p);
-  };
+  // Siempre se abre en «Pendientes» (o en la pestaña que pida quien navega aquí): ya no se recuerda la última que se vio.
+  const elegirPestana = setPestana;
   const cuentas = contar(lista ?? []);
   const visibles = (lista ?? []).filter((q) => pestanaDe(q) === pestana);
 
