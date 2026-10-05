@@ -14,10 +14,8 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
 // el número y el PDF los calcula el servidor; aquí solo se captura y se muestra.
-const GARANTIAS = [
-  { kind: 'NONE', texto: 'Sin garantía' }, { kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' },
-  { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' },
-] as const;
+// Las duraciones: «sin garantía» es el interruptor apagado (kind NONE), no una opción más.
+const GARANTIAS = [{ kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' }, { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' }] as const;
 const MAX_ITEMS = 100;
 
 export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: () => Promise<void>; alTerminar?: () => void }) {
@@ -176,10 +174,17 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       {/* Después, lo que se acuerda con el cliente: en su propia tarjeta. */}
       <Seccion titulo="Condiciones">
         <Tarjeta>
-          <View style={e.grupo}>
-            <Texto variante="chico" fuerte>Garantía</Texto>
-            <Chips etiqueta="Garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={setGarantia} />
+          {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
+          <View style={e.filaIva}>
+            <Texto style={e.textoIva}>Garantía</Texto>
+            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => setGarantia(on ? 'D30' : 'NONE')} trackColor={{ true: t.acento }} />
           </View>
+          {garantia !== 'NONE' ? (
+            <View style={e.grupo}>
+              <Texto variante="chico" fuerte>Duración</Texto>
+              <Chips etiqueta="Duración de la garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={setGarantia} />
+            </View>
+          ) : null}
           <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
           <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={setObs} multiline maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
         </Tarjeta>
