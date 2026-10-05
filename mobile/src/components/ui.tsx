@@ -84,11 +84,11 @@ export function Presionable({ style, estilo, children, onPressIn, onPressOut, ..
   );
 }
 
-export function Boton({ titulo, variante = 'primario', icono, cargando = false, disabled, style, ...props }: Omit<PressableProps, 'children' | 'style'> & { titulo: string; variante?: 'primario' | 'secundario' | 'texto'; icono?: NombreIcono; cargando?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Boton({ titulo, variante = 'primario', icono, cargando = false, disabled, style, ...props }: Omit<PressableProps, 'children' | 'style'> & { titulo: string; variante?: 'primario' | 'secundario' | 'texto' | 'peligro'; icono?: NombreIcono; cargando?: boolean; style?: StyleProp<ViewStyle> }) {
   const t = useTema();
   const inactivo = disabled || cargando;
   const primario = variante === 'primario';
-  const color = primario ? t.sobreAcento : variante === 'texto' ? t.acento : t.texto;
+  const color = primario ? t.sobreAcento : variante === 'texto' ? t.acento : variante === 'peligro' ? t.error : t.texto;
   return (
     <Presionable
       accessibilityRole="button"
@@ -100,7 +100,7 @@ export function Boton({ titulo, variante = 'primario', icono, cargando = false, 
         e.boton,
         primario && [e.primario, { backgroundColor: t.acento }, !t.oscuro && { boxShadow: `0 4px 14px ${t.acento}40` }],
         variante === 'secundario' && { borderWidth: 1, borderColor: t.borde, backgroundColor: t.tarjeta },
-        variante === 'texto' && e.texto,
+        (variante === 'texto' || variante === 'peligro') && e.texto,
         { opacity: inactivo ? 0.5 : 1 },
       ]}
     >

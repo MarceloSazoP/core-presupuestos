@@ -31,7 +31,7 @@ export function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }:
 }
 
 // Hoja para agregar o editar un ítem o una tarea (en iPhone, la hoja nativa que se desliza desde abajo). Trabaja sobre una copia:
-// «Cancelar» la descarta y «Agregar» / «Listo» la guarda en la lista. Un ítem nuevo sin descripción no se puede agregar.
+// «Cancelar» la descarta y «Agregar» / «Guardar» la guarda en la lista. Un ítem nuevo sin descripción no se puede agregar.
 export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila: Fila; nueva: boolean; alGuardar: (f: Fila) => void; alQuitar: () => void; alCerrar: () => void }) {
   const t = useTema();
   const [f, setF] = useState(fila);
@@ -63,8 +63,8 @@ export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila
             <Texto color="acento">Cancelar</Texto>
           </Pressable>
           <Texto fuerte accessibilityRole="header">{nueva ? (tarea ? 'Nueva tarea' : 'Nuevo ítem') : tarea ? 'Tarea' : 'Ítem'}</Texto>
-          <Pressable accessibilityRole="button" accessibilityLabel={nueva ? 'Agregar' : 'Listo'} onPress={guardar} hitSlop={8} style={[e.lado, e.derecha]}>
-            <Texto color="acento" fuerte>{nueva ? 'Agregar' : 'Listo'}</Texto>
+          <Pressable accessibilityRole="button" accessibilityLabel={nueva ? 'Agregar' : 'Guardar'} onPress={guardar} hitSlop={8} style={[e.lado, e.derecha]}>
+            <Texto color="acento" fuerte>{nueva ? 'Agregar' : 'Guardar'}</Texto>
           </Pressable>
         </View>
 
@@ -107,8 +107,7 @@ export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila
             <Texto variante="titulo" style={e.monto}>{total}</Texto>
           </View>
 
-          <Boton titulo={nueva ? 'Agregar al presupuesto' : 'Listo'} onPress={guardar} />
-          {nueva ? null : <Boton titulo={tarea ? 'Quitar esta tarea' : 'Quitar este ítem'} icono="cerrar" variante="texto" onPress={alQuitar} />}
+          {nueva ? null : <Boton titulo={tarea ? 'Quitar esta tarea' : 'Quitar este ítem'} icono="cerrar" variante="peligro" onPress={alQuitar} />}
         </ScrollView>
       </View>
       {teclado ? (
