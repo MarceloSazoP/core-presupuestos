@@ -1,7 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
 import { Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
@@ -12,6 +12,7 @@ import { espacio, radio, useTema } from '@/theme';
 
 type Datos = { kpis: Indicadores; tablero: Tablero; meses: Indicadores[] }; // meses: de más antiguo a este mes
 
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
 const NOMBRES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 // Los últimos seis meses como «YYYY-MM», terminando en el actual.
 function ultimosMeses() {
@@ -51,10 +52,10 @@ export function Resumen() {
     <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
       <Seccion titulo="Este mes">
         <View style={e.grilla}>
-          <Dato titulo="Presupuestado" valor={clp(k.quoted_amount)} nota={`${k.quotes_count} ${k.quotes_count === 1 ? 'presupuesto' : 'presupuestos'}`} fuerte />
-          <Dato titulo="Aceptado" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-          <Dato titulo="Aceptación" valor={tasa} nota="de los que se resolvieron" />
-          <Dato titulo="Ticket promedio" valor={k.accepted_count ? clp(k.avg_ticket) : '—'} nota="por presupuesto aceptado" />
+          <Dato indice={0} titulo="Presupuestado" valor={clp(k.quoted_amount)} nota={`${k.quotes_count} ${k.quotes_count === 1 ? 'presupuesto' : 'presupuestos'}`} fuerte />
+          <Dato indice={1} titulo="Aceptado" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+          <Dato indice={2} titulo="Aceptación" valor={tasa} nota="de los que se resolvieron" />
+          <Dato indice={3} titulo="Ticket promedio" valor={k.accepted_count ? clp(k.avg_ticket) : '—'} nota="por presupuesto aceptado" />
         </View>
       </Seccion>
 
@@ -94,6 +95,18 @@ export function Resumen() {
   );
 }
 
+// Una barra que crece desde la base al aparecer el gráfico (transform, no altura: corre en el hilo de la interfaz). Cada una espera 35 ms
+// más que la anterior. Con «reducir movimiento» aparece ya completa.
+function Barra({ alto, color, orden }: { alto: number; color: string; orden: number }) {
+  const reducido = useReducedMotion();
+  const progreso = useSharedValue(reducido ? 1 : 0);
+  useEffect(() => {
+    if (!reducido) progreso.set(withDelay(orden * 35, withTiming(1, { duration: 520, easing: EASE_OUT })));
+  }, [orden, progreso, reducido]);
+  const estilo = useAnimatedStyle(() => ({ transform: [{ scaleY: 0.02 + progreso.get() * 0.98 }] }));
+  return <Animated.View style={[e.barra, { height: alto, backgroundColor: color, transformOrigin: 'bottom' }, estilo]} />;
+}
+
 // Barras de lo presupuestado (azul) y lo aceptado (naranja) por mes, hechas con Views: seis meses no justifican una librería de gráficos.
 function Grafico({ meses }: { meses: Indicadores[] }) {
   const t = useTema();
@@ -102,11 +115,11 @@ function Grafico({ meses }: { meses: Indicadores[] }) {
   return (
     <Tarjeta>
       <View style={e.barras} accessibilityLabel={`Presupuestado y aceptado por mes. ${meses.map((m) => `${NOMBRES[Number(m.month.slice(5)) - 1]}: ${clp(m.quoted_amount)} presupuestado, ${clp(m.accepted_amount)} aceptado`).join('. ')}`}>
-        {meses.map((m) => (
+        {meses.map((m, i) => (
           <View key={m.month} style={e.mes}>
             <View style={[e.par, { height: ALTO }]}>
-              <View style={[e.barra, { height: Math.max(3, (m.quoted_amount / max) * ALTO), backgroundColor: t.acento }]} />
-              <View style={[e.barra, { height: Math.max(3, (m.accepted_amount / max) * ALTO), backgroundColor: '#F9890D' }]} />
+              <Barra alto={Math.max(3, (m.quoted_amount / max) * ALTO)} color={t.acento} orden={i * 2} />
+              <Barra alto={Math.max(3, (m.accepted_amount / max) * ALTO)} color="#F9890D" orden={i * 2 + 1} />
             </View>
             <Texto variante="chico" suave>{NOMBRES[Number(m.month.slice(5)) - 1]}</Texto>
           </View>
@@ -120,15 +133,16 @@ function Grafico({ meses }: { meses: Indicadores[] }) {
   );
 }
 
-function Dato({ titulo, valor, nota, fuerte }: { titulo: string; valor: string; nota: string; fuerte?: boolean }) {
+function Dato({ indice, titulo, valor, nota, fuerte }: { indice: number; titulo: string; valor: string; nota: string; fuerte?: boolean }) {
   const t = useTema();
   // El número principal del mes va con el azul de la marca; el resto, en tarjetas neutras.
   return (
-    <View style={[e.dato, { backgroundColor: fuerte ? t.acento : t.tarjeta, borderColor: fuerte ? t.acento : t.borde }]}>
+    // Las cuatro tarjetas entran una tras otra (60 ms de diferencia) subiendo un poco.
+    <Animated.View entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: fuerte ? t.acento : t.tarjeta, borderColor: fuerte ? t.acento : t.borde }]}>
       <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte}>{titulo}</Texto>
       <Texto variante="titulo" color={fuerte ? 'sobreAcento' : undefined} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Texto>
       <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte} numberOfLines={1}>{nota}</Texto>
-    </View>
+    </Animated.View>
   );
 }
 
