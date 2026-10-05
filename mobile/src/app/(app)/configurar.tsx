@@ -115,7 +115,7 @@ export default function Configurar() {
       <Seccion titulo="Tus datos en los presupuestos" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
         <Tarjeta>
         <Campo etiqueta="Nombre o negocio" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoComplete="name" />
-        <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} placeholder="9 1234 5678" ayuda="Si lo dejas vacío se usa el de tu cuenta." />
+        <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} placeholder="9 5482 2089" ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         <Campo etiqueta="Correo de contacto" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder={usuario?.email ?? ''} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />

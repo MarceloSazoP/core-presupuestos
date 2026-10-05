@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { bandera, PAISES_ORDENADOS, separarTelefono } from "@/lib/paises";
+import { formatearTelefono } from "@/lib/telefono";
 import { corregirClienteAction } from "../actions";
 
 // Teléfono y correo del cliente, siempre corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
@@ -66,14 +67,22 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
         <label htmlFor="tel-cliente" className="etiqueta">Teléfono del cliente</label>
         <div className="flex gap-2">
           {/* El código de país: Chile primero y luego todos por nombre. */}
-          <select aria-label="Código de país" value={cod} onChange={(e) => setCod(e.target.value)} className="campo w-auto shrink-0">
+          <select
+            aria-label="Código de país"
+            value={cod}
+            onChange={(e) => {
+              setCod(e.target.value);
+              setTel(formatearTelefono(tel, e.target.value)); // lo ya escrito toma el formato del nuevo país
+            }}
+            className="campo w-auto shrink-0"
+          >
             {PAISES_ORDENADOS.map((p) => (
               <option key={p.country} value={p.calling_code}>
                 {bandera(p.country)} {p.name} {p.calling_code}
               </option>
             ))}
           </select>
-          <input id="tel-cliente" type="tel" inputMode="tel" autoComplete="off" value={tel} onChange={(e) => setTel(e.target.value)} placeholder="9 1234 5678" className="campo min-w-0 flex-1" />
+          <input id="tel-cliente" type="tel" inputMode="tel" autoComplete="off" value={formatearTelefono(tel, cod)} onChange={(e) => setTel(formatearTelefono(e.target.value, cod))} maxLength={24} placeholder="9 5482 2089" className="campo min-w-0 flex-1" />
         </div>
       </div>
       <label className="flex flex-col gap-1">

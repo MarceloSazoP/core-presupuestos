@@ -17,3 +17,40 @@ export function normalizarTelefono(texto: string, prefijo = '+56'): string | nul
 }
 
 export const esCorreo = (texto: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto.trim());
+
+// Cómo se ve un teléfono mientras se escribe, por país (grupos de dígitos separados por espacio): Chile 9 5482 2089, Perú 987 654 321,
+// México 55 1234 5678, España 612 345 678… Los móviles y los fijos tienen formas distintas: se elige por el primer dígito. Es solo
+// visual: lo guardado es el número completo con su prefijo (+56954822089).
+const FORMATOS: Record<string, (primero: string) => number[]> = {
+  '+56': () => [1, 4, 4],
+  '+51': (d) => (d === '9' ? [3, 3, 3] : [2, 3, 4]),
+  '+57': () => [3, 3, 4],
+  '+52': () => [2, 4, 4],
+  '+54': (d) => (d === '9' ? [1, 2, 4, 4] : [2, 4, 4]),
+  '+598': (d) => (d === '9' ? [2, 3, 3] : [1, 3, 4]),
+  '+595': (d) => (d === '9' ? [3, 3, 3] : [2, 3, 4]),
+  '+591': () => [8],
+  '+593': (d) => (d === '9' ? [2, 3, 4] : [1, 3, 4]),
+  '+506': () => [4, 4],
+  '+507': () => [4, 4],
+  '+502': () => [4, 4],
+  '+34': (d) => (d === '6' || d === '7' ? [3, 3, 3] : [2, 3, 2, 2]),
+};
+
+// Da forma visual al número que escribe la persona. Uno que empieza con «+» es de otro país y se deja como se escribió; sin formato
+// conocido (prefijo desconocido) también.
+export function formatearTelefono(texto: string, prefijo: string): string {
+  if (texto.trim().startsWith('+')) return texto;
+  const digitos = texto.replace(/\D/g, '').slice(0, 15);
+  const grupos = FORMATOS[prefijo]?.(digitos[0] ?? '');
+  if (!grupos) return digitos;
+  const partes: string[] = [];
+  let i = 0;
+  for (const n of grupos) {
+    if (i >= digitos.length) break;
+    partes.push(digitos.slice(i, i + n));
+    i += n;
+  }
+  if (i < digitos.length) partes.push(digitos.slice(i)); // dígitos de más (variantes de numeración): al final, sin grupo
+  return partes.join(' ');
+}

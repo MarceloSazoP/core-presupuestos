@@ -3,6 +3,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { Campo, Icono, Texto } from '@/components/ui';
 import { ElegirPais } from '@/components/elegir-pais';
 import { bandera, PAISES } from '@/lib/paises';
+import { formatearTelefono } from '@/lib/telefono';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Teléfono: el código de país (un botón que abre la lista) y el número. El número se escribe sin código; uno que empiece con «+» se
@@ -15,6 +16,10 @@ export function CampoTelefono({ codigo, alCodigo, ...props }: Omit<ComponentProp
     <>
       <Campo
         {...props}
+        // El número se ve con el formato de su país (9 5482 2089) mientras se escribe.
+        value={formatearTelefono(props.value ?? '', codigo)}
+        onChangeText={(v) => props.onChangeText?.(formatearTelefono(v, codigo))}
+        maxLength={24}
         keyboardType="phone-pad"
         autoComplete="tel"
         izquierda={
@@ -36,7 +41,9 @@ export function CampoTelefono({ codigo, alCodigo, ...props }: Omit<ComponentProp
           detalle={(p) => p.calling_code}
           actual={actual?.country ?? ''}
           alElegir={(c) => {
-            alCodigo(PAISES.find((p) => p.country === c)!.calling_code);
+            const nuevo = PAISES.find((p) => p.country === c)!.calling_code;
+            alCodigo(nuevo);
+            props.onChangeText?.(formatearTelefono(props.value ?? '', nuevo)); // lo ya escrito toma el formato del nuevo país
             setAbierto(false);
           }}
           alCerrar={() => setAbierto(false)}
