@@ -6,6 +6,7 @@ import { Pressable as Toque } from 'react-native-gesture-handler';
 import ReanimatedSwipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, type SharedValue } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
+import { Arrastrable, type Arrastre } from '@/components/arrastre';
 import { Icono, Texto, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { elegirEstado } from '@/lib/elegir-estado';
@@ -44,11 +45,13 @@ export function FilaPresupuesto({
   sinCliente = false,
   onEliminar,
   onCambiarEstado,
+  arrastre,
 }: {
   q: ResumenPresupuesto;
   sinCliente?: boolean;
   onEliminar?: (q: ResumenPresupuesto) => void;
   onCambiarEstado?: (q: ResumenPresupuesto, estado: EstadoElegible) => void;
+  arrastre?: Arrastre; // con esto, un presupuesto enviado se puede arrastrar a una pestaña de estado
 }) {
   const t = useTema();
   const reducido = useReducedMotion();
@@ -134,7 +137,8 @@ export function FilaPresupuesto({
       </Animated.View>
     </Toque>
   );
-  if (!puedeEliminar) return fila;
+  const contenido = arrastre && posibles.length > 0 ? <Arrastrable q={q} arrastre={arrastre}>{fila}</Arrastrable> : fila;
+  if (!puedeEliminar) return contenido;
   return (
     <ReanimatedSwipeable
       ref={swipe}

@@ -26,3 +26,12 @@ export function contar(lista: Estados[]): Record<Pestana, number> {
   for (const q of lista) n[pestanaDe(q)]++;
   return n;
 }
+
+// Al arrastrar un presupuesto a una pestaña, el estado comercial al que pasa. «Pendientes» no es un estado comercial (es lo que
+// falta terminar o enviar), así que no recibe presupuestos.
+export const ESTADO_DE_PESTANA: Partial<Record<Pestana, 'SENT' | 'FOLLOW_UP' | 'ACCEPTED' | 'REJECTED'>> = {
+  enviados: 'SENT',
+  seguimiento: 'FOLLOW_UP',
+  aceptados: 'ACCEPTED',
+  rechazados: 'REJECTED',
+};
