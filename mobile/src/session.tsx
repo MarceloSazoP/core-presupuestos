@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { api, configurarApi } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { borrar, guardar, leer } from '@/lib/almacen';
+import { zonaDelDispositivo } from '@/lib/dispositivo';
 import { usarDatosDe } from '@/sync/cola';
 
 // La sesión vive en el almacenamiento seguro del teléfono (Keychain en iOS): el token y los datos del perfil, para
@@ -40,12 +41,19 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     await guardar(K_USUARIO, JSON.stringify(u));
   }, []);
 
+  // La zona horaria es la del teléfono: si cambió (un viaje) o nunca se envió, se avisa al servidor, que la usa para «hoy» y el mes.
+  const sincronizarZona = useCallback((u: Usuario, t?: string) => {
+    const zona = zonaDelDispositivo();
+    if (zona && u.timezone !== zona) api<Usuario>('/me', { method: 'PUT', body: { timezone: zona }, token: t }).then((fresco) => setUsuario(fresco)).catch(() => {});
+  }, []);
+
   const iniciar = useCallback(async (t: string, u: Usuario) => {
     await Promise.all([guardar(K_TOKEN, t), guardar(K_USUARIO, JSON.stringify(u)), usarDatosDe(u.id)]);
     token.current = t;
     setUsuario(u);
     setEstado('dentro');
-  }, []);
+    sincronizarZona(u, t);
+  }, [sincronizarZona]);
 
   useEffect(() => {
     configurarApi({ token: () => token.current, alVencer: () => void salir() });
@@ -57,9 +65,12 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       await usarDatosDe(guardado.id);
       setUsuario(guardado);
       setEstado('dentro'); // entra de inmediato con lo guardado: en terreno puede no haber señal
-      api<Usuario>('/me').then((fresco) => setUsuario(fresco)).catch(() => {}); // un 401 cierra la sesión (ver configurarApi)
+      api<Usuario>('/me').then((fresco) => {
+        setUsuario(fresco);
+        sincronizarZona(fresco);
+      }).catch(() => {}); // un 401 cierra la sesión (ver configurarApi)
     })();
-  }, [salir]);
+  }, [salir, sincronizarZona]);
 
   return <Contexto.Provider value={{ estado, usuario, iniciar, actualizar, salir }}>{children}</Contexto.Provider>;
 }

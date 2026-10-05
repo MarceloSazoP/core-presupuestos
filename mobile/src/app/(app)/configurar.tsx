@@ -1,10 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { ElegirPais } from '@/components/elegir-pais';
 import { ImagenPerfil } from '@/components/imagen-perfil';
-import { Boton, Campo, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Presionable, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { usePais } from '@/lib/pais-actual';
 import { elegirTema, leerPreferenciaTema, OPCIONES_TEMA, type PreferenciaTema } from '@/lib/preferencia-tema';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
@@ -22,6 +24,18 @@ export default function Configurar() {
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [tema, setTema] = useState<PreferenciaTema>('sistema');
+  const pais = usePais();
+  const [eligiendoPais, setEligiendoPais] = useState(false);
+  async function cambiarPais(country: string) {
+    setEligiendoPais(false);
+    if (country === pais.country) return;
+    try {
+      void actualizar(await api<Usuario>('/me', { method: 'PUT', body: { country } }));
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      Alert.alert('No se pudo cambiar el país', mensajeDe(err));
+    }
+  }
   useEffect(() => void leerPreferenciaTema().then(setTema), []);
 
   // Al abrir se traen los datos frescos del servidor (los guardados en el teléfono pueden venir de otra sesión).
@@ -38,10 +52,10 @@ export default function Configurar() {
   }, []);
 
   async function guardar() {
-    const tel = telefono.trim() ? normalizarTelefono(telefono) : null;
+    const tel = telefono.trim() ? normalizarTelefono(telefono, pais.calling_code) : null;
     const e = {
       nombre: nombre.trim() ? undefined : 'Escribe tu nombre o el de tu negocio',
-      telefono: telefono.trim() && !tel ? 'Escribe un teléfono válido, por ejemplo 9 1234 5678' : undefined,
+      telefono: telefono.trim() && !tel ? 'Escribe un teléfono válido, con su código de país si es de otro (+51…)' : undefined,
       correo: correo.trim() && !esCorreo(correo) ? 'Revisa el correo' : undefined,
     };
     setErrores(e);
@@ -80,6 +94,19 @@ export default function Configurar() {
         />
       </Seccion>
 
+      <Seccion titulo="País" descripcion="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian.">
+        <Tarjeta style={e.tarjetaPais}>
+          <Presionable accessibilityRole="button" accessibilityLabel={`País: ${pais.name}. Cambiar`} onPress={() => setEligiendoPais(true)} estilo={e.filaPais}>
+            <View style={e.flexPais}>
+              <Texto fuerte>{pais.name}</Texto>
+              <Texto variante="chico" suave>{pais.currency} · {pais.vat_label} {pais.vat_rate} %</Texto>
+            </View>
+            <Icono nombre="despliegue" tamano={12} color={t.suave} />
+          </Presionable>
+        </Tarjeta>
+      </Seccion>
+      {eligiendoPais ? <ElegirPais actual={pais.country} alElegir={(c) => void cambiarPais(c)} alCerrar={() => setEligiendoPais(false)} /> : null}
+
       <Seccion titulo="Tus datos en los presupuestos" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
         <Tarjeta>
         <Campo etiqueta="Nombre o negocio" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoComplete="name" />
@@ -106,5 +133,8 @@ export default function Configurar() {
 }
 
 const e = StyleSheet.create({
+  tarjetaPais: { padding: 0 },
+  filaPais: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l },
+  flexPais: { flex: 1 },
   contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.xl },
 });

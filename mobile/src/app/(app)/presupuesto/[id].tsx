@@ -12,7 +12,7 @@ import { NuevaVersion } from '@/components/nueva-version';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { Boton, Icono, Pastilla, Segmentos, Tarjeta, Texto } from '@/components/ui';
 import { leerCodigo } from '@/lib/codigos';
-import { clp } from '@/lib/formato';
+import { dinero } from '@/lib/formato';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
 import { guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
@@ -154,21 +154,21 @@ export default function Detalle() {
                       {i.kind === 'TASK' ? (
                         <Texto variante="chico" suave>Tarea</Texto>
                       ) : (
-                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {clp(i.unit_price)}</Texto>
+                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {dinero(i.unit_price, q.currency)}</Texto>
                       )}
                     </View>
-                    <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : clp(i.line_total)}</Texto>
+                    <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : dinero(i.line_total, q.currency)}</Texto>
                   </View>
                 ))}
                 {q.include_vat ? (
                   <View style={e.filaTotal}>
-                    <Texto suave>IVA (19%)</Texto>
-                    <Texto suave style={e.monto}>{clp(q.vat)}</Texto>
+                    <Texto suave>{q.vat_label ?? 'IVA'} ({q.vat_rate ?? 19}%)</Texto>
+                    <Texto suave style={e.monto}>{dinero(q.vat, q.currency)}</Texto>
                   </View>
                 ) : null}
                 <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
                   <Texto fuerte>Total</Texto>
-                  <Texto variante="titulo" style={e.monto}>{clp(q.total)}</Texto>
+                  <Texto variante="titulo" style={e.monto}>{dinero(q.total, q.currency)}</Texto>
                 </View>
               </Tarjeta>
             ) : null}

@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Boton, Campo, Icono, Texto } from '@/components/ui';
+import { usePais } from '@/lib/pais-actual';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -11,6 +12,7 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 // Nombre, teléfono y correo del cliente, corregibles con el lápiz (Contrato API §6): el cliente suele equivocarse al dárselos y los
 // confirma después. Teléfono y correo, siempre (incluso con el presupuesto terminado); el nombre solo mientras se edita, porque sale en el PDF. Funciona sin conexión: se guarda en el teléfono y viaja por la cola.
 export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto; cambiar: (f: (p: Presupuesto) => Presupuesto) => void; nombreEditable: boolean }) {
+  const pais = usePais();
   const t = useTema();
   const [editando, setEditando] = useState(false);
   const [nombre, setNombre] = useState(q.customer.name);
@@ -29,11 +31,11 @@ export function ContactoCliente({ q, cambiar, nombreEditable }: { q: Presupuesto
   }
 
   async function guardar() {
-    const tel = normalizarTelefono(telefono);
+    const tel = normalizarTelefono(telefono, pais.calling_code);
     const nom = nombre.trim();
     const e = {
       nombre: !nombreEditable || nom ? undefined : 'Escribe el nombre del cliente',
-      telefono: tel ? undefined : 'Escribe un teléfono válido, por ejemplo 9 1234 5678',
+      telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país si es de otro (+51…)',
       correo: !correo.trim() || esCorreo(correo) ? undefined : 'Revisa el correo',
     };
     setErrores(e);

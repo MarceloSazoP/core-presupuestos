@@ -1,5 +1,5 @@
 // Tipos del Contrato de API §2 que usa la app. Se declaran aquí y no en un paquete compartido (Arquitectura A16).
-export type Usuario = { id: string; name: string; phone: string; email: string; contact_phone?: string | null; contact_email?: string | null; has_logo: boolean; has_signature: boolean; use_logo?: boolean; include_signature?: boolean; logo_id?: string | null; signature_id?: string | null };
+export type Usuario = { id: string; name: string; phone: string; email: string; country?: string; timezone?: string; contact_phone?: string | null; contact_email?: string | null; has_logo: boolean; has_signature: boolean; use_logo?: boolean; include_signature?: boolean; logo_id?: string | null; signature_id?: string | null };
 
 export type Estado = 'DRAFT' | 'PENDING' | 'FINALIZED';
 export type EstadoComercial = 'NONE' | 'SENT' | 'FOLLOW_UP' | 'ACCEPTED' | 'REJECTED';
@@ -12,6 +12,7 @@ export type ResumenPresupuesto = {
   customer: { id: string; name: string };
   service_description: string;
   total: number;
+  currency?: string; // las listas guardadas antes de los varios países no la traen: pesos chilenos
   doc_status: Estado;
   commercial_status: EstadoComercial;
   next_contact_date: string | null;
@@ -41,6 +42,10 @@ export type Presupuesto = {
   discount: number;
   include_vat: boolean;
   vat: number;
+  country?: string; // país, moneda e impuesto del presupuesto, fijados al crearlo; los anteriores a los varios países no los traen
+  currency?: string;
+  vat_label?: string;
+  vat_rate?: number;
   total: number;
   warranty: { kind: string; text: string | null };
   validity_days: number | null;

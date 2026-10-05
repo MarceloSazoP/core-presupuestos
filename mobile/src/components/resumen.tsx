@@ -5,7 +5,8 @@ import Animated, { Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, u
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
 import { Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
-import { clp } from '@/lib/formato';
+import { dinero } from '@/lib/formato';
+import { usePais } from '@/lib/pais-actual';
 import { porcentaje, puntos, variacion, type Variacion } from '@/lib/variacion';
 import { useRefrescar } from '@/lib/refrescar';
 import { guardarKv, leerKv } from '@/sync/db';
@@ -28,6 +29,8 @@ function ultimosMeses() {
 // resumen guardado; si nunca hubo uno, no muestra nada (la lista de abajo sigue sirviendo).
 export function Resumen() {
   const t = useTema();
+  const moneda = usePais().currency; // los indicadores son del usuario: en la moneda de su país
+  const clp = (n: number) => dinero(n, moneda);
   const [d, setD] = useState<Datos | null>(null);
   const cargar = useCallback(async () => {
     try {
@@ -62,7 +65,7 @@ export function Resumen() {
       </Seccion>
 
       <Seccion titulo="Últimos 6 meses" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
-        <Grafico meses={d.meses} />
+        <Grafico meses={d.meses} moneda={moneda} />
       </Seccion>
 
       <Seccion titulo="Clientes por contactar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
@@ -77,13 +80,13 @@ export function Resumen() {
               <Presionable
                 key={q.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${q.customer.name}, enviado hace ${q.days_since_sent} días, ${clp(q.total)}. Abrir`}
+                accessibilityLabel={`${q.customer.name}, enviado hace ${q.days_since_sent} días, ${dinero(q.total, q.currency)}. Abrir`}
                 onPress={() => router.push({ pathname: '/presupuesto/[id]', params: { id: q.id } })}
                 estilo={[e.fila, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
               >
                 <Texto fuerte numberOfLines={2} style={e.flex}>{q.customer.name}</Texto>
                 <Texto suave style={e.colEnviado}>{q.days_since_sent === 0 ? 'hoy' : `hace ${q.days_since_sent} d`}</Texto>
-                <Texto numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.numero]}>{clp(q.total)}</Texto>
+                <Texto numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.numero]}>{dinero(q.total, q.currency)}</Texto>
               </Presionable>
             ))}
           </Tarjeta>
@@ -110,8 +113,9 @@ function Barra({ alto, color, orden }: { alto: number; color: string; orden: num
 }
 
 // Barras de lo presupuestado (azul) y lo aceptado (naranja) por mes, hechas con Views: seis meses no justifican una librería de gráficos.
-function Grafico({ meses }: { meses: Indicadores[] }) {
+function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   const t = useTema();
+  const clp = (n: number) => dinero(n, moneda);
   const max = Math.max(1, ...meses.flatMap((m) => [m.quoted_amount, m.accepted_amount]));
   const ALTO = 120;
   return (

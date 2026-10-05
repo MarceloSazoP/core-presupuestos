@@ -7,7 +7,7 @@ import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
 import { Boton, Campo, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
-import { clp, montoEscrito, soloDigitos } from '@/lib/formato';
+import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -48,7 +48,11 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
     void Haptics.selectionAsync();
     setAbierta(null);
   };
-  const { iva, total } = totalesDe(subtotal, entero(descuento), conIva);
+  const moneda = q.currency ?? 'CLP';
+  const clp = (n: number) => dinero(n, moneda); // los montos de este presupuesto, en su moneda
+  const impuesto = q.vat_label ?? 'IVA';
+  const tasa = q.vat_rate ?? 19;
+  const { iva, total } = totalesDe(subtotal, entero(descuento), conIva, tasa);
 
   async function guardar() {
     const llenas = filas.filter((f) => f.description.trim());
@@ -139,10 +143,10 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       {/* Primero el dinero: descuento, IVA y los totales, con el total grande. */}
       <Seccion titulo="Resumen">
         <Tarjeta>
-          <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
+          <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento, moneda)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
           <View style={e.filaIva}>
-            <Texto style={e.textoIva}>Agregar IVA (19%)</Texto>
-            <Switch accessibilityLabel="Agregar IVA (19%)" value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
+            <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
+            <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
           </View>
           <View style={[e.totales, { borderTopColor: t.borde }]}>
             <View style={e.filaTotal}>
@@ -157,7 +161,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
             ) : null}
             {conIva ? (
               <View style={e.filaTotal}>
-                <Texto suave>IVA (19%)</Texto>
+                <Texto suave>{impuesto} ({tasa}%)</Texto>
                 <Texto suave style={e.monto}>{clp(iva)}</Texto>
               </View>
             ) : null}
@@ -191,6 +195,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
 
       {abierta ? (
         <ModalItem
+          moneda={moneda}
           key={abierta.fila.clave}
           fila={abierta.fila}
           nueva={abierta.nueva}

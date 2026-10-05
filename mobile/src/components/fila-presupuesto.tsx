@@ -10,7 +10,7 @@ import { Icono, Texto, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { elegirEstado } from '@/lib/elegir-estado';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
-import { clp } from '@/lib/formato';
+import { dinero } from '@/lib/formato';
 import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
 
 // Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
@@ -106,7 +106,7 @@ export function FilaPresupuesto({
       <Animated.View style={[e.fila, TRANSICION_PRESION, { backgroundColor: t.tarjeta, borderColor: t.borde, transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
         <View style={e.arriba}>
           <Texto fuerte numberOfLines={1} style={e.flex}>{titulo}</Texto>
-          <Texto fuerte style={e.monto}>{q.total > 0 ? clp(q.total) : '—'}</Texto>
+          <Texto fuerte style={e.monto}>{q.total > 0 ? dinero(q.total, q.currency) : '—'}</Texto>
         </View>
         <Texto variante="chico" suave numberOfLines={1}>{q.service_description || 'Sin descripción todavía'}</Texto>
         <View style={e.abajo}>

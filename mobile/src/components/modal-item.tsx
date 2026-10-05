@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Dimensions, Keyboard, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Boton, Campo, Texto } from '@/components/ui';
-import { clp, montoEscrito, soloDigitos } from '@/lib/formato';
+import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // `tipo`: un ítem es cantidad × precio; una tarea (botar escombros, limpiar bodega) no tiene cantidad ni unidad y su valor
@@ -32,7 +32,7 @@ export function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }:
 
 // Hoja para agregar o editar un ítem o una tarea (en iPhone, la hoja nativa que se desliza desde abajo). Trabaja sobre una copia:
 // «Cancelar» la descarta y «Agregar» / «Guardar» la guarda en la lista. Un ítem nuevo sin descripción no se puede agregar.
-export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila: Fila; nueva: boolean; alGuardar: (f: Fila) => void; alQuitar: () => void; alCerrar: () => void }) {
+export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }: { fila: Fila; nueva: boolean; moneda: string; alGuardar: (f: Fila) => void; alQuitar: () => void; alCerrar: () => void }) {
   const t = useTema();
   const [f, setF] = useState(fila);
   const [teclado, setTeclado] = useState(0); // alto del teclado: la barra «Listo» se apoya encima (el accessory nativo no llega a esta ventana)
@@ -54,7 +54,7 @@ export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila
     alGuardar({ ...f, description: f.description.trim() });
   }
 
-  const total = tarea ? (f.unit_price ? clp(entero(f.unit_price)) : 'Incluido') : clp(valorDe(f));
+  const total = tarea ? (f.unit_price ? dinero(entero(f.unit_price), moneda) : 'Incluido') : dinero(valorDe(f), moneda);
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
       <View style={[e.hoja, { backgroundColor: t.fondo }]}>
@@ -81,7 +81,7 @@ export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila
           />
 
           {tarea ? (
-            <Campo etiqueta="Valor (opcional)" value={montoEscrito(f.unit_price)} onChangeText={(v) => cambiar('unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" ayuda="Si lo dejas vacío, la tarea va incluida en el presupuesto." />
+            <Campo etiqueta="Valor (opcional)" value={montoEscrito(f.unit_price, moneda)} onChangeText={(v) => cambiar('unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" ayuda="Si lo dejas vacío, la tarea va incluida en el presupuesto." />
           ) : (
             <>
               <View style={e.fila}>
@@ -89,7 +89,7 @@ export function ModalItem({ fila, nueva, alGuardar, alQuitar, alCerrar }: { fila
                   <Campo etiqueta="Cantidad" value={f.quantity} onChangeText={(v) => cambiar('quantity', v.replace(/[^\d.,]/g, ''))} keyboardType="decimal-pad" selectTextOnFocus />
                 </View>
                 <View style={e.mitad}>
-                  <Campo etiqueta="Precio unitario" value={montoEscrito(f.unit_price)} onChangeText={(v) => cambiar('unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
+                  <Campo etiqueta="Precio unitario" value={montoEscrito(f.unit_price, moneda)} onChangeText={(v) => cambiar('unit_price', soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
                 </View>
               </View>
               <View style={e.grupo}>

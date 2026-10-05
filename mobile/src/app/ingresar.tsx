@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { Boton, Campo, Tarjeta, Texto } from '@/components/ui';
+import { usePais } from '@/lib/pais-actual';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { useSesion } from '@/session';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -15,6 +16,7 @@ type Canal = 'SMS' | 'EMAIL';
 const PASOS: Paso[] = ['datos', 'canal', 'codigo'];
 
 export default function Ingresar() {
+  const pais = usePais(); // sin cuenta todavía: el de la región del teléfono, si escribe el número sin prefijo
   const t = useTema();
   const { iniciar } = useSesion();
   const [paso, setPaso] = useState<Paso>('datos');
@@ -30,7 +32,7 @@ export default function Ingresar() {
   const refTelefono = useRef<TextInput>(null);
   const refCorreo = useRef<TextInput>(null);
 
-  const telefonoE164 = normalizarTelefono(telefono);
+  const telefonoE164 = normalizarTelefono(telefono, pais.calling_code);
 
   function continuar() {
     const e = {

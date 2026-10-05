@@ -12,8 +12,12 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Etapa 1 del wizard (CLAUDE.md §10): cliente, ubicación y descripción inicial. Funciona sin conexión: el presupuesto
 // nace en el teléfono con su propio id y se envía por la cola. El servidor entrega el código al recibirlo (sync/cola.ts).
+import { usePais } from '@/lib/pais-actual';
+import type { Pais } from '@/lib/paises';
+
 export default function Nuevo() {
   const t = useTema();
+  const pais = usePais();
   const [nombre, setNombre] = useState('');
   const [telefono, setTelefono] = useState('');
   const [correo, setCorreo] = useState('');
@@ -38,10 +42,10 @@ export default function Nuevo() {
   };
 
   async function crear() {
-    const tel = normalizarTelefono(telefono);
+    const tel = normalizarTelefono(telefono, pais.calling_code);
     const e = {
       nombre: nombre.trim() ? undefined : 'Escribe el nombre del cliente',
-      telefono: tel ? undefined : 'Escribe un teléfono válido, por ejemplo 9 1234 5678',
+      telefono: tel ? undefined : 'Escribe un teléfono válido, con su código de país si es de otro (+51…)',
       correo: !correo.trim() || esCorreo(correo) ? undefined : 'Revisa el correo',
     };
     setErrores(e);
@@ -53,7 +57,7 @@ export default function Nuevo() {
       const id = randomUUID();
       const dir = direccion.trim() || null;
       const mail = correo.trim().toLowerCase() || null;
-      await guardarBorrador(borradorNuevo(id, { name: nombre.trim(), phone: tel!, email: mail, address: dir }, servicio.trim(), dir));
+      await guardarBorrador(borradorNuevo(id, { name: nombre.trim(), phone: tel!, email: mail, address: dir }, servicio.trim(), dir, pais));
       await encolar({
         quote_id: id, method: 'POST', path: '/quotes',
         body: {
@@ -110,11 +114,11 @@ export default function Nuevo() {
 }
 
 // Copia local mientras el servidor no lo conoce: sin código (code_id vacío) ni número.
-const borradorNuevo = (id: string, customer: { name: string; phone: string; email: string | null; address: string | null }, servicio: string, direccion: string | null): Presupuesto => ({
+const borradorNuevo = (id: string, customer: { name: string; phone: string; email: string | null; address: string | null }, servicio: string, direccion: string | null, pais: Pais): Presupuesto => ({
   id, code_id: '', number: null, doc_status: 'DRAFT', commercial_status: 'NONE',
   customer: { id: '', ...customer }, service_description: servicio, address: direccion,
   survey: { notes: null, measurements: [], photos: [], voice_notes: [] },
-  items: [], subtotal: 0, discount: 0, include_vat: false, vat: 0, total: 0, warranty: { kind: 'NONE', text: null }, validity_days: null, next_contact_date: null, observations: null, public_url: null,
+  items: [], subtotal: 0, discount: 0, include_vat: false, vat: 0, total: 0, country: pais.country, currency: pais.currency, vat_label: pais.vat_label, vat_rate: pais.vat_rate, warranty: { kind: 'NONE', text: null }, validity_days: null, next_contact_date: null, observations: null, public_url: null,
 });
 
 const e = StyleSheet.create({

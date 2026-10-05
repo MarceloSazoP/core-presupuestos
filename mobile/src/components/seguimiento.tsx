@@ -87,7 +87,7 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
           {Platform.OS === 'web' ? null : <Boton titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha'} icono="calendario" variante="secundario" disabled={ocupado} onPress={abrirCalendario} />}
           {calendario && Platform.OS === 'ios' ? (
             <View style={[e.calendario, { backgroundColor: t.campo, borderColor: t.borde }]}>
-              <DateTimePicker value={elegida} mode="date" display="inline" minimumDate={new Date()} locale="es-CL" accentColor={t.acento} onChange={(_, d) => d && setElegida(d)} />
+              <DateTimePicker value={elegida} mode="date" display="inline" minimumDate={new Date()} accentColor={t.acento} onChange={(_, d) => d && setElegida(d)} />
               <Boton titulo={`Programar para el ${diaCorto(aFechaLocal(elegida))}`} disabled={ocupado} onPress={() => void programar(aFechaLocal(elegida))} />
             </View>
           ) : null}
