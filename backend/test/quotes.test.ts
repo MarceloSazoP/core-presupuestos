@@ -223,6 +223,7 @@ describe('API: presupuestos (Contrato API §6, §9 y §14)', () => {
     assert.equal(ok.status, 200);
     assert.deepEqual(ok.json.warranty, { kind: 'CUSTOM', text: '2 años' });
     assert.equal((await patch({ warranty: { kind: 'M3' } })).json.warranty.text, null, 'solo CUSTOM lleva texto');
+    assert.equal((await patch({ warranty: { kind: 'LIFETIME' } })).json.warranty.kind, 'LIFETIME', 'garantía de por vida');
     assert.equal((await patch({ latitude: -33.45 })).status, 422);
     assert.equal((await patch({ latitude: 91, longitude: 0 })).status, 422);
     assert.equal((await patch({ latitude: null, longitude: null })).json.latitude, null);

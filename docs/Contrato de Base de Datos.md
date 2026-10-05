@@ -112,7 +112,7 @@ CREATE TABLE quotes (
   vat                 bigint NOT NULL DEFAULT 0 CHECK (vat >= 0),
   total               bigint NOT NULL DEFAULT 0,
   warranty_kind       text NOT NULL DEFAULT 'NONE'
-                      CHECK (warranty_kind IN ('NONE','D7','D15','D30','M3','M6','Y1','CUSTOM')),
+                      CHECK (warranty_kind IN ('NONE','D7','D15','D30','M3','M6','Y1','CUSTOM')),  -- desde la migración 0013 también 'LIFETIME'
   warranty_text       text CHECK (length(warranty_text) <= 500),
   validity_days       int  CHECK (validity_days BETWEEN 1 AND 365),
   observations        text CHECK (length(observations) <= 5000),   -- aparecen en el PDF
@@ -756,3 +756,18 @@ ALTER TABLE quotes
 - `users.timezone` es un nombre IANA validado con `Intl` en la API; el cliente lo envía.
 - «Hoy» deja de ser `(now() AT TIME ZONE 'America/Santiago')::date`: usa la zona del dueño del presupuesto (`SELECT timezone FROM users WHERE id = q.user_id`).
 - **Pruebas que acompañan:** ver `Internacionalización.md` §6.
+
+---
+
+## 22. Migración `0013` (garantía de por vida, decisión del 2026-10-05)
+
+Una garantía «de por vida» como opción propia (`warranty.kind = LIFETIME`, texto «De por vida» en el PDF y en la vista pública), además de las duraciones y de `CUSTOM`.
+
+```sql
+ALTER TABLE quotes DROP CONSTRAINT quotes_warranty_kind_check;
+ALTER TABLE quotes ADD CONSTRAINT quotes_warranty_kind_check
+  CHECK (warranty_kind IN ('NONE','D7','D15','D30','M3','M6','Y1','LIFETIME','CUSTOM'));
+```
+
+- Los presupuestos existentes no cambian. `LIFETIME` no lleva texto propio (como cualquier tipo que no sea `CUSTOM`).
+- **Prueba que acompaña:** un presupuesto con `LIFETIME` se guarda y su snapshot dice «De por vida».

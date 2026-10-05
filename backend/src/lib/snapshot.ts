@@ -30,7 +30,7 @@ export type Snapshot = {
 };
 
 const WARRANTY_TEXT: Record<string, string> = {
-  NONE: 'Sin garantía', D7: '7 días', D15: '15 días', D30: '30 días', M3: '3 meses', M6: '6 meses', Y1: '1 año',
+  NONE: 'Sin garantía', D7: '7 días', D15: '15 días', D30: '30 días', M3: '3 meses', M6: '6 meses', Y1: '1 año', LIFETIME: 'De por vida',
 };
 
 export const warrantyText = (kind: string, custom: string | null) => (kind === 'CUSTOM' ? (custom ?? '') : (WARRANTY_TEXT[kind] ?? kind));

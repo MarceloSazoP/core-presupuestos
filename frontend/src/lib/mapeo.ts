@@ -4,7 +4,7 @@ import type { GARANTIAS } from './opciones';
 
 // Garantía: el texto que elige la persona ↔ el `warranty.kind` de la API (Contrato API §2).
 const GARANTIA_A_CODIGO: Record<(typeof GARANTIAS)[number], string> = {
-  'Sin garantía': 'NONE', '7 días': 'D7', '15 días': 'D15', '30 días': 'D30', '3 meses': 'M3', '6 meses': 'M6', '1 año': 'Y1',
+  'Sin garantía': 'NONE', '7 días': 'D7', '15 días': 'D15', '30 días': 'D30', '3 meses': 'M3', '6 meses': 'M6', '1 año': 'Y1', 'De por vida': 'LIFETIME',
 };
 export const codigoGarantia = (texto: string) => GARANTIA_A_CODIGO[texto as keyof typeof GARANTIA_A_CODIGO];
 export const textoGarantia = (kind: string, personalizada: string | null) =>

@@ -15,7 +15,7 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
 // el número y el PDF los calcula el servidor; aquí solo se captura y se muestra.
 // Las duraciones: «sin garantía» es el interruptor apagado (kind NONE), no una opción más.
-const GARANTIAS = [{ kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' }, { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' }] as const;
+const GARANTIAS = [{ kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' }, { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' }, { kind: 'LIFETIME', texto: 'De por vida' }] as const;
 const MAX_ITEMS = 100;
 
 export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: () => Promise<void>; alTerminar?: () => void }) {

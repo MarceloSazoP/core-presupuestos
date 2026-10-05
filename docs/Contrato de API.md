@@ -107,7 +107,7 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
   "created_at": "…", "updated_at": "…" }
 ```
 
-`professional` es quien emite el presupuesto (la web, que entra con el código y no tiene acceso a `/me`, lo necesita para su encabezado); su logo se descarga con `GET /quotes/{id}/logo` (el actual mientras se edita y el fijado en el snapshot una vez finalizado; 404 si no hay). `code_id` es la primera mitad del código (no secreta; el secreto no se puede volver a leer). `warranty.kind` ∈ `NONE | D7 | D15 | D30 | M3 | M6 | Y1 | CUSTOM`. `public_url` solo existe si está `FINALIZED`.
+`professional` es quien emite el presupuesto (la web, que entra con el código y no tiene acceso a `/me`, lo necesita para su encabezado); su logo se descarga con `GET /quotes/{id}/logo` (el actual mientras se edita y el fijado en el snapshot una vez finalizado; 404 si no hay). `code_id` es la primera mitad del código (no secreta; el secreto no se puede volver a leer). `warranty.kind` ∈ `NONE | D7 | D15 | D30 | M3 | M6 | Y1 | LIFETIME | CUSTOM` (`LIFETIME` se muestra como «De por vida»). `public_url` solo existe si está `FINALIZED`.
 
 **FollowUp**
 ```json

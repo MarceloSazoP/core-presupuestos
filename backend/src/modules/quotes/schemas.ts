@@ -8,7 +8,7 @@ const optText = (max: number) => text(max).nullish();
 
 export const Warranty = z
   .strictObject({
-    kind: z.enum(['NONE', 'D7', 'D15', 'D30', 'M3', 'M6', 'Y1', 'CUSTOM']),
+    kind: z.enum(['NONE', 'D7', 'D15', 'D30', 'M3', 'M6', 'Y1', 'LIFETIME', 'CUSTOM']),
     text: text(500).nullish(),
   })
   .refine((w) => w.kind !== 'CUSTOM' || !!w.text, { path: ['text'], message: 'Escribe la garantía' });
