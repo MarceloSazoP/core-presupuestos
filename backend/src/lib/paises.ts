@@ -15,6 +15,7 @@ export const PAISES: readonly Pais[] = [
   { country: 'CR', name: 'Costa Rica', currency: 'CRC', symbol: '₡', thousands: ' ', vat_label: 'IVA', vat_rate: 13, calling_code: '+506' },
   { country: 'PA', name: 'Panamá', currency: 'USD', symbol: '$', thousands: ',', vat_label: 'ITBMS', vat_rate: 7, calling_code: '+507' },
   { country: 'GT', name: 'Guatemala', currency: 'GTQ', symbol: 'Q', thousands: ',', vat_label: 'IVA', vat_rate: 12, calling_code: '+502' },
+  { country: 'ES', name: 'España', currency: 'EUR', symbol: '€', thousands: '.', vat_label: 'IVA', vat_rate: 21, calling_code: '+34' },
 ];
 
 export const PAIS_POR_DEFECTO = PAISES[0]!; // Chile: lo que había antes de los varios países
@@ -41,5 +42,6 @@ export function formatoMonto(n: number, moneda: string): string {
   const p = PAISES.find((x) => x.currency === moneda) ?? PAIS_POR_DEFECTO;
   const sep = moneda === 'USD' ? ',' : p.thousands; // USD: estilo de dólar en Ecuador y Panamá
   const digitos = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+  if (moneda === 'EUR') return `${n < 0 ? '-' : ''}${digitos} ${p.symbol}`; // en España el símbolo va después
   return `${n < 0 ? '-' : ''}${p.symbol}${p.symbol.length > 1 ? ' ' : ''}${digitos}`;
 }

@@ -11,7 +11,7 @@ import { assertTestDb, resetDb, startApp } from './helpers';
 // Varios países (Internacionalización.md §6): moneda, impuesto, teléfono y zona horaria.
 describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', () => {
   it('la tabla es coherente y cada prefijo es de un solo país', () => {
-    assert.equal(PAISES.length, 12);
+    assert.equal(PAISES.length, 13);
     assert.equal(new Set(PAISES.map((p) => p.country)).size, PAISES.length);
     assert.equal(new Set(PAISES.map((p) => p.calling_code)).size, PAISES.length);
     for (const p of PAISES) assert.ok(p.vat_rate > 0 && p.vat_rate < 100 && /^\+\d{2,3}$/.test(p.calling_code) && p.currency.length === 3, p.country);
@@ -28,6 +28,7 @@ describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', ()
     assert.equal(formatoMonto(1234567, 'MXN'), '$1,234,567');
     assert.equal(formatoMonto(1234567, 'USD'), '$1,234,567', 'Ecuador y Panamá usan dólares con estilo de dólar');
     assert.equal(formatoMonto(1234567, 'CRC'), '₡1 234 567');
+    assert.equal(formatoMonto(1234567, 'EUR'), '1.234.567 €', 'en España el símbolo va después');
     assert.equal(formatoMonto(999, 'COP'), '$999');
     assert.equal(formatoMonto(-5000, 'CLP'), '-$5.000');
     assert.equal(formatoMonto(100, 'XXX'), '$100', 'una moneda desconocida cae en la de Chile en vez de fallar');
@@ -38,7 +39,8 @@ describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', ()
     assert.equal(paisDelTelefono('+51987654321')?.country, 'PE');
     assert.equal(paisDelTelefono('+59899123456')?.country, 'UY', '+598 no se confunde con +59x de otro país');
     assert.equal(paisDelTelefono('+5491122334455')?.country, 'AR');
-    assert.equal(paisDelTelefono('+34600111222'), undefined);
+    assert.equal(paisDelTelefono('+34600111222')?.country, 'ES');
+    assert.equal(paisDelTelefono('+4930123456'), undefined);
   });
 
   it('el impuesto usa la tasa del presupuesto y redondea .5 hacia arriba', () => {
@@ -76,7 +78,7 @@ describe('API: país y zona horaria del usuario, y presupuestos que guardan su p
   it('GET /countries es público y el país de un usuario nuevo sale de su teléfono', async () => {
     const lista = await app.api('GET', '/countries');
     assert.equal(lista.status, 200);
-    assert.equal(lista.json.length, 12);
+    assert.equal(lista.json.length, 13);
     assert.deepEqual(Object.keys(lista.json[0]).sort(), ['calling_code', 'country', 'currency', 'name', 'symbol', 'thousands', 'vat_label', 'vat_rate']);
     const peru = await app.login('+51987654321', 'p@test.pe', 'Pedro');
     const yo = (await app.api('GET', '/me', { token: peru.token })).json;

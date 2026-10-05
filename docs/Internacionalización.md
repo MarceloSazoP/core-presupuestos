@@ -2,7 +2,7 @@
 
 **Versión 1.0 · decisión del 2026-10-04 · rama `internacionalizacion`**
 
-CorePresupuesto nació para Chile: pesos chilenos, IVA 19 %, teléfonos `+56`, hora de Santiago. Este documento define cómo pasa a servir a **Latinoamérica hispana** sin cambiar el producto: el mismo flujo, en el mismo idioma (español), con la moneda, el impuesto, el teléfono y la hora de cada país.
+CorePresupuesto nació para Chile: pesos chilenos, IVA 19 %, teléfonos `+56`, hora de Santiago. Este documento define cómo pasa a servir a **Latinoamérica hispana y España** sin cambiar el producto: el mismo flujo, en el mismo idioma (español), con la moneda, el impuesto, el teléfono y la hora de cada país.
 
 ## 1. Alcance
 
@@ -34,8 +34,9 @@ El backend es la única fuente de verdad de moneda e impuesto (`backend/src/lib/
 | Costa Rica | `CR` | CRC | `₡` | espacio | IVA | 13 % | +506 |
 | Panamá | `PA` | USD | `$` | `,` | ITBMS | 7 % | +507 |
 | Guatemala | `GT` | GTQ | `Q` | `,` | IVA | 12 % | +502 |
+| España | `ES` | EUR | `€` (después del número) | `.` | IVA | 21 % | +34 |
 
-El formato del monto es **por moneda**, no por país: el dólar (Ecuador, Panamá) se escribe siempre al estilo de dólar (`$1,234`). Quedan fuera los países cuyo prefijo se comparte (`+1`: República Dominicana, Puerto Rico), porque un número sin país no dice de cuál es. Agregar uno es agregar una fila.
+El formato del monto es **por moneda**, no por país: el dólar (Ecuador, Panamá) se escribe siempre al estilo de dólar (`$1,234`). En las listas que ve el usuario, Chile va siempre primero y los demás por orden alfabético. Quedan fuera los países cuyo prefijo se comparte (`+1`: República Dominicana, Puerto Rico), porque un número sin país no dice de cuál es. Agregar uno es agregar una fila.
 
 ## 3. Decisiones
 

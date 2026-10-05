@@ -65,7 +65,7 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
       <div className="flex flex-col gap-1">
         <label htmlFor="tel-cliente" className="etiqueta">Teléfono del cliente</label>
         <div className="flex gap-2">
-          {/* El código de país: Chile, Perú y México primero, y luego los demás por nombre. */}
+          {/* El código de país: Chile primero y luego todos por nombre. */}
           <select aria-label="Código de país" value={cod} onChange={(e) => setCod(e.target.value)} className="campo w-auto shrink-0">
             {PAISES_ORDENADOS.map((p) => (
               <option key={p.country} value={p.calling_code}>

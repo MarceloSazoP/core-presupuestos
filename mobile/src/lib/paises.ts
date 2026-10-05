@@ -16,10 +16,11 @@ export const PAISES: readonly Pais[] = [
   { country: 'CR', name: 'Costa Rica', currency: 'CRC', symbol: '₡', thousands: ' ', vat_label: 'IVA', vat_rate: 13, calling_code: '+506' },
   { country: 'PA', name: 'Panamá', currency: 'USD', symbol: '$', thousands: ',', vat_label: 'ITBMS', vat_rate: 7, calling_code: '+507' },
   { country: 'GT', name: 'Guatemala', currency: 'GTQ', symbol: 'Q', thousands: ',', vat_label: 'IVA', vat_rate: 12, calling_code: '+502' },
+  { country: 'ES', name: 'España', currency: 'EUR', symbol: '€', thousands: '.', vat_label: 'IVA', vat_rate: 21, calling_code: '+34' },
 ];
 
-// Para las listas que se muestran: primero Chile, Perú y México (en ese orden) y después todos los demás por orden alfabético.
-const PRIMEROS = ['CL', 'PE', 'MX'];
+// Para las listas que se muestran: Chile siempre primero y después todos los demás por orden alfabético.
+const PRIMEROS = ['CL'];
 export const PAISES_ORDENADOS: readonly Pais[] = [...PAISES].sort((a, b) => {
   const [i, j] = [PRIMEROS.indexOf(a.country), PRIMEROS.indexOf(b.country)];
   if (i >= 0 || j >= 0) return (i < 0 ? 99 : i) - (j < 0 ? 99 : j);
@@ -47,6 +48,7 @@ export function dinero(n: number, moneda = 'CLP'): string {
   const p = PAISES.find((x) => x.currency === moneda) ?? PAIS_POR_DEFECTO;
   const sep = moneda === 'USD' ? ',' : p.thousands;
   const digitos = String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+  if (moneda === 'EUR') return `${n < 0 ? '-' : ''}${digitos} ${p.symbol}`; // en España el símbolo va después
   return `${n < 0 ? '-' : ''}${p.symbol}${p.symbol.length > 1 ? ' ' : ''}${digitos}`;
 }
 
