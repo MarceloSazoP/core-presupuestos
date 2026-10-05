@@ -24,15 +24,15 @@ export default function AppLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          // A la izquierda, el ícono de la lista de presupuestos por estado (las pestañas); a la derecha, configurar.
+          // A la izquierda, configurar; a la derecha, el ícono de la lista de presupuestos por estado (las pestañas).
           headerLeft: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los presupuestos" onPress={() => router.push('/presupuestos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-              <SymbolView name={{ ios: 'list.bullet', android: 'list', web: 'list' }} size={22} tintColor={t.acento} fallback={<View />} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
+              <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
             </Pressable>
           ),
           headerRight: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-              <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los presupuestos" onPress={() => router.push('/presupuestos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
+              <SymbolView name={{ ios: 'list.bullet', android: 'list', web: 'list' }} size={22} tintColor={t.acento} fallback={<View />} />
             </Pressable>
           ),
         }}
