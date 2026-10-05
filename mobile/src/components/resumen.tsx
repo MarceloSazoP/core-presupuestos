@@ -6,6 +6,7 @@ import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
 import { Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { clp } from '@/lib/formato';
+import { porcentaje, puntos, variacion, type Variacion } from '@/lib/variacion';
 import { useRefrescar } from '@/lib/refrescar';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, radio, useTema } from '@/theme';
@@ -45,6 +46,7 @@ export function Resumen() {
   if (!d) return null;
   const { kpis: k, tablero } = d;
   const hoy = tablero.follow_up;
+  const antes = d.meses[d.meses.length - 2]; // el mes anterior (los seis meses terminan en el actual)
   const tasa = k.acceptance_rate === null ? '—' : `${Math.round(k.acceptance_rate * 100)} %`;
 
   return (
@@ -52,10 +54,10 @@ export function Resumen() {
     <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
       <Seccion titulo="Este mes">
         <View style={e.grilla}>
-          <Dato indice={0} titulo="Presupuestado" valor={clp(k.quoted_amount)} nota={`${k.quotes_count} ${k.quotes_count === 1 ? 'presupuesto' : 'presupuestos'}`} fuerte />
-          <Dato indice={1} titulo="Aceptado" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-          <Dato indice={2} titulo="Aceptación" valor={tasa} nota="de los que se resolvieron" />
-          <Dato indice={3} titulo="Ticket promedio" valor={k.accepted_count ? clp(k.avg_ticket) : '—'} nota="por presupuesto aceptado" />
+          <Dato indice={0} variacion={antes && variacion(porcentaje(k.quoted_amount, antes.quoted_amount), '%')} titulo="Presupuestado" valor={clp(k.quoted_amount)} nota={`${k.quotes_count} ${k.quotes_count === 1 ? 'presupuesto' : 'presupuestos'}`} fuerte />
+          <Dato indice={1} variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+          <Dato indice={2} variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación" valor={tasa} nota="de los que se resolvieron" />
+          <Dato indice={3} variacion={antes && variacion(porcentaje(k.avg_ticket, antes.avg_ticket), '%')} titulo="Ticket promedio" valor={k.accepted_count ? clp(k.avg_ticket) : '—'} nota="por presupuesto aceptado" />
         </View>
       </Seccion>
 
@@ -133,15 +135,17 @@ function Grafico({ meses }: { meses: Indicadores[] }) {
   );
 }
 
-function Dato({ indice, titulo, valor, nota, fuerte }: { indice: number; titulo: string; valor: string; nota: string; fuerte?: boolean }) {
+function Dato({ indice, titulo, valor, nota, variacion, fuerte }: { indice: number; titulo: string; valor: string; nota: string; variacion?: Variacion | null; fuerte?: boolean }) {
   const t = useTema();
   // El número principal del mes va con el azul de la marca; el resto, en tarjetas neutras.
   return (
     // Las cuatro tarjetas entran una tras otra (60 ms de diferencia) subiendo un poco.
-    <Animated.View entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: fuerte ? t.acento : t.tarjeta, borderColor: fuerte ? t.acento : t.borde }]}>
+    <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: fuerte ? t.acento : t.tarjeta, borderColor: fuerte ? t.acento : t.borde }]}>
       <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte}>{titulo}</Texto>
       <Texto variante="titulo" color={fuerte ? 'sobreAcento' : undefined} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Texto>
       <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte} numberOfLines={1}>{nota}</Texto>
+      {/* Frente al mes anterior: verde si mejora, rojo si empeora; en la tarjeta azul, del mismo color que el resto para no perder contraste. */}
+      {variacion ? <Texto variante="chico" fuerte numberOfLines={1} color={fuerte ? 'sobreAcento' : variacion.sube === null ? undefined : variacion.sube ? 'ok' : 'error'} suave={!fuerte && variacion.sube === null}>{variacion.texto}</Texto> : null}
     </Animated.View>
   );
 }
