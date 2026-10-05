@@ -29,6 +29,10 @@ export type QuoteApi = {
   include_vat: boolean;
   vat: number;
   total: number;
+  country?: string; // moneda e impuesto del presupuesto, fijados al crearlo (los anteriores a los varios países no los traen: Chile)
+  currency?: string;
+  vat_label?: string;
+  vat_rate?: number;
   warranty: { kind: string; text: string | null };
   validity_days: number | null;
   observations: string | null;
@@ -55,6 +59,9 @@ export type Presupuesto = {
   conIva: boolean;
   iva: number;
   total: number;
+  pais: string;
+  moneda: string;
+  impuesto: { nombre: string; tasa: number };
   garantia: string;
   validezDias: number;
   observaciones: string | null;
@@ -86,6 +93,9 @@ export const aPresupuesto = (q: QuoteApi): Presupuesto => ({
   conIva: q.include_vat,
   iva: q.vat,
   total: q.total,
+  pais: q.country ?? 'CL',
+  moneda: q.currency ?? 'CLP',
+  impuesto: { nombre: q.vat_label ?? 'IVA', tasa: q.vat_rate ?? 19 },
   garantia: textoGarantia(q.warranty.kind, q.warranty.text),
   validezDias: q.validity_days ?? VALIDEZ_POR_DEFECTO, // el presupuesto que crea la app puede no traer vigencia
   observaciones: q.observations,

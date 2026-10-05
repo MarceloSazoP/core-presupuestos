@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import QRCode from 'qrcode';
 import { api, ApiError } from '@/lib/api';
-import { clp } from '@/lib/formato';
+import { dinero } from '@/lib/formato';
 import { codigoGarantia, mensajesDeError, type QuoteApi } from '@/lib/mapeo';
 import { abrirSesion, cerrarSesion, sesionActual } from '@/lib/sesion';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -109,11 +109,11 @@ export type EstadoEdicion = {
 
 // Corregir el nombre, el teléfono y el correo del cliente (Contrato API §6). Teléfono y correo siempre se pueden, también con el presupuesto
 // terminado (no están en el PDF ni en el snapshot); el nombre solo mientras se edita, y por eso solo llega desde el editor. El correo vacío significa «sin correo».
-export async function corregirClienteAction(telefono: string, correo: string, nombre?: string): Promise<{ error?: string }> {
+export async function corregirClienteAction(telefono: string, correo: string, nombre?: string, prefijo?: string): Promise<{ error?: string }> {
   const s = await sesionActual();
   if (!s) return { error: 'La sesión venció. Vuelve al inicio y escribe el código de nuevo.' };
-  const tel = normalizarTelefono(telefono);
-  if (!tel) return { error: 'Escribe un teléfono válido, por ejemplo 9 1234 5678.' };
+  const tel = normalizarTelefono(telefono, prefijo); // sin prefijo escrito, el del país del presupuesto
+  if (!tel) return { error: 'Escribe un teléfono válido, con su código de país si es de otro (+51…).' };
   const mail = correo.trim().toLowerCase();
   const nom = nombre?.trim();
   if (nombre !== undefined && !nom) return { error: 'Escribe el nombre del cliente.' };
@@ -230,7 +230,7 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
         correo = { ok: false, mensaje: e instanceof ApiError ? mensajesDeError(e.details, e.message).join(' ') : 'No se pudo enviar el correo.' };
       }
     }
-    const total = clp(q.total);
+    const total = dinero(q.total, q.currency ?? 'CLP');
     return {
       terminado: {
         numero: q.number!,

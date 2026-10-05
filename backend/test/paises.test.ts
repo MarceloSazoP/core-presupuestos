@@ -4,6 +4,7 @@ import { migrate } from '../scripts/migrate';
 import { pool } from '../src/db';
 import { formatoMonto, PAISES, paisDelTelefono, zonaValida } from '../src/lib/paises';
 import { PAISES as PAISES_APP } from '../../mobile/src/lib/paises';
+import { PAISES as PAISES_WEB } from '../../frontend/src/lib/paises';
 import { sumTotals, vatOf } from '../src/modules/quotes/totals';
 import { assertTestDb, resetDb, startApp } from './helpers';
 
@@ -16,8 +17,9 @@ describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', ()
     for (const p of PAISES) assert.ok(p.vat_rate > 0 && p.vat_rate < 100 && /^\+\d{2,3}$/.test(p.calling_code) && p.currency.length === 3, p.country);
   });
 
-  it('la tabla de la app móvil es idéntica a la del servidor', () => {
+  it('las tablas de la app móvil y de la web son idénticas a la del servidor', () => {
     assert.deepEqual(PAISES_APP, PAISES);
+    assert.deepEqual(PAISES_WEB, PAISES);
   });
 
   it('el monto lleva el símbolo y el separador de su moneda', () => {

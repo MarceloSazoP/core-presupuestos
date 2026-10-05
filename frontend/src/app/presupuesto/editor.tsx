@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
-import { clp, miles } from "@/lib/formato";
+import { dinero, miles } from "@/lib/formato";
+import { paisDe } from "@/lib/paises";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
 import { completarPresupuestoAction, type EstadoEdicion } from "../actions";
@@ -23,6 +24,9 @@ type Inicial = {
   items: { tipo: "item" | "tarea"; descripcion: string; cantidad: number; unidad: string; precioUnitario: number }[];
   descuento: number;
   conIva: boolean;
+  moneda: string;
+  impuesto: { nombre: string; tasa: number };
+  pais: string;
   garantia: string;
   validezDias: number;
   observaciones: string | null;
@@ -39,6 +43,8 @@ const filaVacia = (clave: number, tipo: Fila["tipo"] = "item"): Fila => ({ clave
 // En pantallas anchas: [contexto] [formulario] [resumen y acciones]. En el teléfono: una columna en ese mismo orden.
 export function Editor({ inicial }: { inicial: Inicial }) {
   const [estado, accion, pendiente] = useActionState<EstadoEdicion, FormData>(completarPresupuestoAction, {});
+  const { moneda, impuesto } = inicial; // los montos de este presupuesto, con su moneda y su impuesto
+  const clp = (n: number) => dinero(n, moneda);
   const [, enTransicion] = useTransition();
   const [filas, setFilas] = useState<Fila[]>(() =>
     inicial.items.length > 0
@@ -163,6 +169,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     filas.map((f) => ({ tipo: f.tipo, descripcion: f.descripcion, cantidad: aNumero(f.cantidad), precioUnitario: aEntero(f.precio) })),
     aEntero(descuento),
     conIva,
+    impuesto.tasa,
   );
   const descuentoExcesivo = totales.total < 0;
 
@@ -243,7 +250,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             <h3 id="cliente" className="seccion">
               Cliente
             </h3>
-            <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} />
+            <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} prefijo={paisDe(inicial.pais).calling_code} />
           </section>
 
           {/* Servicio y dirección son un solo grupo: más cerca entre sí que del resto. */}
@@ -286,7 +293,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             <h3 id="titulo-items" className="seccion">
               Ítems y tareas
             </h3>
-            {esAngosto ? <ListaItemsMovil filas={filas} onChange={setFilas} /> : <GrillaItems filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
+            {esAngosto ? <ListaItemsMovil moneda={moneda} filas={filas} onChange={setFilas} /> : <GrillaItems moneda={moneda} filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
             <CamposItems filas={filas} />
             <div className="-ml-4 flex flex-wrap items-center gap-x-2 gap-y-2">
               <button type="button" onClick={() => agregar("item")} className="boton-suave">
@@ -369,7 +376,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
                   inputMode="numeric"
                   autoComplete="off"
                   placeholder="$0"
-                  value={miles(descuento)}
+                  value={miles(descuento, moneda)}
                   onChange={(e) => setDescuento(e.target.value.replace(/\D/g, "").slice(0, 9))}
                   aria-invalid={descuentoExcesivo}
                   className="campo w-32 text-right"
@@ -379,7 +386,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             <div className="flex items-center justify-between gap-3">
               <dt>
                 <label htmlFor="iva" className="etiqueta">
-                  Agregar IVA (19%)
+                  Agregar {impuesto.nombre} ({impuesto.tasa}%)
                 </label>
               </dt>
               <dd>
@@ -391,7 +398,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             </div>
             {conIva && (
               <div className="flex justify-between gap-3 text-muted">
-                <dt>IVA (19%)</dt>
+                <dt>{impuesto.nombre} ({impuesto.tasa}%)</dt>
                 <dd>{clp(totales.iva)}</dd>
               </div>
             )}

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const fecha = new Intl.DateTimeFormat("es-CL", { timeZone: "America/Santiago", dateStyle: "full" });
-const hora = new Intl.DateTimeFormat("es-CL", { timeZone: "America/Santiago", timeStyle: "short", hourCycle: "h23" });
+const fecha = new Intl.DateTimeFormat("es-CL", { dateStyle: "full" });
+const hora = new Intl.DateTimeFormat("es-CL", { timeStyle: "short", hourCycle: "h23" });
 
 // Se dibuja solo en el navegador: el servidor y el cliente nunca coincidirían en el segundo exacto.
 export function Reloj() {

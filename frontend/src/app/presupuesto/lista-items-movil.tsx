@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { clp, milesConDecimal } from "@/lib/formato";
+import { dinero, milesConDecimal } from "@/lib/formato";
 import { GRUPOS_UNIDAD, textoUnidad } from "@/lib/opciones";
 import { totalLinea } from "@/lib/totales";
 import { limpiarCantidad, limpiarPrecio, type Fila } from "./grilla-items";
@@ -24,7 +24,8 @@ export function useEsAngosto() {
 }
 
 // Mismos datos y mismas reglas que la grilla (`Fila`): solo cambia cómo se presentan.
-export function ListaItemsMovil({ filas, onChange }: { filas: Fila[]; onChange: (filas: Fila[]) => void }) {
+export function ListaItemsMovil({ moneda, filas, onChange }: { moneda: string; filas: Fila[]; onChange: (filas: Fila[]) => void }) {
+  const clp = (n: number) => dinero(n, moneda);
   const cambiar = (clave: number, campos: Partial<Fila>) => onChange(filas.map((f) => (f.clave === clave ? { ...f, ...campos } : f)));
   return (
     <ul className="flex flex-col gap-3">

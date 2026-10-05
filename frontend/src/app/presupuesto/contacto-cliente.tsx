@@ -5,7 +5,7 @@ import { corregirClienteAction } from "../actions";
 
 // Teléfono y correo del cliente, siempre corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
 // después, incluso con el presupuesto terminado. No lleva <form> propio: se usa dentro del formulario del editor.
-export function ContactoCliente({ nombre, telefono, correo }: { nombre?: string; telefono: string; correo: string | null }) {
+export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?: string; telefono: string; correo: string | null; prefijo?: string }) {
   const [editando, setEditando] = useState(false);
   const [nom, setNom] = useState(nombre ?? "");
   const [tel, setTel] = useState(telefono);
@@ -16,7 +16,7 @@ export function ContactoCliente({ nombre, telefono, correo }: { nombre?: string;
   const guardar = () =>
     empezar(async () => {
       setError(null);
-      const r = await corregirClienteAction(tel, mail, nombre === undefined ? undefined : nom);
+      const r = await corregirClienteAction(tel, mail, nombre === undefined ? undefined : nom, prefijo);
       if (r.error) return setError(r.error);
       setEditando(false);
     });

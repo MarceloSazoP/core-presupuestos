@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { clp, cant } from "@/lib/formato";
+import { dinero, cant } from "@/lib/formato";
+import { paisDe } from "@/lib/paises";
 import { simboloUnidad } from "@/lib/opciones";
 import { cargarPresupuesto, esFinalizado } from "@/lib/presupuesto";
 import { totalLinea } from "@/lib/totales";
@@ -40,6 +41,9 @@ export default async function PresupuestoPage() {
       items: p.items,
       descuento: p.descuento,
       conIva: p.conIva,
+      moneda: p.moneda,
+      impuesto: p.impuesto,
+      pais: p.pais,
       garantia: p.garantia,
       validezDias: p.validezDias,
       observaciones: p.observaciones,
@@ -58,6 +62,7 @@ export default async function PresupuestoPage() {
 
   // Presupuesto cerrado: se muestran los montos que fijó el servidor, no un cálculo nuevo.
   const { subtotal, descuento, iva, total } = p;
+  const clp = (n: number) => dinero(n, p.moneda);
   const whatsappUrl = enlaceWhatsApp(
     p.cliente.telefono,
     mensajePresupuesto({ nombre: p.cliente.nombre, numero: p.numero, total: clp(total), descripcion: p.descripcion, enlace: p.publicUrl ?? "" }),
@@ -136,7 +141,7 @@ export default async function PresupuestoPage() {
             )}
             {p.conIva && (
               <div className="flex justify-between text-muted">
-                <dt>IVA (19%)</dt>
+                <dt>{p.impuesto.nombre} ({p.impuesto.tasa}%)</dt>
                 <dd>{clp(iva)}</dd>
               </div>
             )}
@@ -169,7 +174,7 @@ export default async function PresupuestoPage() {
             <h2 id="cliente-cerrado" className="seccion">
               Contacto del cliente
             </h2>
-            <ContactoCliente telefono={p.cliente.telefono} correo={p.cliente.correo} />
+            <ContactoCliente telefono={p.cliente.telefono} correo={p.cliente.correo} prefijo={paisDe(p.pais).calling_code} />
           </section>
 
           <div className="flex flex-col gap-3">

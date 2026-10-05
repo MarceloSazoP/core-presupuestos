@@ -2,8 +2,8 @@
 
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type CellEditingStoppedEvent, type ColDef, type GridApi } from "ag-grid-community";
 import { AgGridReact, type CustomCellEditorProps } from "ag-grid-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { clp, miles, milesConDecimal } from "@/lib/formato";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { dinero, miles, milesConDecimal } from "@/lib/formato";
 import { GRUPOS_UNIDAD, simboloUnidad, textoUnidad } from "@/lib/opciones";
 import { totalLinea } from "@/lib/totales";
 
@@ -111,14 +111,17 @@ function EditorUnidad({ initialValue, onValueChange }: CustomCellEditorProps<Fil
 // Grilla editable de ítems (AG Grid Community). Enter confirma la celda y abre la siguiente (descripción → cantidad →
 // unidad → precio → descripción de la fila de abajo, creándola si es la última). Un clic sobre una celda la edita.
 export function GrillaItems({
+  moneda,
   filas,
   onChange,
   onAgregar,
 }: {
+  moneda: string;
   filas: Fila[];
   onChange: (filas: Fila[]) => void;
   onAgregar: () => void;
 }) {
+  const clp = useCallback((n: number) => dinero(n, moneda), [moneda]);
   const api = useRef<GridApi<Fila> | null>(null);
   const enterPulsado = useRef(false);
   const irA = useRef<{ rowIndex: number; colKey: string } | null>(null);
@@ -183,10 +186,10 @@ export function GrillaItems({
         width: 150,
         type: "rightAligned",
         cellEditor: EditorNumero,
-        cellEditorParams: { formatear: miles, limpiar: limpiarPrecio },
+        cellEditorParams: { formatear: (d: string) => miles(d, moneda), limpiar: limpiarPrecio },
         valueParser: (p) => limpiarPrecio(String(p.newValue ?? "")),
         // En una tarea el precio es opcional: vacío significa que va incluida en el presupuesto.
-        valueFormatter: (p) => (p.value ? clp(aEntero(p.value)) : p.data?.tipo === "tarea" ? "Incluido" : "$0"),
+        valueFormatter: (p) => (p.value ? clp(aEntero(p.value)) : p.data?.tipo === "tarea" ? "Incluido" : clp(0)),
       },
       {
         headerName: "Total",
@@ -220,7 +223,7 @@ export function GrillaItems({
           ) : null,
       },
     ],
-    [filas, onChange],
+    [filas, onChange, clp, moneda],
   );
 
   const alTerminarEdicion = (e: CellEditingStoppedEvent<Fila>) => {

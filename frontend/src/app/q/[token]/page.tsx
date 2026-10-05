@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { cant, clp } from "@/lib/formato";
+import { cant, dinero } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
 
 export const metadata: Metadata = { title: "Presupuesto · CORE Presupuestos", robots: { index: false, follow: false } };
@@ -14,7 +13,11 @@ type Publico = {
   version?: number;
   previous_number?: string | null;
   finalized_at: string;
+  issued_on: string | null;
   valid_until: string;
+  timezone: string;
+  currency: string;
+  vat_label: string;
   professional: { name: string; phone: string; email: string; has_logo: boolean };
   customer: { name: string };
   service_description: string;
@@ -31,8 +34,9 @@ type Publico = {
   observations: string | null;
 };
 
-const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-CL", { timeZone: "America/Santiago", dateStyle: "long" });
-const dia = (ymd: string) => fecha(`${ymd}T12:00:00Z`);
+// La fecha de emisión es la fijada al terminar (en la zona de quien emitió); los presupuestos anteriores solo traen la hora.
+const fecha = (iso: string, zona: string) => new Date(iso).toLocaleDateString("es-CL", { timeZone: zona, dateStyle: "long" });
+const dia = (ymd: string) => fecha(`${ymd}T12:00:00Z`, "UTC");
 
 export default async function VistaPublica({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -44,6 +48,7 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
     throw e;
   }
   const base = `/q/${encodeURIComponent(token)}`;
+  const clp = (n: number) => dinero(n, q.currency); // los montos, con la moneda del presupuesto
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-6">
@@ -73,7 +78,7 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
               {(q.version ?? 1) > 1 && <span> · Versión {q.version}</span>}
             </h1>
             {q.previous_number && <p className="text-sm text-muted">Reemplaza al presupuesto {q.previous_number}</p>}
-            <p className="text-sm text-muted">{fecha(q.finalized_at)}</p>
+            <p className="text-sm text-muted">{q.issued_on ? dia(q.issued_on) : fecha(q.finalized_at, q.timezone)}</p>
           </div>
         </header>
 
@@ -126,7 +131,7 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             )}
             {q.include_vat && (
               <div className="flex justify-between text-muted">
-                <dt>IVA ({q.vat_rate}%)</dt>
+                <dt>{q.vat_label} ({q.vat_rate}%)</dt>
                 <dd>{clp(q.vat)}</dd>
               </div>
             )}
