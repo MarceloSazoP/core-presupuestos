@@ -57,6 +57,8 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 |------|--------|
 | `POST /auth/start` | 3 por teléfono/hora y 10 por IP/hora |
 | `POST /auth/verify` | 5 intentos por desafío |
+| `POST /auth/recovery` | 10 por IP/hora |
+| `POST /me/recovery-qr` | 3 por usuario/hora |
 | `POST /access/code/exchange` | 10 por IP/hora y, por código, 5 fallos seguidos bloquean ese código 15 min (responde 429) |
 | `POST /access/pair` | 120 por IP/hora |
 | `POST /access/pair/poll` | 600 por IP/hora (cada computador consulta cada 2 s mientras muestra el QR) |
@@ -149,6 +151,15 @@ Errores: 422, 429.
 ```
 Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Sesión: 90 días móviles.
 
+### `POST /auth/recovery` (decisión del 2026-10-05, `Recuperación de cuenta con QR.md`)
+Entra con el QR de recuperación que llegó al correo, sin teléfono ni correo.
+```json
+{ "token": "<el del QR>", "close_other_sessions": true }
+```
+- **200**: igual que `/auth/verify` (`token`, `expires_at`, `user`), con `is_new_user: false`. El QR queda **usado** y llega al correo de la cuenta el siguiente, con un aviso de que se usó. `close_other_sessions` (por defecto `true`) cierra las demás sesiones de la cuenta.
+- **401 `UNAUTHENTICATED`**: token inexistente, ya usado o revocado (la misma respuesta para los tres). El token es un secreto de 256 bits: no se puede adivinar con el teléfono o el correo.
+- Si el correo no se puede enviar, igual entra; queda en el registro y se puede pedir otro con `POST /me/recovery-qr`.
+
 ### `POST /auth/logout` → **204** (revoca la sesión actual)
 
 ### 3.1 Propuesta v0.4 — identidad verificada y acceso con Google o Apple (borrador, no implementado)
@@ -198,6 +209,7 @@ Errores: 401 `UNAUTHENTICATED` (código incorrecto, vencido o agotado), 429. Ses
 | `GET /me` | `{ id, name, phone, email, country, timezone, contact_phone, contact_email, has_logo, has_signature, use_logo, include_signature, logo_id, signature_id }`. `logo_id` y `signature_id` cambian con cada imagen nueva (o son `null`): se usan en la dirección de la imagen, p. ej. `/me/logo?v={logo_id}`, para que la app no muestre una imagen vieja guardada en caché. |
 | `PUT /me` | Parcial: `{ "name"?, "country"?, "timezone"?, "contact_phone"?, "contact_email"?, "use_logo"?, "include_signature"? }` (al menos uno). `country` ∈ la lista de `GET /countries` (422 si no); `timezone` es un nombre IANA válido, como `America/Lima` (422 si no). Cambiar el país **no** modifica los presupuestos ya creados (`Internacionalización.md` §3.2). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
 | `GET /countries` | Sin sesión. Los países disponibles: `[{ country, name, currency, symbol, thousands, vat_label, vat_rate, calling_code }]`. Es la tabla de `Internacionalización.md` §2; la app la usa para elegir el país y le basta con la guardada si no hay conexión. |
+| `POST /me/recovery-qr` | **202** `{ destination_masked }`. Crea un QR de recuperación nuevo, **invalida el anterior** y lo envía al correo de la cuenta (nunca a otro). 429 si se pidió más de 3 veces en una hora; 502 si el correo no sale. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `GET /me/logo` | Descarga el logo propio (404 si no hay). Es lo que muestra «Configurar». |
 | `DELETE /me/logo` | **204** |

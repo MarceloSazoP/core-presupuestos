@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
-import { iniciarAvisos, marcarLeido, registrarAviso, traerPendientes, useAvisos } from '@/lib/avisos';
+import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPendientes, useAvisos } from '@/lib/avisos';
 import { deNotificacion, sinLeer } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
 import { iniciarCola, vaciar } from '@/sync/cola';
@@ -19,6 +19,7 @@ export default function AppLayout() {
       if (e !== 'active') return;
       void vaciar(); // al volver a primer plano
       void traerPendientes(); // y se recogen los avisos que llegaron mientras no estaba
+      void sincronizarAvisos(); // incluso los que la persona borró del teléfono sin tocarlos
     });
     return () => s.remove();
   }, []);

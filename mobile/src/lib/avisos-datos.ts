@@ -19,8 +19,10 @@ export const marcarLeidos = (lista: Aviso[], id?: string): Aviso[] => lista.map(
 export function deNotificacion(n: { date: number; request: { identifier: string; content: { title: string | null; body: string | null; data?: Record<string, unknown> } } }): Aviso {
   const ms = n.date < 1e12 ? n.date * 1000 : n.date;
   const quoteId = n.request.content.data?.quoteId;
+  const d = new Date(ms);
+  const dia = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; // el día en la hora del teléfono
   return {
-    id: `${n.request.identifier}@${Math.round(ms / 1000)}`,
+    id: `${n.request.identifier}@${dia}`, // igual que el de `vencidos`: el mismo aviso no se duplica
     titulo: n.request.content.title ?? 'Aviso',
     cuerpo: n.request.content.body ?? '',
     quoteId: typeof quoteId === 'string' ? quoteId : null,

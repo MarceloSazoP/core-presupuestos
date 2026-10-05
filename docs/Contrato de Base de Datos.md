@@ -418,7 +418,7 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 
 ### Eventos de auditoría (`audit_events.event`)
 
-`AUTH_CODE_SENT`, `LOGIN`, `LOGOUT`, `QUOTE_CREATED`, `QUOTE_FINALIZED`, `QUOTE_SENT` (metadata: canal), `COMMERCIAL_STATUS_CHANGED` (metadata: de/a), `QUOTE_DELETED`, `ACCESS_CODE_CREATED` (incluye la rotación), `ACCESS_CODE_USED`, `ACCESS_CODE_FAILED` (metadata: ID corto), `ACCESS_CODE_REVOKED`, `ACCESS_PAIR_USED`, `PUBLIC_LINK_REVOKED`.
+`AUTH_CODE_SENT`, `LOGIN`, `LOGOUT`, `RECOVERY_QR_SENT`, `RECOVERY_QR_USED`, `QUOTE_CREATED`, `QUOTE_FINALIZED`, `QUOTE_SENT` (metadata: canal), `COMMERCIAL_STATUS_CHANGED` (metadata: de/a), `QUOTE_DELETED`, `ACCESS_CODE_CREATED` (incluye la rotación), `ACCESS_CODE_USED`, `ACCESS_CODE_FAILED` (metadata: ID corto), `ACCESS_CODE_REVOKED`, `ACCESS_PAIR_USED`, `PUBLIC_LINK_REVOKED`.
 
 ---
 
@@ -771,3 +771,25 @@ ALTER TABLE quotes ADD CONSTRAINT quotes_warranty_kind_check
 
 - Los presupuestos existentes no cambian. `LIFETIME` no lleva texto propio (como cualquier tipo que no sea `CUSTOM`).
 - **Prueba que acompaña:** un presupuesto con `LIFETIME` se guarda y su snapshot dice «De por vida».
+
+---
+
+## 23. Migración `0014` (QR de recuperación de la cuenta, decisión del 2026-10-05)
+
+El QR que se envía al correo para volver a entrar sin el teléfono. Diseño y seguridad en `Recuperación de cuenta con QR.md`.
+
+```sql
+CREATE TABLE recovery_tokens (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash text NOT NULL UNIQUE,               -- sha256 del token; el token nunca se guarda
+  created_at timestamptz NOT NULL DEFAULT now(),
+  used_at    timestamptz,
+  revoked_at timestamptz
+);
+CREATE INDEX recovery_tokens_vigentes ON recovery_tokens (user_id) WHERE used_at IS NULL AND revoked_at IS NULL;
+```
+
+- Un usuario tiene **a lo sumo un token vigente** (sin `used_at` ni `revoked_at`): crear uno revoca los anteriores en la misma transacción.
+- Consumirlo es atómico: `UPDATE … SET used_at = now() WHERE token_hash = $1 AND used_at IS NULL AND revoked_at IS NULL RETURNING user_id`.
+- **Pruebas que acompañan:** ver `Recuperación de cuenta con QR.md` §5.

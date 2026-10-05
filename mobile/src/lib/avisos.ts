@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from 'react';
 import { Notifications } from '@/lib/notificaciones';
+import { api } from '@/api/client';
+import type { ResumenPresupuesto } from '@/api/types';
 import { agregarAviso, deNotificacion, marcarLeidos, type Aviso } from '@/lib/avisos-datos';
+import { vencidos } from '@/lib/recordatorios';
 import { guardarKv, leerKv } from '@/sync/db';
 import { Platform } from 'react-native';
 
@@ -52,6 +55,17 @@ export async function traerPendientes() {
   }
 }
 
+// Los avisos que ya debieron sonar según los presupuestos: quedan en la bandeja aunque la persona haya borrado la notificación del
+// teléfono sin tocarla (como en WhatsApp: lo que llegó queda). Se revisa al abrir la app y al volver a ella.
+export async function sincronizarAvisos() {
+  try {
+    const { data } = await api<{ data: ResumenPresupuesto[] }>('/quotes?limit=100');
+    for (const a of vencidos(data)) await registrarAviso(a);
+  } catch {
+    // sin conexión: se revisa la próxima vez
+  }
+}
+
 let iniciado = false;
 export async function iniciarAvisos() {
   if (iniciado || Platform.OS === 'web') return;
@@ -59,6 +73,7 @@ export async function iniciarAvisos() {
   await cargada();
   Notifications.addNotificationReceivedListener((n) => void registrarAviso(deNotificacion(n)));
   await traerPendientes();
+  await sincronizarAvisos();
 }
 
 // Al cambiar de cuenta la bandeja se vuelve a leer (la base local se vació).

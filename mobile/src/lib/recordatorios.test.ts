@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fechaDelAviso, MAX_AVISOS, planificar } from './recordatorios.ts';
+import { fechaDelAviso, MAX_AVISOS, planificar, vencidos } from './recordatorios.ts';
 
 const q = (id: string, status: string, dia: string | null) => ({ id, number: `CP-${id}`, customer: { name: `Cliente ${id}` }, commercial_status: status, next_contact_date: dia });
 const ahora = new Date(2026, 9, 4, 12, 0); // 4 oct 2026, mediodía
@@ -27,4 +27,13 @@ test('nunca se programan más de los que admite iOS, y quedan los más próximos
   const r = planificar(muchos, [], ahora);
   assert.equal(r.programar.length, MAX_AVISOS);
   assert.ok(r.programar.every((a, i, l) => i === 0 || l[i - 1]!.fecha <= a.fecha));
+});
+
+test('a la bandeja de la app entran los avisos que ya debieron sonar, con el mismo id que la notificación del teléfono', () => {
+  const lista = [q('a', 'SENT', '2026-10-03'), q('b', 'FOLLOW_UP', '2026-10-04'), q('c', 'SENT', '2026-10-05'), q('d', 'ACCEPTED', '2026-10-03'), q('e', 'SENT', null)];
+  const r = vencidos(lista, ahora); // 4 oct, mediodía: el de hoy a las 09:00 ya sonó; el de mañana no
+  assert.deepEqual(r.map((a) => a.id), ['contacto-a@2026-10-03', 'contacto-b@2026-10-04']);
+  assert.equal(r[0]!.quoteId, 'a');
+  assert.equal(r[0]!.leido, false);
+  assert.equal(vencidos(lista, new Date(2026, 9, 4, 8, 0)).length, 1, 'antes de las 09:00 el de hoy todavía no suena');
 });
