@@ -18,6 +18,7 @@ import { CreateQuote, Items, ListQuotes, Measurements, PatchQuote, Survey } from
 import { suscribir } from '../../lib/events';
 import { quoteDetail, type QuoteRow } from './serialize';
 import { FOLLOW_UP, SUMMARY_COLS, SUMMARY_FROM, toSummary } from './summary';
+import { PAIS_POR_DEFECTO, paisDe } from '../../lib/paises';
 import { lineTotal, sumTotals } from './totals';
 
 const customerNotFound = () => new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'customer_id', message: 'Cliente no encontrado' }]);
@@ -75,12 +76,14 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
           'INSERT INTO customers (user_id, name, phone, email, address) VALUES ($1, $2, $3, $4, $5) RETURNING id',
           [userId, n.name, n.phone, n.email ?? null, n.address ?? null])).rows[0]!.id;
       }
+      // El presupuesto guarda su propia copia del país, la moneda y el impuesto del usuario (Internacionalización.md §3.2).
+      const pais = paisDe((await c.query<{ country: string }>('SELECT country FROM users WHERE id = $1', [userId])).rows[0]!.country) ?? PAIS_POR_DEFECTO;
       for (let intento = 0; intento < 5; intento++) {
         const { rows } = await c.query<QuoteRow>(
-          `INSERT INTO quotes (id, user_id, customer_id, short_id, service_description, address, latitude, longitude)
-           VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8)
+          `INSERT INTO quotes (id, user_id, customer_id, short_id, service_description, address, latitude, longitude, country, currency, vat_label, vat_rate)
+           VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            ON CONFLICT (short_id) DO NOTHING RETURNING *`,
-          [b.id ?? null, userId, customerId, newShortId(), b.service_description ?? null, b.address ?? null, b.latitude ?? null, b.longitude ?? null]);
+          [b.id ?? null, userId, customerId, newShortId(), b.service_description ?? null, b.address ?? null, b.latitude ?? null, b.longitude ?? null, pais.country, pais.currency, pais.vat_label, pais.vat_rate]);
         if (rows[0]) {
           await c.query(`INSERT INTO quote_access (quote_id, kind, code_hash) VALUES ($1, 'CODE', $2)`, [rows[0].id, codeHash]);
           return rows[0];
@@ -119,10 +122,10 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
       try {
         await withTx(async (c) => {
           if (recalcula) {
-            const { rows } = await c.query<{ subtotal: number; discount: number; include_vat: boolean }>('SELECT subtotal, discount, include_vat FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
+            const { rows } = await c.query<{ subtotal: number; discount: number; include_vat: boolean; vat_rate: number }>('SELECT subtotal, discount, include_vat, vat_rate FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
             const discount = b.discount ?? rows[0]!.discount;
             const includeVat = b.include_vat ?? rows[0]!.include_vat;
-            const t = sumTotals([rows[0]!.subtotal], discount, includeVat);
+            const t = sumTotals([rows[0]!.subtotal], discount, includeVat, rows[0]!.vat_rate);
             set('discount', discount);
             set('include_vat', includeVat);
             set('vat', t.vat);
@@ -183,7 +186,7 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
     const lines = items.map((i) => lineTotal(i.kind === 'TASK' ? 1 : i.quantity, i.unit_price));
     try {
       await withTx(async (c) => {
-        const { rows } = await c.query<{ discount: number; include_vat: boolean }>('SELECT discount, include_vat FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
+        const { rows } = await c.query<{ discount: number; include_vat: boolean; vat_rate: number }>('SELECT discount, include_vat, vat_rate FROM quotes WHERE id = $1 FOR UPDATE', [q.id]);
         await c.query('DELETE FROM quote_items WHERE quote_id = $1', [q.id]);
         for (const [i, it] of items.entries()) {
           await c.query(
@@ -191,7 +194,7 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
              VALUES (COALESCE($1, gen_random_uuid()), $2, $3, $4, $5, $6, $7, $8, $9)`,
             [it.id ?? null, q.id, i, it.kind, it.description, it.kind === 'TASK' ? 1 : it.quantity, it.kind === 'TASK' ? 'un' : it.unit, it.unit_price, lines[i]]);
         }
-        const { subtotal, vat, total } = sumTotals(lines, rows[0]!.discount, rows[0]!.include_vat);
+        const { subtotal, vat, total } = sumTotals(lines, rows[0]!.discount, rows[0]!.include_vat, rows[0]!.vat_rate);
         await c.query('UPDATE quotes SET subtotal = $2, vat = $3, total = $4, updated_at = now() WHERE id = $1', [q.id, subtotal, vat, total]);
       });
     } catch (e) {
@@ -269,10 +272,10 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
         nuevo = (await c.query<QuoteRow>(
           `INSERT INTO quotes (id, user_id, customer_id, short_id, service_description, address, latitude, longitude,
                                subtotal, discount, include_vat, vat, total, warranty_kind, warranty_text, validity_days, observations,
-                               include_qr, version, parent_quote_id)
+                               include_qr, version, parent_quote_id, country, currency, vat_label, vat_rate)
            SELECT COALESCE($2, gen_random_uuid()), user_id, customer_id, $3, service_description, address, latitude, longitude,
                   subtotal, discount, include_vat, vat, total, warranty_kind, warranty_text, validity_days, observations,
-                  include_qr, version + 1, id
+                  include_qr, version + 1, id, country, currency, vat_label, vat_rate
              FROM quotes WHERE id = $1
            ON CONFLICT (short_id) DO NOTHING RETURNING *`, [q.id, b.id ?? null, newShortId()])).rows[0];
       }

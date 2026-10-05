@@ -53,7 +53,7 @@ export function addFollowUpRoutes(r: Router) {
     }
     const created = await withTx(async (c) => {
       if (b.next_contact_date) {
-        const ok = await c.query(`SELECT $1::date >= ${TODAY} AS ok`, [b.next_contact_date]);
+        const ok = await c.query(`SELECT $1::date >= ${TODAY} AS ok FROM quotes q WHERE q.id = $2`, [b.next_contact_date, q.id]);
         if (!ok.rows[0].ok) throw new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'next_contact_date', message: 'Debe ser hoy o una fecha futura' }]);
         await c.query('UPDATE quotes SET next_contact_date = $2, updated_at = now() WHERE id = $1', [q.id, b.next_contact_date]);
       }

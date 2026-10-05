@@ -30,12 +30,12 @@ El backend es la única fuente de verdad de moneda e impuesto (`backend/src/lib/
 | Uruguay | `UY` | UYU | `$U` | `.` | IVA | 22 % | +598 |
 | Paraguay | `PY` | PYG | `₲` | `.` | IVA | 10 % | +595 |
 | Bolivia | `BO` | BOB | `Bs` | `.` | IVA | 13 % | +591 |
-| Ecuador | `EC` | USD | `$` | `.` | IVA | 15 % | +593 |
+| Ecuador | `EC` | USD | `$` | `,` | IVA | 15 % | +593 |
 | Costa Rica | `CR` | CRC | `₡` | espacio | IVA | 13 % | +506 |
 | Panamá | `PA` | USD | `$` | `,` | ITBMS | 7 % | +507 |
 | Guatemala | `GT` | GTQ | `Q` | `,` | IVA | 12 % | +502 |
 
-Quedan fuera los países cuyo prefijo se comparte (`+1`: República Dominicana, Puerto Rico), porque un número sin país no dice de cuál es. Agregar uno es agregar una fila.
+El formato del monto es **por moneda**, no por país: el dólar (Ecuador, Panamá) se escribe siempre al estilo de dólar (`$1,234`). Quedan fuera los países cuyo prefijo se comparte (`+1`: República Dominicana, Puerto Rico), porque un número sin país no dice de cuál es. Agregar uno es agregar una fila.
 
 ## 3. Decisiones
 

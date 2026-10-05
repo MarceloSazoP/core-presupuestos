@@ -19,7 +19,7 @@ export const dashboardRoutes = () => {
       query(`SELECT ${SUMMARY_COLS}, count(*) OVER ()::int AS n ${extra} ${SUMMARY_FROM} WHERE q.user_id = $1 AND ${where} ORDER BY ${order} LIMIT ${SHOWN}`, u);
     const [pending, follow, finalized] = await Promise.all([
       section(`q.doc_status IN ('DRAFT','PENDING')`, 'q.updated_at DESC, q.id'),
-      query(`SELECT ${SUMMARY_COLS}, count(*) OVER ()::int AS n, (${TODAY} - (q.sent_at AT TIME ZONE 'America/Santiago')::date) AS days_since_sent
+      query(`SELECT ${SUMMARY_COLS}, count(*) OVER ()::int AS n, (${TODAY} - (q.sent_at AT TIME ZONE (SELECT u.timezone FROM users u WHERE u.id = q.user_id))::date) AS days_since_sent
                ${SUMMARY_FROM} WHERE q.user_id = $1 AND ${FOLLOW_UP} ORDER BY q.next_contact_date, q.id LIMIT ${SHOWN}`, u),
       section(`q.doc_status = 'FINALIZED' AND NOT ${FOLLOW_UP}`, 'q.updated_at DESC, q.id'),
     ]);
@@ -32,15 +32,16 @@ export const dashboardRoutes = () => {
     });
   });
 
-  // Indicadores opcionales del mes (Contrato API §11). La zona horaria es America/Santiago.
+  // Indicadores opcionales del mes (Contrato API §11). El mes y «hoy» son los de la zona horaria del usuario (la de su teléfono).
   r.get('/kpis', async (req, res) => {
     const { month } = parse(z.object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Formato YYYY-MM').optional() }), req.query);
+    const zona = (await query<{ timezone: string }>('SELECT timezone FROM users WHERE id = $1', [session(req).userId])).rows[0]!.timezone;
     const { rows: m } = await query<{ month: string; from: Date; to: Date }>(
-      `WITH p AS (SELECT COALESCE($1, to_char(now() AT TIME ZONE 'America/Santiago', 'YYYY-MM')) AS month)
+      `WITH p AS (SELECT COALESCE($1, to_char(now() AT TIME ZONE $2::text, 'YYYY-MM')) AS month)
        SELECT month,
-              make_timestamptz(split_part(month, '-', 1)::int, split_part(month, '-', 2)::int, 1, 0, 0, 0, 'America/Santiago') AS "from",
-              make_timestamptz(split_part(month, '-', 1)::int, split_part(month, '-', 2)::int, 1, 0, 0, 0, 'America/Santiago') + interval '1 month' AS "to"
-         FROM p`, [month ?? null]);
+              make_timestamptz(split_part(month, '-', 1)::int, split_part(month, '-', 2)::int, 1, 0, 0, 0, $2::text) AS "from",
+              make_timestamptz(split_part(month, '-', 1)::int, split_part(month, '-', 2)::int, 1, 0, 0, 0, $2::text) + interval '1 month' AS "to"
+         FROM p`, [month ?? null, zona]);
     const { month: label, from, to } = m[0]!;
     const uid = session(req).userId;
     const [quoted, accepted, rejected, follow, estado] = await Promise.all([

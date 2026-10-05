@@ -5,7 +5,12 @@ export type Snapshot = {
   version?: number; // 2.ª, 3.ª versión de un rechazado; los snapshots anteriores no lo traen: son la versión 1
   previous_number?: string | null; // número del presupuesto rechazado al que reemplaza
   finalized_at: string; // ISO 8601 UTC
-  valid_until: string; // YYYY-MM-DD, America/Santiago
+  issued_on?: string; // YYYY-MM-DD, en `timezone`; los anteriores a los varios países no lo traen: se usa `finalized_at` en Santiago
+  valid_until: string; // YYYY-MM-DD, en `timezone`
+  timezone?: string; // zona del teléfono de quien emitió; si falta, America/Santiago
+  country?: string; // país, moneda e impuesto del presupuesto; si faltan, Chile (CL, CLP, IVA)
+  currency?: string;
+  vat_label?: string;
   professional: { name: string; phone: string; email: string; logo_file_id: string | null; signature_file_id: string | null };
   customer: { name: string };
   service_description: string;

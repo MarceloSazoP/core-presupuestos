@@ -1,3 +1,4 @@
+import { PAIS_POR_DEFECTO, paisDelTelefono } from '../../lib/paises';
 import { randomUUID } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
 import rateLimit from 'express-rate-limit';
@@ -89,8 +90,8 @@ export function authRoutes(sendCode: SendCode, ipStartLimit = 10) {
         if (!ch.signup_name || !ch.signup_email) throw unauthenticated();
         try {
           u = (await c.query(
-            `INSERT INTO users (phone, email, name) VALUES ($1, $2, $3)
-             RETURNING id, name, phone, email, logo_file_id, signature_file_id`, [ch.phone, ch.signup_email, ch.signup_name])).rows;
+            `INSERT INTO users (phone, email, name, country) VALUES ($1, $2, $3, $4)
+             RETURNING id, name, phone, email, logo_file_id, signature_file_id`, [ch.phone, ch.signup_email, ch.signup_name, (paisDelTelefono(ch.phone) ?? PAIS_POR_DEFECTO).country])).rows;
         } catch (e) {
           if ((e as { code?: string }).code === '23505') {
             throw new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'email', message: 'Ese correo ya está en uso' }]);

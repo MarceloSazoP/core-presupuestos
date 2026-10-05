@@ -7,6 +7,7 @@ export type QuoteRow = {
   doc_status: 'DRAFT' | 'PENDING' | 'FINALIZED'; commercial_status: string;
   service_description: string | null; address: string | null; latitude: number | null; longitude: number | null;
   subtotal: number; discount: number; include_vat: boolean; vat: number; total: number;
+  country: string; currency: string; vat_label: string; vat_rate: number;
   warranty_kind: string; warranty_text: string | null; validity_days: number | null; observations: string | null;
   include_qr: boolean; next_contact_date: string | null;
   finalized_at: Date | null; sent_at: Date | null; accepted_at: Date | null; created_at: Date; updated_at: Date;
@@ -44,6 +45,7 @@ export async function quoteDetail(q: QuoteRow) {
     },
     items: items.rows,
     subtotal: q.subtotal, discount: q.discount, include_vat: q.include_vat, vat: q.vat, total: q.total,
+    country: q.country, currency: q.currency, vat_label: q.vat_label, vat_rate: q.vat_rate,
     warranty: { kind: q.warranty_kind, text: q.warranty_text },
     validity_days: q.validity_days, observations: q.observations,
     include_qr: q.include_qr,

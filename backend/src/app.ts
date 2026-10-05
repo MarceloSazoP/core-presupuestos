@@ -10,6 +10,7 @@ import { authRoutes } from './modules/auth/routes';
 import { customerRoutes } from './modules/customers/routes';
 import { dashboardRoutes } from './modules/dashboard/routes';
 import { fileRoutes } from './modules/files/routes';
+import { PAISES } from './lib/paises';
 import { meRoutes } from './modules/me/routes';
 import { publicRoutes } from './modules/public/routes';
 import { quoteRoutes } from './modules/quotes/routes';
@@ -49,6 +50,7 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
 
   const api = express.Router();
   api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit));
+  api.get('/countries', (_req, res) => void res.json(PAISES)); // sin sesión: se usa para elegir el país
   api.use('/me', meRoutes());
   api.use('/customers', customerRoutes());
   api.use('/quotes', quoteRoutes({ sendMail: deps.sendMail ?? defaultSendMail, mailLimit: deps.mailLimit }));

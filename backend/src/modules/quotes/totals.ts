@@ -12,17 +12,18 @@ export function lineTotal(quantity: number, unitPrice: number): number {
   return Number((milli * BigInt(unitPrice) + 500n) / 1000n);
 }
 
-// IVA de Chile. Vive solo aquí: los clientes muestran lo que devuelve el servidor (Contrato API §6).
-export const VAT_RATE = 19;
+// Tasa por defecto (Chile, 19 %): la de los presupuestos anteriores a los varios países. Desde entonces cada presupuesto trae la suya
+// (`quotes.vat_rate`, copiada de su país). Los clientes muestran lo que devuelve el servidor (Contrato API §6).
+export const TASA_POR_DEFECTO = 19;
 
-// IVA sobre un neto: round(neto × 19 / 100) con .5 hacia arriba, solo si el neto es positivo. BigInt: un neto grande
-// por 19 supera los enteros exactos de un número de JS.
-export const vatOf = (net: number) => (net > 0 ? Number((BigInt(net) * BigInt(VAT_RATE) + 50n) / 100n) : 0);
+// Impuesto sobre un neto: round(neto × tasa / 100) con .5 hacia arriba, solo si el neto es positivo. BigInt: un neto grande
+// por la tasa supera los enteros exactos de un número de JS.
+export const vatOf = (net: number, rate = TASA_POR_DEFECTO) => (net > 0 ? Number((BigInt(net) * BigInt(rate) + 50n) / 100n) : 0);
 
-// El descuento se resta antes del IVA: IVA = 19 % de (subtotal − descuento); total = subtotal − descuento + IVA.
-export const sumTotals = (lineTotals: number[], discount: number, includeVat = false) => {
+// El descuento se resta antes del impuesto: impuesto = tasa % de (subtotal − descuento); total = subtotal − descuento + impuesto.
+export const sumTotals = (lineTotals: number[], discount: number, includeVat = false, rate = TASA_POR_DEFECTO) => {
   const subtotal = lineTotals.reduce((a, b) => a + b, 0);
   const net = subtotal - discount;
-  const vat = includeVat ? vatOf(net) : 0;
+  const vat = includeVat ? vatOf(net, rate) : 0;
   return { subtotal, vat, total: net + vat };
 };

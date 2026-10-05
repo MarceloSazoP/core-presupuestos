@@ -9,18 +9,19 @@ import { parse } from '../../http/validate';
 import { IMAGES } from '../../lib/filetype';
 import { discardUpload, removeMany, storeFile, type FileKind } from '../../lib/files';
 import { pathOf } from '../../lib/storage';
+import { PAISES, zonaValida } from '../../lib/paises';
 import { email, name, phone } from '../auth/schemas';
 
-type Row = { id: string; name: string; phone: string; email: string; contact_phone: string | null; contact_email: string | null; logo_file_id: string | null; signature_file_id: string | null; use_logo: boolean; include_signature: boolean };
+type Row = { id: string; name: string; phone: string; email: string; country: string; timezone: string; contact_phone: string | null; contact_email: string | null; logo_file_id: string | null; signature_file_id: string | null; use_logo: boolean; include_signature: boolean };
 
 const perfil = (u: Row) => ({
-  id: u.id, name: u.name, phone: u.phone, email: u.email, contact_phone: u.contact_phone, contact_email: u.contact_email,
+  id: u.id, name: u.name, phone: u.phone, email: u.email, country: u.country, timezone: u.timezone, contact_phone: u.contact_phone, contact_email: u.contact_email,
   has_logo: u.logo_file_id !== null, has_signature: u.signature_file_id !== null, use_logo: u.use_logo, include_signature: u.include_signature,
   // cambian con cada imagen nueva: las apps los usan en la dirección de la imagen para no mostrar una guardada en caché
   logo_id: u.logo_file_id, signature_id: u.signature_file_id,
 });
 
-const COLS = 'id, name, phone, email, contact_phone, contact_email, logo_file_id, signature_file_id, use_logo, include_signature';
+const COLS = 'id, name, phone, email, country, timezone, contact_phone, contact_email, logo_file_id, signature_file_id, use_logo, include_signature';
 const uid = (req: unknown) => (req as AuthedRequest).session.userId;
 const MB = 1024 * 1024;
 
@@ -53,7 +54,7 @@ export const meRoutes = () => {
   // (Contrato API §4); `.strict()` rechaza cualquier otro campo. Lo no enviado se conserva y `null` borra el contacto propio.
   r.put('/', async (req, res) => {
     const body = parse(
-      z.strictObject({ name, contact_phone: phone.nullable(), contact_email: email.nullable(), use_logo: z.boolean(), include_signature: z.boolean() }).partial().refine((b) => Object.keys(b).length > 0, { message: 'Envía al menos un campo' }),
+      z.strictObject({ name, country: z.enum(PAISES.map((p) => p.country) as [string, ...string[]]), timezone: z.string().refine(zonaValida, 'Zona horaria no válida (por ejemplo America/Lima)'), contact_phone: phone.nullable(), contact_email: email.nullable(), use_logo: z.boolean(), include_signature: z.boolean() }).partial().refine((b) => Object.keys(b).length > 0, { message: 'Envía al menos un campo' }),
       req.body,
     );
     await query(
@@ -62,8 +63,10 @@ export const meRoutes = () => {
                         contact_email = CASE WHEN $6 THEN $7 ELSE contact_email END,
                         include_signature = CASE WHEN $8 THEN $9 ELSE include_signature END,
                         use_logo = CASE WHEN $10 THEN $11 ELSE use_logo END,
+                        country = CASE WHEN $12 THEN $13 ELSE country END,
+                        timezone = CASE WHEN $14 THEN $15 ELSE timezone END,
                         updated_at = now() WHERE id = $1`,
-      [uid(req), 'name' in body, body.name ?? null, 'contact_phone' in body, body.contact_phone ?? null, 'contact_email' in body, body.contact_email ?? null, 'include_signature' in body, body.include_signature ?? false, 'use_logo' in body, body.use_logo ?? false],
+      [uid(req), 'name' in body, body.name ?? null, 'contact_phone' in body, body.contact_phone ?? null, 'contact_email' in body, body.contact_email ?? null, 'include_signature' in body, body.include_signature ?? false, 'use_logo' in body, body.use_logo ?? false, 'country' in body, body.country ?? null, 'timezone' in body, body.timezone ?? null],
     );
     res.json(await profile(uid(req)));
   });

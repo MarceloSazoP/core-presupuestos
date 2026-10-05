@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { unitSymbol } from '../modules/quotes/units';
+import { formatoMonto, ZONA_POR_DEFECTO } from './paises';
 import type { Snapshot } from './snapshot';
 
 type Pdfmake = {
@@ -30,15 +31,16 @@ function pdfmake(): Pdfmake {
   return p;
 }
 
-// Puntos de miles y coma decimal, sin depender del ICU del servidor (es-CL no agrupa los miles de 4 cifras).
+// Puntos de miles y coma decimal en las cantidades (las del dinero, por moneda, en `formatoMonto`).
 const miles = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-export const clp = (n: number) => `$${miles(String(Math.round(n)))}`;
+export const clp = (n: number) => formatoMonto(n, 'CLP');
 const qty = (n: number) => {
   const [int = '0', dec] = String(n).split('.');
   return miles(int) + (dec ? `,${dec}` : '');
 };
 const dayMonthYear = (iso: string) => iso.split('-').reverse().join('-'); // YYYY-MM-DD → DD-MM-YYYY
-const issued = (iso: string) => new Date(iso).toLocaleDateString('es-CL', { timeZone: 'America/Santiago' });
+// Fecha de emisión: la fijada en el snapshot (en la zona de quien emitió); los snapshots anteriores a los varios países solo traen la hora.
+const issued = (s: Snapshot) => (s.issued_on ? dayMonthYear(s.issued_on) : new Date(s.finalized_at).toLocaleDateString('es-CL', { timeZone: s.timezone ?? ZONA_POR_DEFECTO }));
 
 const GENERADO_POR = 'Generado por CORE Presupuestos v1.0';
 
@@ -47,6 +49,7 @@ const dataUrl = (i: Image) => `data:${i.mime};base64,${i.data.toString('base64')
 
 // Recibe el SNAPSHOT y las imágenes ya leídas; no toca la BD ni el disco (Arquitectura §3, PDF y QR).
 export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr?: Buffer; preview?: boolean } = {}): Promise<Buffer> {
+  const dinero = (n: number) => formatoMonto(n, s.currency ?? 'CLP');
   const totalRow = (label: string, value: string, bold = false): Content => ({
     columns: [
       { text: label, width: '*', alignment: 'right', bold },
@@ -80,7 +83,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
             text: [
               `Presupuesto ${s.number}${(s.version ?? 1) > 1 ? ` · Versión ${s.version}` : ''}\n`,
               ...(s.previous_number ? [{ text: `Reemplaza al presupuesto ${s.previous_number}\n`, fontSize: 8, bold: false, color: '#555555' }] : []),
-              `Fecha: ${issued(s.finalized_at)}`,
+              `Fecha: ${issued(s)}`,
             ],
             alignment: 'right',
             bold: true,
@@ -111,14 +114,14 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
                     { text: '', alignment: 'right' as const },
                     { text: '', alignment: 'center' as const },
                     { text: '', alignment: 'right' as const },
-                    { text: i.line_total > 0 ? clp(i.line_total) : 'Incluido', alignment: 'right' as const },
+                    { text: i.line_total > 0 ? dinero(i.line_total) : 'Incluido', alignment: 'right' as const },
                   ]
                 : [
                     cortable(i.description),
                     { text: qty(i.quantity), alignment: 'right' as const },
                     { text: unitSymbol(i.unit), alignment: 'center' as const },
-                    { text: clp(i.unit_price), alignment: 'right' as const },
-                    { text: clp(i.line_total), alignment: 'right' as const },
+                    { text: dinero(i.unit_price), alignment: 'right' as const },
+                    { text: dinero(i.line_total), alignment: 'right' as const },
                   ],
             ),
           ],
@@ -128,10 +131,10 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
       {
         margin: [0, 10, 0, 0],
         stack: [
-          totalRow('Subtotal', clp(s.subtotal)),
-          ...(s.discount > 0 ? [totalRow('Descuento', `-${clp(s.discount)}`)] : []),
-          ...(s.include_vat ? [totalRow(`IVA (${s.vat_rate ?? 19}%)`, clp(s.vat ?? 0))] : []),
-          totalRow('TOTAL', clp(s.total), true),
+          totalRow('Subtotal', dinero(s.subtotal)),
+          ...(s.discount > 0 ? [totalRow('Descuento', `-${dinero(s.discount)}`)] : []),
+          ...(s.include_vat ? [totalRow(`${s.vat_label ?? 'IVA'} (${s.vat_rate ?? 19}%)`, dinero(s.vat ?? 0))] : []),
+          totalRow('TOTAL', dinero(s.total), true),
         ],
       },
       { text: `Garantía: ${s.warranty.text}`, margin: [0, 18, 0, 2] },
