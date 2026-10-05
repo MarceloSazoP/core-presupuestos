@@ -48,9 +48,10 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
     }
   });
 
+  const ipLimite = config.AUTH_IP_LIMIT_PER_HOUR ?? (config.NODE_ENV === 'development' ? 1000 : 10);
   const api = express.Router();
   const correo = deps.sendMail ?? defaultSendMail;
-  api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit ?? config.AUTH_IP_LIMIT_PER_HOUR, correo, config.AUTH_IP_LIMIT_PER_HOUR));
+  api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit ?? ipLimite, correo, ipLimite));
   api.get('/countries', (_req, res) => void res.json(PAISES)); // sin sesión: se usa para elegir el país
   api.use('/me', meRoutes(correo));
   api.use('/customers', customerRoutes());

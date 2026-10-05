@@ -16,7 +16,8 @@ import { RecoveryBody, StartBody, VerifyBody } from './schemas';
 
 const CODE_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
-const MAX_PER_PHONE_HOUR = 3;
+const SUELTO = config.NODE_ENV === 'development'; // en desarrollo los límites del ingreso no estorban
+const MAX_PER_PHONE_HOUR = config.AUTH_PHONE_LIMIT_PER_HOUR ?? (SUELTO ? 1000 : 3);
 
 const limited = (message: string): RequestHandler => (_req, _res, next) =>
   next(new AppError(429, "RATE_LIMITED", message, undefined, { "Retry-After": "3600" }));
