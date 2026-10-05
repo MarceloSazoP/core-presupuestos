@@ -98,7 +98,7 @@ export default async function PresupuestoPage() {
           <ul>
             {p.items.map((item, i) => (
               <li key={i} className="fila-lectura">
-                <p className="min-w-0">
+                <p className="min-w-0 [overflow-wrap:anywhere]">
                   {item.tipo === "tarea" && <span className="mr-2 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>}
                   {item.descripcion}
                 </p>
