@@ -85,10 +85,10 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
           {q.service_address && (
             <p>
               <span className="text-muted">Dirección: </span>
-              {q.service_address}
+              <span className="[overflow-wrap:anywhere]">{q.service_address}</span>
             </p>
           )}
-          <p className="mt-2 text-lg font-medium leading-snug">{q.service_description}</p>
+          <p className="mt-2 text-lg font-medium leading-snug [overflow-wrap:anywhere]">{q.service_description}</p>
         </section>
 
         <section aria-labelledby="detalle">
@@ -99,7 +99,7 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             {q.items.map((i, n) => (
               <li key={n} className="flex items-start justify-between gap-4 py-3">
                 <div className="min-w-0">
-                  <p>
+                  <p className="[overflow-wrap:anywhere]">
                     {i.kind === "TASK" && <span className="mr-2 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>}
                     {i.description}
                   </p>
@@ -146,7 +146,7 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             <span className="text-muted">Validez: </span>
             {q.validity_days} días (hasta el {dia(q.valid_until)})
           </p>
-          {q.observations && <p className="mt-2 border-t border-borde pt-2">{q.observations}</p>}
+          {q.observations && <p className="mt-2 border-t border-borde pt-2 [overflow-wrap:anywhere]">{q.observations}</p>}
         </section>
       </article>
 
