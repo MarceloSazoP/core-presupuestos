@@ -3,6 +3,7 @@ import { api, configurarApi } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { borrar, guardar, leer } from '@/lib/almacen';
 import { zonaDelDispositivo } from '@/lib/dispositivo';
+import { recargarAvisos } from '@/lib/avisos';
 import { usarDatosDe } from '@/sync/cola';
 
 // La sesión vive en el almacenamiento seguro del teléfono (Keychain en iOS): el token y los datos del perfil, para
@@ -49,6 +50,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
 
   const iniciar = useCallback(async (t: string, u: Usuario) => {
     await Promise.all([guardar(K_TOKEN, t), guardar(K_USUARIO, JSON.stringify(u)), usarDatosDe(u.id)]);
+    await recargarAvisos(); // los avisos son de cada cuenta: se vuelven a leer
     token.current = t;
     setUsuario(u);
     setEstado('dentro');
@@ -63,6 +65,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
       token.current = t;
       const guardado = JSON.parse(u) as Usuario;
       await usarDatosDe(guardado.id);
+      await recargarAvisos();
       setUsuario(guardado);
       setEstado('dentro'); // entra de inmediato con lo guardado: en terreno puede no haber señal
       api<Usuario>('/me').then((fresco) => {

@@ -68,8 +68,7 @@ function AbrirAlTocarAviso() {
   useEffect(() => {
     if (!aviso) return;
     const a = deNotificacion(aviso.notification); // quedó en la bandeja de avisos, ya leído
-    registrarAviso(a);
-    marcarLeido(a.id);
+    void registrarAviso(a).then(() => marcarLeido(a.id)); // tocar el aviso (en la pantalla de bloqueo, por ejemplo) es lo que lo marca como leído
     if (typeof quoteId === 'string') router.push({ pathname: '/presupuesto/[id]', params: { id: quoteId } });
   }, [aviso, quoteId]);
   return null;

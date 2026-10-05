@@ -29,7 +29,7 @@ export default function Avisos() {
         options={{
           headerRight: () =>
             avisos.length ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={nuevos ? 'Marcar todos como leídos' : 'Borrar los avisos'} onPress={() => (nuevos ? marcarLeido() : borrarAvisos())} hitSlop={8} style={e.accion}>
+              <Pressable accessibilityRole="button" accessibilityLabel={nuevos ? 'Marcar todos como leídos' : 'Borrar los avisos'} onPress={() => void (nuevos ? marcarLeido() : borrarAvisos())} hitSlop={8} style={e.accion}>
                 <Texto color="acento">{nuevos ? 'Marcar leídos' : 'Borrar'}</Texto>
               </Pressable>
             ) : null,
@@ -44,7 +44,7 @@ export default function Avisos() {
                 accessibilityRole="button"
                 accessibilityLabel={`${a.titulo}. ${a.cuerpo}. ${cuando(a.fecha)}${a.leido ? '' : '. Sin leer'}`}
                 onPress={() => {
-                  marcarLeido(a.id);
+                  void marcarLeido(a.id);
                   if (a.quoteId) router.push({ pathname: '/presupuesto/[id]', params: { id: a.quoteId } });
                 }}
                 estilo={[e.fila, n > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}

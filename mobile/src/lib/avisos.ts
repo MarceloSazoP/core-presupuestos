@@ -18,18 +18,35 @@ const poner = (nueva: Aviso[]) => {
 };
 
 export const useAvisos = () => useSyncExternalStore((f) => (oyentes.add(f), () => void oyentes.delete(f)), () => lista);
-export const marcarLeido = (id?: string) => poner(marcarLeidos(lista, id));
-export const borrarAvisos = () => poner([]);
-export const registrarAviso = (a: Aviso) => {
+
+// La lista guardada se lee una sola vez, y todo lo que la cambia espera a esa lectura: al tocar un aviso con la app cerrada, el
+// toque llega antes de que termine de leerse y, sin esperar, la lista vacía pisaría lo guardado (se perdería lo leído).
+let lectura: Promise<void> | null = null;
+const cargada = () => (lectura ??= (async () => {
+  lista = JSON.parse((await leerKv(K)) ?? '[]') as Aviso[];
+  emitir();
+})());
+
+export const marcarLeido = async (id?: string) => {
+  await cargada();
+  poner(marcarLeidos(lista, id));
+};
+export const borrarAvisos = async () => {
+  await cargada();
+  poner([]);
+};
+export const registrarAviso = async (a: Aviso) => {
+  await cargada();
   const nueva = agregarAviso(lista, a);
   if (nueva !== lista) poner(nueva);
 };
 
-// Los que quedaron en el centro de notificaciones del teléfono mientras la app estaba cerrada.
+// Los que quedaron en el centro de notificaciones del teléfono mientras la app estaba cerrada. Solo se registran: que estén ahí no
+// quiere decir que se hayan leído, así que quedan como no leídos hasta que la persona los toque o los marque.
 export async function traerPendientes() {
   if (Platform.OS === 'web') return;
   try {
-    for (const n of await Notifications.getPresentedNotificationsAsync()) registrarAviso(deNotificacion(n));
+    for (const n of await Notifications.getPresentedNotificationsAsync()) await registrarAviso(deNotificacion(n));
   } catch {
     // sin permiso o sin soporte: la bandeja se llena solo con lo que llega con la app abierta
   }
@@ -39,14 +56,13 @@ let iniciado = false;
 export async function iniciarAvisos() {
   if (iniciado || Platform.OS === 'web') return;
   iniciado = true;
-  lista = JSON.parse((await leerKv(K)) ?? '[]') as Aviso[];
-  emitir();
-  Notifications.addNotificationReceivedListener((n) => registrarAviso(deNotificacion(n)));
+  await cargada();
+  Notifications.addNotificationReceivedListener((n) => void registrarAviso(deNotificacion(n)));
   await traerPendientes();
 }
 
 // Al cambiar de cuenta la bandeja se vuelve a leer (la base local se vació).
 export async function recargarAvisos() {
-  lista = JSON.parse((await leerKv(K)) ?? '[]') as Aviso[];
-  emitir();
+  lectura = null;
+  await cargada();
 }
