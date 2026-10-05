@@ -55,5 +55,5 @@ export type Cliente = { id: string; name: string; phone: string; email: string |
 export type ClienteDetalle = Cliente & { summary: { quotes: number; accepted: number; follow_up: number } };
 
 // Resumen del mes y seguimientos de hoy (Contrato API §11).
-export type Indicadores = { month: string; quotes_count: number; quoted_amount: number; accepted_count: number; accepted_amount: number; avg_ticket: number; acceptance_rate: number | null; follow_up_pending: number };
+export type Indicadores = { month: string; quotes_count: number; quoted_amount: number; accepted_count: number; accepted_amount: number; avg_ticket: number; acceptance_rate: number | null; follow_up_pending: number; waiting_count: number; waiting_amount: number; todo_count: number };
 export type Tablero = { counts: { pending: number; follow_up: number; finalized: number }; follow_up: (ResumenPresupuesto & { days_since_sent: number })[] };

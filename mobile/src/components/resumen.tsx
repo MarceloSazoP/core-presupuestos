@@ -37,7 +37,7 @@ export function Resumen() {
       void guardarKv('resumen', JSON.stringify(datos));
     } catch {
       const guardado = JSON.parse((await leerKv('resumen')) ?? 'null') as Datos | null;
-      if (guardado && !guardado.meses) return; // guardado por una versión anterior
+      if (guardado && (!guardado.meses || guardado.kpis.waiting_count === undefined)) return; // guardado por una versión anterior
       setD((actual) => actual ?? guardado); // sin conexión: lo último que se vio
     }
   }, []);
@@ -52,12 +52,12 @@ export function Resumen() {
   return (
     // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
     <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
-      <Seccion titulo="Este mes">
+      <Seccion titulo="Resumen">
         <View style={e.grilla}>
-          <Dato indice={0} variacion={antes && variacion(porcentaje(k.quoted_amount, antes.quoted_amount), '%')} titulo="Presupuestado" valor={clp(k.quoted_amount)} nota={`${k.quotes_count} ${k.quotes_count === 1 ? 'presupuesto' : 'presupuestos'}`} fuerte />
-          <Dato indice={1} variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-          <Dato indice={2} variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación" valor={tasa} nota="de los que se resolvieron" />
-          <Dato indice={3} variacion={antes && variacion(porcentaje(k.avg_ticket, antes.avg_ticket), '%')} titulo="Ticket promedio" valor={k.accepted_count ? clp(k.avg_ticket) : '—'} nota="por presupuesto aceptado" />
+          <Dato indice={0} titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} fuerte />
+          <Dato indice={1} titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
+          <Dato indice={2} variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+          <Dato indice={3} variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
         </View>
       </Seccion>
 
