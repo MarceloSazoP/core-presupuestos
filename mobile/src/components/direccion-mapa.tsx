@@ -5,7 +5,7 @@ import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View } fr
 import MapView, { Marker } from 'react-native-maps';
 import { api } from '@/api/client';
 import { CampoModal } from '@/components/campo-modal';
-import { Boton, Campo, Icono, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Texto, type NombreIcono } from '@/components/ui';
 import { formatearDireccion, puntoDe, redondear, sesionNueva, type Punto } from '@/lib/direccion';
 import { avisar } from '@/lib/toast';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -50,6 +50,11 @@ export function DireccionMapa({ etiqueta, direccion, latitude, longitude, alCamb
           </MapView>
         </Pressable>
       ) : null}
+      {lleno ? (
+        <View style={e.acciones}>
+          <Pastilla icono="papelera" texto="Quitar dirección" tono={t.error} alTocar={() => { alCambiar({ direccion: '', latitude: null, longitude: null }); avisar.info('Dirección quitada'); }} />
+        </View>
+      ) : null}
       {abierta ? (
         <Hoja
           inicial={direccion}
@@ -72,6 +77,7 @@ function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; p
   const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
   const [sinSugerencias, setSinSugerencias] = useState(false); // el backend no tiene sugerencias (503): se busca con el teléfono
   const [gps, setGps] = useState(false);
+  const [desplazable, setDesplazable] = useState(true); // mientras se toca el mapa, la hoja no se desplaza: si no, se llevaba el gesto y el mapa no recibía el toque ni el zoom
   const mapa = useRef<MapView>(null);
   const escrita = useRef(inicial.trim().length > 0); // la persona escribió o eligió el texto: el pin ya no lo cambia
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,6 +155,14 @@ function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; p
     }
   };
 
+  // Vacía la caja de dirección (y sus sugerencias); el pin se quita aparte, con «Quitar punto».
+  const limpiar = () => {
+    if (espera.current) clearTimeout(espera.current);
+    setTexto('');
+    setSugerencias([]);
+    escrita.current = false; // sin texto de la persona, el próximo pin vuelve a completar la dirección
+  };
+
   const usarGps = async () => {
     setGps(true);
     try {
@@ -173,7 +187,7 @@ function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; p
           <Texto fuerte accessibilityRole="header">Dirección</Texto>
           <View style={e.lado} />
         </View>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenido}>
+        <ScrollView scrollEnabled={desplazable} nestedScrollEnabled keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenido}>
           <Campo etiqueta="Dirección" icono="ubicacion" value={texto} onChangeText={escribir} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" placeholder="Calle y número, comuna" />
           {sugerencias.length > 0 ? (
             <View style={[e.sugerencias, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
@@ -186,14 +200,18 @@ function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; p
             </View>
           ) : null}
           {sinSugerencias && texto.trim().length >= 3 ? <Boton titulo="Buscar en el mapa" icono="buscar" variante="secundario" onPress={() => void buscar()} /> : null}
-          <Boton titulo="Usar mi ubicación" icono="ubicacion" variante="secundario" onPress={() => void usarGps()} cargando={gps} />
-          <View style={[e.mapa, { borderColor: t.borde }]}>
-            <MapView ref={mapa} style={e.flex} initialRegion={puntoInicial ? { ...puntoInicial, latitudeDelta: ZOOM, longitudeDelta: ZOOM } : SANTIAGO} onPress={(ev) => poner(ev.nativeEvent.coordinate, true)} showsUserLocation showsMyLocationButton={false}>
+          {/* Acciones en pastillas con ícono: ubicarse, vaciar la dirección escrita y quitar el punto del mapa. */}
+          <View style={e.acciones}>
+            <Pastilla icono="ubicacion" texto={gps ? 'Ubicando…' : 'Usar mi ubicación'} tono={t.acento} alTocar={() => void usarGps()} />
+            {texto.length > 0 ? <Pastilla icono="cerrar" texto="Limpiar dirección" tono={t.suave} alTocar={limpiar} /> : null}
+            {punto ? <Pastilla icono="papelera" texto="Quitar punto" tono={t.error} alTocar={() => setPunto(null)} /> : null}
+          </View>
+          <View style={[e.mapa, { borderColor: t.borde }]} onTouchStart={() => setDesplazable(false)} onTouchEnd={() => setDesplazable(true)} onTouchCancel={() => setDesplazable(true)}>
+            <MapView ref={mapa} style={e.flex} initialRegion={puntoInicial ? { ...puntoInicial, latitudeDelta: ZOOM, longitudeDelta: ZOOM } : SANTIAGO} onPress={(ev) => poner(ev.nativeEvent.coordinate, true)} onLongPress={(ev) => poner(ev.nativeEvent.coordinate, true)} zoomEnabled zoomControlEnabled scrollEnabled rotateEnabled={false} showsUserLocation showsMyLocationButton={false}>
               {punto ? <Marker coordinate={punto} draggable onDragEnd={(ev) => poner(ev.nativeEvent.coordinate, true)} /> : null}
             </MapView>
           </View>
-          <Texto variante="chico" suave>Toca el mapa para marcar el punto, o arrastra el pin para ajustarlo.</Texto>
-          {punto ? <Boton titulo="Quitar el punto" variante="texto" onPress={() => setPunto(null)} /> : null}
+          <Texto variante="chico" suave>Toca el mapa (o mantén apretado) para marcar el punto, o arrastra el pin para ajustarlo. Con dos dedos haces zoom.</Texto>
           <Boton titulo="Listo" icono="listo" onPress={() => alListo({ direccion: texto.trim(), latitude: punto?.latitude ?? null, longitude: punto?.longitude ?? null })} />
         </ScrollView>
       </View>
@@ -201,7 +219,18 @@ function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; p
   );
 }
 
+function Pastilla({ icono, texto, tono, alTocar }: { icono: NombreIcono; texto: string; tono: string; alTocar: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={texto} onPress={alTocar} style={({ pressed }) => [e.pastilla, { backgroundColor: `${tono}1A`, opacity: pressed ? 0.6 : 1 }]}>
+      <Icono nombre={icono} tamano={16} color={tono} />
+      <Texto variante="chico" fuerte style={{ color: tono }}>{texto}</Texto>
+    </Pressable>
+  );
+}
+
 const e = StyleSheet.create({
+  acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
+  pastilla: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: espacio.m },
   campo: { gap: espacio.xs },
   flex: { flex: 1 },
   tarjeta: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m, minHeight: MIN_TOQUE },
