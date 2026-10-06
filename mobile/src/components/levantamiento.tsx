@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
+import { DireccionMapa } from '@/components/direccion-mapa';
 import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import { requestRecordingPermissionsAsync, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
@@ -70,16 +71,19 @@ function Rotulo({ icono, texto }: { icono: NombreIcono; texto: string }) {
 function Trabajo({ q, cambiar }: Props) {
   const [servicio, setServicio] = useState(q.service_description);
   const [direccion, setDireccion] = useState(q.address ?? '');
-  const guardado = useRef({ servicio: q.service_description, direccion: q.address ?? '' });
+  const [punto, setPunto] = useState({ latitude: q.latitude ?? null, longitude: q.longitude ?? null });
+  const clave = (p: { latitude: number | null; longitude: number | null }) => `${p.latitude},${p.longitude}`;
+  const guardado = useRef({ servicio: q.service_description, direccion: q.address ?? '', punto: clave({ latitude: q.latitude ?? null, longitude: q.longitude ?? null }) });
   const [error, setError] = useState<string | null>(null);
 
-  async function guardar(servicio: string, direccion: string) {
-    if (servicio === guardado.current.servicio && direccion === guardado.current.direccion) return;
-    const cuerpo = { service_description: servicio.trim() || null, address: direccion.trim() || null };
+  async function guardar(servicio: string, direccion: string, punto: { latitude: number | null; longitude: number | null }) {
+    if (servicio === guardado.current.servicio && direccion === guardado.current.direccion && clave(punto) === guardado.current.punto) return;
+    // Latitud y longitud van juntas o ninguna (Contrato API §6): el punto viaja siempre con la dirección.
+    const cuerpo = { service_description: servicio.trim() || null, address: direccion.trim() || null, latitude: punto.latitude, longitude: punto.longitude };
     try {
-      cambiar((p) => ({ ...p, service_description: servicio.trim(), address: cuerpo.address }));
+      cambiar((p) => ({ ...p, service_description: servicio.trim(), address: cuerpo.address, latitude: punto.latitude, longitude: punto.longitude }));
       await encolar({ quote_id: q.id, method: 'PATCH', path: `/quotes/${q.id}`, body: cuerpo });
-      guardado.current = { servicio, direccion };
+      guardado.current = { servicio, direccion, punto: clave(punto) };
       setError(null);
     } catch (err) {
       setError(mensajeDe(err));
@@ -88,8 +92,8 @@ function Trabajo({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
-      <CampoModal etiqueta="Dirección del trabajo (opcional)" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={(v) => { setDireccion(v); void guardar(servicio, v); }} multiline={false} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
+      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion, punto); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
+      <DireccionMapa etiqueta="Dirección del trabajo (opcional)" direccion={direccion} latitude={punto.latitude} longitude={punto.longitude} alCambiar={(d) => { setDireccion(d.direccion); setPunto({ latitude: d.latitude, longitude: d.longitude }); void guardar(servicio, d.direccion, { latitude: d.latitude, longitude: d.longitude }); }} />
     </View>
   );
 }

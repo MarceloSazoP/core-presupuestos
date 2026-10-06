@@ -1,4 +1,5 @@
 import { randomUUID } from 'expo-crypto';
+import { DireccionMapa } from '@/components/direccion-mapa';
 import { TituloConIcono } from '@/components/titulo-con-icono';
 import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
@@ -28,6 +29,7 @@ export default function Nuevo() {
   const [codigo, setCodigo] = useState(pais.calling_code); // el país del número del cliente (propuesto: el de tu cuenta)
   const [correo, setCorreo] = useState('');
   const [direccion, setDireccion] = useState('');
+  const [punto, setPunto] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
   const [servicio, setServicio] = useState('');
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function Nuevo() {
       const id = randomUUID();
       const dir = direccion.trim() || null;
       const mail = correo.trim().toLowerCase() || null;
-      await guardarBorrador(borradorNuevo(id, { name: nombre.trim(), phone: tel!, email: mail, address: dir }, servicio.trim(), dir, pais));
+      await guardarBorrador(borradorNuevo(id, { name: nombre.trim(), phone: tel!, email: mail, address: dir }, servicio.trim(), dir, pais, punto));
       await encolar({
         quote_id: id, method: 'POST', path: '/quotes',
         body: {
@@ -68,6 +70,7 @@ export default function Nuevo() {
           customer: { name: nombre.trim(), phone: tel, ...(mail ? { email: mail } : {}), ...(dir ? { address: dir } : {}) },
           ...(servicio.trim() ? { service_description: servicio.trim() } : {}),
           ...(dir ? { address: dir } : {}),
+          ...(punto.latitude !== null && punto.longitude !== null ? { latitude: punto.latitude, longitude: punto.longitude } : {}), // el punto del mapa, si se marcó
         },
       });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -104,7 +107,7 @@ export default function Nuevo() {
       <Seccion titulo="El trabajo" icono="trabajo" descripcion="Opcional: puedes completarlo después.">
         <Tarjeta>
           <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={setServicio} placeholder="Por ejemplo: instalar 4 enchufes en el living" />
-          <CampoModal etiqueta="Dirección del trabajo" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={setDireccion} multiline={false} autoComplete="street-address" textContentType="fullStreetAddress" />
+          <DireccionMapa etiqueta="Dirección del trabajo" direccion={direccion} latitude={punto.latitude} longitude={punto.longitude} alCambiar={(d) => { setDireccion(d.direccion); setPunto({ latitude: d.latitude, longitude: d.longitude }); }} />
         </Tarjeta>
       </Seccion>
       <View style={e.acciones}>
@@ -119,9 +122,9 @@ export default function Nuevo() {
 }
 
 // Copia local mientras el servidor no lo conoce: sin código (code_id vacío) ni número.
-const borradorNuevo = (id: string, customer: { name: string; phone: string; email: string | null; address: string | null }, servicio: string, direccion: string | null, pais: Pais): Presupuesto => ({
+const borradorNuevo = (id: string, customer: { name: string; phone: string; email: string | null; address: string | null }, servicio: string, direccion: string | null, pais: Pais, punto: { latitude: number | null; longitude: number | null }): Presupuesto => ({
   id, code_id: '', number: null, doc_status: 'DRAFT', commercial_status: 'NONE',
-  customer: { id: '', ...customer }, service_description: servicio, address: direccion,
+  customer: { id: '', ...customer }, service_description: servicio, address: direccion, latitude: punto.latitude, longitude: punto.longitude,
   survey: { notes: null, measurements: [], photos: [], voice_notes: [] },
   items: [], subtotal: 0, discount: 0, include_vat: false, vat: 0, total: 0, country: pais.country, currency: pais.currency, vat_label: pais.vat_label, vat_rate: pais.vat_rate, warranty: { kind: 'NONE', text: null }, validity_days: null, next_contact_date: null, observations: null, public_url: null,
 });

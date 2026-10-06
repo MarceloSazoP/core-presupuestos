@@ -31,6 +31,8 @@ export type Presupuesto = {
   customer: { id: string; name: string; phone: string; email: string | null; address: string | null };
   service_description: string;
   address: string | null;
+  latitude?: number | null; // el punto de la dirección en el mapa; van juntos o ninguno
+  longitude?: number | null;
   survey: {
     notes: string | null;
     measurements: { id: string; label: string; value: string }[];

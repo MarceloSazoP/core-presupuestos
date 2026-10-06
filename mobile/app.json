@@ -13,7 +13,7 @@
       "bundleIdentifier": "com.corepresupuesto.app",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Necesitamos tu ubicación para registrar dónde se tomaron las fotos"
+        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación solo cuando tocas «Usar mi ubicación», para marcar en el mapa dónde es el trabajo."
       }
     },
     "android": {
