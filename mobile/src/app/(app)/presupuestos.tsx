@@ -84,8 +84,8 @@ export default function ListaPresupuestos() {
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
   useRefrescar(() => void cargar()); // y cuando cambia algo en la web
 
-  // Deslizar a los lados, sobre la lista o sobre cualquier tarjeta, pasa a la pestaña de al lado (Pendientes ↔ Enviados ↔ …); desde la
-  // primera, hacia la derecha, vuelve a Inicio. Un deslizado potente hacia la derecha vuelve a Inicio desde cualquier pestaña.
+  // Deslizar a los lados, sobre la lista o sobre cualquier tarjeta, pasa a la pestaña de al lado (Pendientes ↔ Enviados ↔ …). Desde la
+  // primera, hacia la derecha, vuelve a Inicio.
   const posicion = PESTANAS.findIndex((p) => p.id === pestana);
   const irAPestana = (paso: number) => {
     const destino = PESTANAS[posicion + paso];
@@ -94,7 +94,7 @@ export default function ListaPresupuestos() {
     setPestana(destino.id);
   };
   const aInicio = (paso: number) => {
-    if (paso >= 0) return; // solo hacia la derecha se vuelve; hacia la izquierda desde la última pestaña no hay más
+    if (paso > 0) return; // hacia la izquierda desde la última pestaña: no hay más
     void Haptics.selectionAsync();
     if (router.canGoBack()) router.back();
     else router.replace('/');
@@ -103,7 +103,7 @@ export default function ListaPresupuestos() {
   return (
     <View style={{ flex: 1, backgroundColor: t.fondo }}>
       <Pestanas activa={pestana} cuentas={cuentas} alElegir={elegirPestana} />
-      <PartesDeslizables posicion={posicion} total={PESTANAS.length} alIr={irAPestana} alBorde={aInicio} alFuerte={aInicio} estilo={{ flex: 1 }}>
+      <PartesDeslizables posicion={posicion} total={PESTANAS.length} alIr={irAPestana} alBorde={aInicio} estilo={{ flex: 1 }}>
       <FlashList
         key={pestana} // al cambiar de pestaña la lista parte desde arriba
         // FlashList 2 conserva por defecto lo que ya se veía cuando llegan elementos arriba: los presupuestos nuevos quedaban

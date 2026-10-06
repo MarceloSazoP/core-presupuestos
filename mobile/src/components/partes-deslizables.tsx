@@ -11,11 +11,7 @@ import { espacio } from '@/theme';
 //   corto (nada sale de la pantalla ni vuelve a aparecer del otro lado).
 // - Al tocar las pestañas de arriba entra igual. «Reducir movimiento»: cambia sin deslizar.
 // `alBorde`: se llama con -1 o 1 si el deslizado va hacia donde no hay más partes (p. ej. de la primera pestaña hacia atrás: volver a Inicio).
-// `alFuerte`: un deslizado potente (largo o muy rápido) llama a esto en vez de cambiar a la parte vecina (p. ej. volver a Inicio de una).
-const FUERTE = 260; // pt (distancia + empuje) para que un deslizado cuente como «potente»
-const RESORTE = { damping: 28, stiffness: 380, mass: 0.8, reduceMotion: ReduceMotion.System }; // se asienta sin rebote notorio
-
-export function PartesDeslizables({ posicion, total, alIr, alBorde, alFuerte, estilo: estiloExtra, children }: { posicion: number; total: number; alIr: (paso: number) => void; alBorde?: (paso: number) => void; alFuerte?: (paso: number) => void; estilo?: StyleProp<ViewStyle>; children: ReactNode }) {
+export function PartesDeslizables({ posicion, total, alIr, alBorde, estilo: estiloExtra, children }: { posicion: number; total: number; alIr: (paso: number) => void; alBorde?: (paso: number) => void; estilo?: StyleProp<ViewStyle>; children: ReactNode }) {
   const ancho = useWindowDimensions().width;
   const reducido = useReducedMotion();
   const x = useSharedValue(0);
@@ -29,7 +25,7 @@ export function PartesDeslizables({ posicion, total, alIr, alBorde, alFuerte, es
     const adelante = posicion > previa.current;
     previa.current = posicion;
     x.set(reducido ? 0 : (adelante ? 1 : -1) * salto);
-    x.set(withSpring(0, RESORTE)); // se asienta sin rebote notorio
+    x.set(withSpring(0, { damping: 28, stiffness: 380, mass: 0.8, reduceMotion: ReduceMotion.System })); // se asienta sin rebote notorio
   }, [posicion, reducido, salto, x]);
 
   const gesto = Gesture.Pan()
@@ -45,12 +41,6 @@ export function PartesDeslizables({ posicion, total, alIr, alBorde, alFuerte, es
     .onEnd((ev) => {
       const proyectado = ev.translationX + ev.velocityX * 0.15;
       const paso = proyectado < -70 ? 1 : proyectado > 70 ? -1 : 0;
-      if (alFuerte && Math.abs(proyectado) > FUERTE) {
-        marcarDeslizado();
-        x.set(withSpring(0, RESORTE));
-        alFuerte(paso);
-        return;
-      }
       const hayDestino = paso !== 0 && posicion + paso >= 0 && posicion + paso < total;
       marcarDeslizado();
       if (!hayDestino) {
