@@ -63,7 +63,7 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
 
   const conFecha = !!q.next_contact_date;
   return (
-    <Seccion titulo="Seguimiento" descripcion="Para que no se te olvide volver a llamar.">
+    <Seccion titulo="Seguimiento" icono="reloj" descripcion="Para que no se te olvide volver a llamar.">
       {cerrada ? null : (
         <Tarjeta>
           {/* Destacado: es lo que no hay que olvidar */}

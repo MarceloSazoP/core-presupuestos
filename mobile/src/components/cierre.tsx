@@ -144,7 +144,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
         </View>
       </Tarjeta>
 
-      <Seccion titulo="Ítems y tareas" descripcion="Lo que cobras. Sale en el PDF.">
+      <Seccion titulo="Ítems y tareas" icono="lista" descripcion="Lo que cobras. Sale en el PDF.">
         {filas.length ? (
           <Tarjeta style={e.lista}>
             {/* Grilla: encabezado fijo y una fila por ítem o tarea; tocar una fila abre su hoja. */}
@@ -183,7 +183,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       </Seccion>
 
       {/* Todo lo que se acuerda con el cliente, en una sola tarjeta: descuento, impuesto, garantía, validez y observaciones. */}
-      <Seccion titulo="Condiciones">
+      <Seccion titulo="Condiciones" icono="documento">
         <Tarjeta>
           <View style={e.grupo}>
             <Texto variante="chico" fuerte>Descuento (opcional)</Texto>

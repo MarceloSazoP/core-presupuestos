@@ -55,6 +55,7 @@ const ICONOS = {
   enviar: { ios: 'paperplane.fill', android: 'send', web: 'send' },
   ubicacion: { ios: 'mappin.and.ellipse', android: 'place', web: 'place' },
   lista: { ios: 'list.bullet', android: 'list', web: 'list' },
+  trabajo: { ios: 'briefcase.fill', android: 'work', web: 'work' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },
@@ -233,14 +234,28 @@ export function Tarjeta({ children, style }: { children: ReactNode; style?: Styl
 }
 
 // Bloque con título (y, si hace falta, una línea que explica para qué sirve y una acción a la derecha).
-export function Seccion({ titulo, descripcion, accion, children, style }: { titulo: string; descripcion?: string; accion?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+// Título de un bloque: un círculo suave con su ícono y el nombre en seminegrita (antes era un texto suelto de 20 pt que se parecía a cualquier otro).
+export function TituloBloque({ titulo, icono, color }: { titulo: string; icono?: NombreIcono; color?: string }) {
+  const t = useTema();
+  const tono = color ?? t.acento;
+  return (
+    <View style={e.filaTitulo}>
+      {icono ? (
+        <View style={[e.iconoTitulo, { backgroundColor: `${tono}1F` }]}>
+          <Icono nombre={icono} tamano={16} color={tono} />
+        </View>
+      ) : null}
+      <Text accessibilityRole="header" style={[e.textoTitulo, { color: t.texto }]}>{titulo}</Text>
+    </View>
+  );
+}
+
+export function Seccion({ titulo, icono, descripcion, accion, children, style }: { titulo: string; icono?: NombreIcono; descripcion?: string; accion?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[e.seccion, style]}>
       <View style={e.cabeceraSeccion}>
         <View style={e.tituloSeccion}>
-          <Texto variante="subtitulo" accessibilityRole="header">
-            {titulo}
-          </Texto>
+          <TituloBloque titulo={titulo} icono={icono} />
           {descripcion ? <Texto variante="chico" suave>{descripcion}</Texto> : null}
         </View>
         {accion}
@@ -253,7 +268,7 @@ export function Seccion({ titulo, descripcion, accion, children, style }: { titu
 // «De la visita»: la copia amarilla del talonario, con el borde de arriba perforado. Es lo único con color propio en la pantalla:
 // marca lo que es solo del profesional (notas, medidas, fotos y voz) y no sale en el PDF. Igual que en la web.
 const PERFORACIONES = Array.from({ length: 48 }, (_, i) => i);
-export function Nota({ titulo, children }: { titulo: string; children: ReactNode }) {
+export function Nota({ titulo, icono, children }: { titulo: string; icono?: NombreIcono; children: ReactNode }) {
   const t = useTema();
   return (
     <View style={[e.nota, { backgroundColor: t.notaFondo, borderColor: t.notaBorde }]}>
@@ -263,9 +278,7 @@ export function Nota({ titulo, children }: { titulo: string; children: ReactNode
         ))}
       </View>
       <View style={e.cabeceraNota}>
-        <Texto variante="subtitulo" accessibilityRole="header">
-          {titulo}
-        </Texto>
+        <TituloBloque titulo={titulo} icono={icono} color={t.notaSello} />
         <View style={e.sello}>
           <Icono nombre="candado" tamano={13} color={t.notaSello} />
           <Text style={[e.textoSello, { color: t.notaSello }]}>Solo para ti · no sale en el PDF</Text>
@@ -299,6 +312,9 @@ const e = StyleSheet.create({
   tarjeta: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
   sombra: { boxShadow: '0 1px 2px rgba(24, 27, 32, 0.05), 0 4px 16px rgba(24, 27, 32, 0.05)' },
   seccion: { gap: espacio.m },
+  filaTitulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
+  iconoTitulo: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  textoTitulo: { fontSize: letra.cuerpo + 1, fontWeight: '700', letterSpacing: -0.2 },
   cabeceraSeccion: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: espacio.m },
   tituloSeccion: { flex: 1, gap: 2 },
   nota: { borderWidth: 1, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderBottomLeftRadius: radio.l, borderBottomRightRadius: radio.l, borderCurve: 'continuous', paddingHorizontal: espacio.l, paddingTop: espacio.xl, paddingBottom: espacio.l, gap: espacio.l, overflow: 'hidden' },

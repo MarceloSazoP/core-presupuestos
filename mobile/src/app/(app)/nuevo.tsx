@@ -94,14 +94,14 @@ export default function Nuevo() {
         </View>
       </View>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ flex: 1 }} contentContainerStyle={e.contenido}>
-      <Seccion titulo="Cliente">
+      <Seccion titulo="Cliente" icono="cliente">
         <Tarjeta>
           <CampoModal etiqueta="Nombre" titulo="Nombre del cliente" agregar="Agregar nombre" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="off" />
           <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
           <CampoModal etiqueta="Correo (opcional)" titulo="Correo del cliente" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Con correo, el PDF se envía solo al terminar." />
         </Tarjeta>
       </Seccion>
-      <Seccion titulo="El trabajo" descripcion="Opcional: puedes completarlo después.">
+      <Seccion titulo="El trabajo" icono="trabajo" descripcion="Opcional: puedes completarlo después.">
         <Tarjeta>
           <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={setServicio} placeholder="Por ejemplo: instalar 4 enchufes en el living" />
           <CampoModal etiqueta="Dirección del trabajo" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={setDireccion} multiline={false} autoComplete="street-address" textContentType="fullStreetAddress" />

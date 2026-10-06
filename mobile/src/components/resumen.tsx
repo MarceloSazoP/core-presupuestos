@@ -62,11 +62,11 @@ export function Resumen() {
           <Dato indice={3} icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
         </View>
 
-      <Seccion titulo="Últimos 6 meses" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
+      <Seccion titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
         <Grafico meses={d.meses} moneda={moneda} />
       </Seccion>
 
-      <Seccion titulo="Clientes por contactar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
+      <Seccion titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
         {hoy.length ? (
           <Tarjeta style={e.lista}>
             <View style={[e.fila, e.encabezado, { backgroundColor: t.campo, borderBottomColor: t.borde }]}>

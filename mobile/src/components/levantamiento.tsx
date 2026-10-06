@@ -38,12 +38,12 @@ const conSurvey = (q: Presupuesto, s: Partial<Presupuesto['survey']>): Presupues
 export function Levantamiento({ q, cambiar }: Props) {
   return (
     <>
-      <Seccion titulo="El trabajo" descripcion="Sale en el PDF del cliente.">
+      <Seccion titulo="El trabajo" icono="trabajo" descripcion="Sale en el PDF del cliente.">
         <Tarjeta>
           <Trabajo q={q} cambiar={cambiar} />
         </Tarjeta>
       </Seccion>
-      <Nota titulo="De la visita">
+      <Nota titulo="De la visita" icono="ubicacion">
         <Notas q={q} cambiar={cambiar} />
         <Medidas q={q} cambiar={cambiar} />
         <Fotos q={q} cambiar={cambiar} />
