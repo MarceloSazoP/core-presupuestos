@@ -32,7 +32,7 @@ Dos pasos, para que no se pueda hacer por error ni con el teléfono en manos de 
 
 **Qué se conserva:** solo la auditoría mínima sin datos personales (`ACCOUNT_DELETED`, sin usuario asociado), según la retención de 12 meses.
 
-Después de eliminar, el servidor envía un correo breve de confirmación (si falla, no se deshace nada). La app cierra la sesión y borra lo guardado en el teléfono.
+No se envía correo de confirmación al terminar. La app cierra la sesión y borra lo guardado en el teléfono.
 
 ## 3. En la app
 

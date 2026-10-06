@@ -1,7 +1,9 @@
 import { Router } from 'express';
+import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { z } from 'zod';
 import { query, withTx } from '../../db';
+import { eliminarCuenta, excelDeUsuario } from '../../lib/cuenta';
 import { requireSession, requireUser, type AuthedRequest } from '../../http/session';
 import { AppError, notFound } from '../../errors';
 import { upload, uploaded } from '../../http/upload';
@@ -12,7 +14,9 @@ import { audit } from '../../lib/audit';
 import type { SendMail } from '../../lib/mail';
 import { pathOf } from '../../lib/storage';
 import { enviarQrRecuperacion } from '../auth/recuperacion';
-import { maskDestination } from '../../lib/deliver';
+import { maskDestination, type SendCode } from '../../lib/deliver';
+import { hashCode, randomCode6, safeEqual } from '../../lib/crypto';
+import { correoExportacion } from '../../lib/correo-exportacion';
 import { PAISES, zonaValida } from '../../lib/paises';
 import { email, name, phone } from '../auth/schemas';
 
@@ -44,7 +48,7 @@ async function setSlot(c: PoolClient, userId: string, column: 'logo_file_id' | '
      RETURNING f.storage_key`, [old, userId])).rows[0]?.storage_key ?? null;
 }
 
-export const meRoutes = (sendMail?: SendMail) => {
+export const meRoutes = (sendMail?: SendMail, sendCode?: SendCode) => {
   const r = Router();
   r.use(requireSession, requireUser);
 
@@ -83,6 +87,65 @@ export const meRoutes = (sendMail?: SendMail) => {
     const { email } = await enviarQrRecuperacion(uid(req), sendMail, 'pedido');
     await audit(req, 'RECOVERY_QR_SENT', { userId: uid(req), metadata: { motivo: 'pedido' } });
     res.status(202).json({ destination_masked: maskDestination('EMAIL', email) });
+  });
+
+  // Exportar mis datos: un Excel con todo lo del usuario, al correo de la cuenta (docs/Exportar y eliminar la cuenta.md §1). 3 por hora y usuario.
+  r.post('/export', async (req, res) => {
+    if (!sendMail) throw new AppError(502, 'DELIVERY_FAILED', 'El envío por correo no está configurado.');
+    const { rows } = await query<{ n: number }>(`SELECT count(*)::int AS n FROM audit_events WHERE user_id = $1 AND event = 'DATA_EXPORT_SENT' AND created_at > now() - interval '1 hour'`, [uid(req)]);
+    if (rows[0]!.n >= 3) throw new AppError(429, 'RATE_LIMITED', 'Ya pediste varias exportaciones. Intenta de nuevo más tarde.', undefined, { 'Retry-After': '3600' });
+    const u = (await query<{ name: string; email: string }>('SELECT name, email FROM users WHERE id = $1', [uid(req)])).rows[0]!;
+    const hoy = new Date().toISOString().slice(0, 10);
+    await sendMail({
+      to: u.email,
+      subject: 'Tus datos de CORE Presupuestos',
+      text: `Hola ${u.name}:\n\nAdjuntamos un archivo Excel con tus datos: cuenta, clientes, presupuestos, ítems, visitas y seguimientos. Las fotos, notas de voz y PDF no van en el archivo: descárgalos desde cada presupuesto.\n\nSi no pediste esta exportación, avísanos y cambia el acceso a tu correo.`,
+      html: correoExportacion(u.name),
+      attachment: { filename: `corepresupuesto-mis-datos-${hoy}.xlsx`, content: await excelDeUsuario(uid(req)), contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    });
+    await audit(req, 'DATA_EXPORT_SENT', { userId: uid(req) });
+    res.status(202).json({ destination_masked: maskDestination('EMAIL', u.email) });
+  });
+
+  // Eliminar la cuenta, en dos pasos: un código al correo de la cuenta y, con el código, el borrado de todo (Exportar y eliminar la cuenta.md §2).
+  const MAX_INTENTOS = 5;
+  const CODIGO_INVALIDO = () => new AppError(422, 'CODE_INVALID', 'El código no es correcto o venció. Pide uno nuevo.', [{ field: 'code', message: 'Código incorrecto o vencido' }]);
+
+  r.post('/delete-request', async (req, res) => {
+    if (!sendCode) throw new AppError(502, 'DELIVERY_FAILED', 'El envío por correo no está configurado.');
+    const { rows: n } = await query<{ n: number }>(`SELECT count(*)::int AS n FROM audit_events WHERE user_id = $1 AND event = 'ACCOUNT_DELETION_CODE_SENT' AND created_at > now() - interval '1 hour'`, [uid(req)]);
+    if (n[0]!.n >= 3) throw new AppError(429, 'RATE_LIMITED', 'Ya pediste varios códigos. Intenta de nuevo más tarde.', undefined, { 'Retry-After': '3600' });
+    const email = await withTx(async (c) => {
+      const to = (await c.query<{ email: string }>('SELECT email FROM users WHERE id = $1', [uid(req)])).rows[0]!.email;
+      await c.query(`DELETE FROM account_deletion_codes WHERE created_at < now() - interval '1 day'`);
+      await c.query('UPDATE account_deletion_codes SET consumed_at = now() WHERE user_id = $1 AND consumed_at IS NULL', [uid(req)]); // un código nuevo invalida el anterior
+      const id = randomUUID();
+      const code = randomCode6();
+      await c.query(`INSERT INTO account_deletion_codes (id, user_id, code_hash, expires_at) VALUES ($1, $2, $3, now() + interval '10 minutes')`, [id, uid(req), hashCode(id, code)]);
+      await sendCode('EMAIL', to, code, 'eliminar'); // si el correo no sale (502) se deshace todo
+      return to;
+    });
+    await audit(req, 'ACCOUNT_DELETION_CODE_SENT', { userId: uid(req) });
+    res.status(202).json({ destination_masked: maskDestination('EMAIL', email), expires_in_seconds: 600 });
+  });
+
+  r.post('/delete', async (req, res) => {
+    const { code } = parse(z.strictObject({ code: z.string().trim().regex(/^\d{6}$/, 'Son 6 dígitos') }), req.body);
+    const fila = (await query<{ id: string; code_hash: string }>(
+      `SELECT id, code_hash FROM account_deletion_codes WHERE user_id = $1 AND consumed_at IS NULL AND expires_at > now() ORDER BY created_at DESC LIMIT 1`, [uid(req)])).rows[0];
+    if (!fila) throw CODIGO_INVALIDO();
+    // El intento se cuenta antes de comparar; al quinto fallido el código queda invalidado.
+    const intentos = (await query<{ attempts: number }>(
+      `UPDATE account_deletion_codes SET attempts = attempts + 1, consumed_at = CASE WHEN attempts + 1 >= $2 THEN now() ELSE consumed_at END WHERE id = $1 AND consumed_at IS NULL RETURNING attempts`, [fila.id, MAX_INTENTOS])).rows[0];
+    if (!intentos) throw CODIGO_INVALIDO(); // otro intento lo gastó mientras tanto
+    if (!safeEqual(fila.code_hash, hashCode(fila.id, code))) {
+      if (intentos.attempts >= MAX_INTENTOS) throw new AppError(429, 'RATE_LIMITED', 'Demasiados intentos. Pide un código nuevo.');
+      throw CODIGO_INVALIDO();
+    }
+    const userId = uid(req);
+    await eliminarCuenta(userId); // borra todo y revoca las sesiones; los datos de auditoría quedan sin usuario
+    await audit(req, 'ACCOUNT_DELETED');
+    res.status(204).end();
   });
 
   // Logo y firma: PNG/JPEG ≤ 2 MB; reemplazan al anterior.

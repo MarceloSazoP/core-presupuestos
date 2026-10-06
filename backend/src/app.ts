@@ -55,7 +55,7 @@ export function createApp(deps: { places?: Lugares; sendCode?: SendCode; sendMai
   const correo = deps.sendMail ?? defaultSendMail;
   api.use('/auth', authRoutes(deps.sendCode ?? defaultSendCode, deps.ipStartLimit ?? ipLimite, correo, ipLimite));
   api.get('/countries', (_req, res) => void res.json(PAISES)); // sin sesión: se usa para elegir el país
-  api.use('/me', meRoutes(correo));
+  api.use('/me', meRoutes(correo, deps.sendCode ?? defaultSendCode));
   api.use('/customers', customerRoutes());
   api.use('/quotes', quoteRoutes({ sendMail: deps.sendMail ?? defaultSendMail, mailLimit: deps.mailLimit }));
   api.use('/places', placesRoutes(deps.places ?? googleLugares));
