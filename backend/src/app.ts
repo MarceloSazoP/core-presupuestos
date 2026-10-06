@@ -1,4 +1,6 @@
 import express, { type Request, type Response } from 'express';
+import { googleLugares, type Lugares } from './lib/places';
+import { placesRoutes } from './modules/places/routes';
 import { config } from './config';
 import { query } from './db';
 import { AppError, errorHandler } from './errors';
@@ -16,7 +18,7 @@ import { publicRoutes } from './modules/public/routes';
 import { quoteRoutes } from './modules/quotes/routes';
 
 // `deps` existe para las pruebas: se inyecta el envío de códigos y el límite por IP.
-export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number; corsOrigins?: string[] } = {}) {
+export function createApp(deps: { places?: Lugares; sendCode?: SendCode; sendMail?: SendMail; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number; corsOrigins?: string[] } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.TRUST_PROXY); // 0 = sin proxy; configurar según el hosting para que el límite use la IP real
@@ -56,6 +58,7 @@ export function createApp(deps: { sendCode?: SendCode; sendMail?: SendMail; ipSt
   api.use('/me', meRoutes(correo));
   api.use('/customers', customerRoutes());
   api.use('/quotes', quoteRoutes({ sendMail: deps.sendMail ?? defaultSendMail, mailLimit: deps.mailLimit }));
+  api.use('/places', placesRoutes(deps.places ?? googleLugares));
   api.use('/files', fileRoutes());
   api.use('/dashboard', dashboardRoutes());
   api.use('/access', accessRoutes(deps.ipExchangeLimit));

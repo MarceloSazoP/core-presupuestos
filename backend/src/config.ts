@@ -34,6 +34,8 @@ const schema = z
     SMTP_PORT: z.coerce.number().int().default(587),
     SMTP_USER: z.string().optional(),
     SMTP_PASSWORD: z.string().optional(),
+    // Sugerencias de direcciones (Places API (New) de Google). Opcional: sin clave, las sugerencias responden 503 y la app sigue sin ellas.
+    GOOGLE_PLACES_API_KEY: z.string().optional(),
   })
   .superRefine((c, ctx) => {
     if (c.NODE_ENV !== 'production') return;
