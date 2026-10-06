@@ -134,8 +134,8 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           </Tarjeta>
         )}
         <View style={e.fila}>
-          <Boton titulo="Ítem" accessibilityLabel="Agregar ítem" icono="mas" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
-          <Boton titulo="Tarea" accessibilityLabel="Agregar tarea" icono="mas" variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
+          <Boton titulo="Ítem" accessibilityLabel="Agregar ítem" prefijo="+" icono="caja" colorIcono={t.kpi1Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
+          <Boton titulo="Tarea" accessibilityLabel="Agregar tarea" prefijo="+" icono="tarea" colorIcono={t.kpi3Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
         </View>
       </Seccion>
 

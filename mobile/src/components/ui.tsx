@@ -47,6 +47,8 @@ const ICONOS = {
   alerta: { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
   reloj: { ios: 'clock', android: 'schedule', web: 'schedule' },
   tendencia: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up', web: 'trending_up' },
+  caja: { ios: 'shippingbox.fill', android: 'inventory_2', web: 'inventory_2' },
+  tarea: { ios: 'checklist', android: 'checklist', web: 'checklist' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },
@@ -88,7 +90,7 @@ export function Presionable({ style, estilo, children, onPressIn, onPressOut, ..
   );
 }
 
-export function Boton({ titulo, variante = 'primario', icono, cargando = false, disabled, style, ...props }: Omit<PressableProps, 'children' | 'style'> & { titulo: string; variante?: 'primario' | 'secundario' | 'texto' | 'peligro'; icono?: NombreIcono; cargando?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Boton({ titulo, variante = 'primario', icono, colorIcono, prefijo, cargando = false, disabled, style, ...props }: Omit<PressableProps, 'children' | 'style'> & { titulo: string; variante?: 'primario' | 'secundario' | 'texto' | 'peligro'; icono?: NombreIcono; colorIcono?: string; prefijo?: string; cargando?: boolean; style?: StyleProp<ViewStyle> }) {
   const t = useTema();
   const inactivo = disabled || cargando;
   const primario = variante === 'primario';
@@ -108,7 +110,8 @@ export function Boton({ titulo, variante = 'primario', icono, cargando = false, 
         { opacity: inactivo ? 0.5 : 1 },
       ]}
     >
-      {cargando ? <ActivityIndicator color={color} /> : icono ? <Icono nombre={icono} tamano={18} color={color} /> : null}
+      {prefijo ? <Text style={[e.textoBoton, { color: colorIcono ?? color }]}>{prefijo}</Text> : null}
+      {cargando ? <ActivityIndicator color={color} /> : icono ? <Icono nombre={icono} tamano={18} color={colorIcono ?? color} /> : null}
       <Text style={[e.textoBoton, { color }]}>{titulo}</Text>
     </Presionable>
   );
