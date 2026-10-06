@@ -13,4 +13,4 @@ BEGIN
 END $$;
 
 -- Reasignar la búsqueda de rutas para que el backend encuentre las tablas sin prefijo de schema
-ALTER DATABASE "core-presupuestos" SET search_path = "core-presupuestos", public;
+ALTER DATABASE postgres SET search_path = "core-presupuestos", public;
