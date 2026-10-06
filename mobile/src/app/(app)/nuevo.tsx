@@ -102,7 +102,7 @@ export default function Nuevo() {
       </Seccion>
       <Seccion titulo="El trabajo" descripcion="Opcional: puedes completarlo después.">
         <Tarjeta>
-          <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" valor={servicio} alCambiar={setServicio} placeholder="Por ejemplo: instalar 4 enchufes en el living" />
+          <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={setServicio} placeholder="Por ejemplo: instalar 4 enchufes en el living" />
           <CampoModal etiqueta="Dirección del trabajo" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={setDireccion} multiline={false} autoComplete="street-address" textContentType="fullStreetAddress" />
         </Tarjeta>
       </Seccion>

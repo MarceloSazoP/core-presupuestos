@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ElegirUnidad } from '@/components/elegir-unidad';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { BarraListo } from '@/components/barra-listo';
 import { Boton, Campo, Texto } from '@/components/ui';
@@ -12,8 +13,6 @@ export type Fila = { clave: string; tipo: 'item' | 'tarea'; description: string;
 export const numero = (s: string) => Number(s.replace(',', '.'));
 export const entero = (s: string) => Number(s.replace(/\D/g, '') || 0);
 export const valorDe = (f: Fila) => (f.tipo === 'tarea' ? entero(f.unit_price) : Math.round(numero(f.quantity) * entero(f.unit_price)) || 0);
-
-export const UNIDADES = ['un', 'm', 'm2', 'ml', 'kg', 'hr', 'jornada', 'servicio', 'gl'] as const; // las más usadas; el servidor acepta más (Contrato API §12.1)
 
 export function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }: { opciones: readonly { id: T; texto: string }[]; valor: string; alElegir: (v: T) => void; etiqueta: string }) {
   const t = useTema();
@@ -89,7 +88,7 @@ export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }
               </View>
               <View style={e.grupo}>
                 <Texto variante="chico" fuerte>Unidad</Texto>
-                <Chips etiqueta="Unidad" opciones={UNIDADES.map((u) => ({ id: u, texto: u === 'm2' ? 'm²' : u }))} valor={f.unit} alElegir={(u) => cambiar('unit', u)} />
+                <ElegirUnidad valor={f.unit} alElegir={(u) => cambiar('unit', u)} />
               </View>
             </>
           )}

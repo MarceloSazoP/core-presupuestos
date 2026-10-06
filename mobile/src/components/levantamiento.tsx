@@ -88,7 +88,7 @@ function Trabajo({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
+      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
       <CampoModal etiqueta="Dirección del trabajo (opcional)" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={(v) => { setDireccion(v); void guardar(servicio, v); }} multiline={false} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
     </View>
   );

@@ -1,4 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -154,7 +155,7 @@ export default function Detalle() {
                       {i.kind === 'TASK' ? (
                         <Texto variante="chico" suave>Tarea</Texto>
                       ) : (
-                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {i.unit === 'm2' ? 'm²' : i.unit} × {dinero(i.unit_price, q.currency)}</Texto>
+                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {simboloUnidad(i.unit)} × {dinero(i.unit_price, q.currency)}</Texto>
                       )}
                     </View>
                     <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : dinero(i.line_total, q.currency)}</Texto>

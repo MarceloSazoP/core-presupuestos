@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { simboloUnidad } from '@/lib/unidades';
 import { CampoModal } from '@/components/campo-modal';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -122,7 +123,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
                   <Texto numberOfLines={2} suave={!f.description.trim()}>{f.description.trim() || (f.tipo === 'tarea' ? 'Tarea sin descripción' : 'Ítem sin descripción')}</Texto>
                   {f.tipo === 'item' ? <Texto variante="chico" suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.monto}>{clp(entero(f.unit_price))} c/u</Texto> : null}
                 </View>
-                <Texto suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${f.unit === 'm2' ? 'm²' : f.unit}`}</Texto>
+                <Texto suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${simboloUnidad(f.unit)}`}</Texto>
                 <Texto fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.monto]}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</Texto>
               </Presionable>
               </Animated.View>
