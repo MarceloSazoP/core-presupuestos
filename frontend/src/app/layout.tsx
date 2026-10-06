@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
+import { Avisos } from "./avisos";
 
 const plex = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-dvh pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {children}
+        <Avisos />
       </body>
     </html>
   );

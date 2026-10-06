@@ -2,11 +2,13 @@
 
 import { useActionState, useState } from "react";
 import { formatearCodigo } from "@/lib/codigo";
+import { useAvisar, avisar } from "./avisos";
 import { consultarAction, type EstadoConsulta } from "./actions";
 
 export function ConsultaForm() {
   const [estado, accion, pendiente] = useActionState<EstadoConsulta, FormData>(consultarAction, {});
   const [codigo, setCodigo] = useState("");
+  useAvisar(estado, () => estado.error && avisar("error", "No pudimos abrir el presupuesto", estado.error));
 
   return (
     <form action={accion} className="flex flex-col gap-3">

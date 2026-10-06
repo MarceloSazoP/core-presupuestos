@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
+import { avisar, useAvisar } from "../avisos";
 import { enviarCorreoAction, type EstadoCorreo } from "../actions";
 
 // `destino` es el correo del cliente enmascarado; sin correo guardado se pide uno.
 export function EnviarCorreo({ destino }: { destino: string | null }) {
   const [estado, accion, pendiente] = useActionState<EstadoCorreo, FormData>(enviarCorreoAction, {});
+  useAvisar(estado, () => estado.mensaje && (estado.ok ? avisar("exito", "Correo enviado", estado.mensaje) : avisar("error", "No se pudo enviar el correo", estado.mensaje)));
 
   return (
     <form action={accion} className="flex flex-col gap-1.5">

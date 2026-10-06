@@ -517,3 +517,40 @@ dialog.modal[open]::backdrop {
     transition: none;
   }
 }
+
+/* Avisos desde arriba (avisos.tsx): caen y se aclaran en 280 ms, salen más rápido; la barra de abajo marca el tiempo que queda
+   y se detiene mientras el puntero está encima. Cada tipo toma su color del icono y de la barra. */
+.aviso {
+  --tono: var(--acento-texto);
+  box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.28);
+  transition: opacity 280ms var(--ease), transform 280ms var(--ease);
+}
+.aviso[data-tipo="error"] { --tono: var(--error); }
+.aviso[data-tipo="exito"] { --tono: var(--ok); }
+.aviso[data-tipo="aviso"] { --tono: var(--aviso); }
+.aviso-icono {
+  color: var(--tono);
+  background: color-mix(in oklab, var(--tono) 14%, transparent);
+}
+.aviso-barra {
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: var(--tono);
+  transform-origin: left;
+  animation: aviso-tiempo linear forwards;
+}
+.aviso:hover .aviso-barra { animation-play-state: paused; }
+.aviso[data-saliendo] {
+  opacity: 0;
+  transform: translateY(-12px);
+  transition-duration: 200ms;
+}
+@keyframes aviso-tiempo { to { transform: scaleX(0); } }
+@starting-style {
+  .aviso { opacity: 0; transform: translateY(-16px) scale(0.98); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aviso { transition: opacity 150ms linear; transform: none !important; }
+  .aviso-barra { animation: none; display: none; }
+}

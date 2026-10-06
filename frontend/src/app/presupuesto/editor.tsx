@@ -1,5 +1,6 @@
 "use client";
 
+import { avisar, useAvisar } from "../avisos";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 import { dinero, miles } from "@/lib/formato";
@@ -43,6 +44,14 @@ const filaVacia = (clave: number, tipo: Fila["tipo"] = "item"): Fila => ({ clave
 // En pantallas anchas: [contexto] [formulario] [resumen y acciones]. En el teléfono: una columna en ese mismo orden.
 export function Editor({ inicial }: { inicial: Inicial }) {
   const [estado, accion, pendiente] = useActionState<EstadoEdicion, FormData>(completarPresupuestoAction, {});
+  useAvisar(estado, () => estado.errores && avisar("error", "Revisa el presupuesto", estado.errores?.join(" · ")));
+  useAvisar(estado, () => estado.guardado && avisar("exito", "Guardado", estado.guardado));
+  useAvisar(estado, () => {
+    const t = estado.terminado;
+    if (!t) return;
+    avisar("exito", `Presupuesto ${t.numero} terminado`, `Total ${t.total}`);
+    if (!t.correo.ok) avisar("error", "El correo no se pudo enviar", t.correo.mensaje);
+  });
   const { moneda, impuesto } = inicial; // los montos de este presupuesto, con su moneda y su impuesto
   const clp = (n: number) => dinero(n, moneda);
   const [, enTransicion] = useTransition();
