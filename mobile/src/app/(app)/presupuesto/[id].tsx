@@ -14,7 +14,8 @@ import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { PartesDeslizables } from '@/components/partes-deslizables';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { Boton, Icono, Pastilla, Segmentos, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Icono, Pastilla, Tarjeta, Texto } from '@/components/ui';
+import { PestanasParte } from '@/components/pestanas-parte';
 import { dinero } from '@/lib/formato';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
@@ -88,8 +89,8 @@ export default function Detalle() {
 
   // Qué pestañas tiene: uno pendiente se trabaja en dos partes; uno cerrado se envía, se le hace seguimiento y se revisa.
   const partes = cerrado
-    ? [{ id: 'enviar', texto: 'Enviar' }, ...(q.commercial_status !== 'NONE' ? [{ id: 'seguimiento', texto: 'Seguimiento' }] : []), { id: 'detalle', texto: 'Detalle' }]
-    : [{ id: 'visita', texto: 'Visita' }, { id: 'presupuesto', texto: 'Presupuesto' }];
+    ? [{ id: 'enviar', texto: 'Enviar', icono: 'enviar' as const }, ...(q.commercial_status !== 'NONE' ? [{ id: 'seguimiento', texto: 'Seguimiento', icono: 'reloj' as const }] : []), { id: 'detalle', texto: 'Detalle', icono: 'lista' as const }]
+    : [{ id: 'visita', texto: 'Visita', icono: 'ubicacion' as const }, { id: 'presupuesto', texto: 'Presupuesto', icono: 'documento' as const }];
   const actualId = partes.some((x) => x.id === parte) ? parte! : partes[0]!.id;
   // Las partes de un presupuesto pendiente se quedan montadas aunque no se vean: lo que se está escribiendo no se pierde al cambiar.
   const oculta = (id: string) => (actualId === id ? null : e.oculta);
@@ -127,7 +128,7 @@ export default function Detalle() {
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
       </View>
 
-      <Segmentos opciones={partes} valor={actualId} alElegir={setParte} etiqueta="Partes del presupuesto" />
+      <PestanasParte partes={partes} valor={actualId} alElegir={setParte} />
 
       <PartesDeslizables posicion={posicion} total={partes.length} alIr={ir}>
       {cerrado ? (
