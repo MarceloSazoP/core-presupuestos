@@ -33,7 +33,7 @@ export default function Configurar() {
   const [guardando, setGuardando] = useState(false);
   const [tema, setTema] = useState<PreferenciaTema>('sistema');
   const [eligiendoPais, setEligiendoPais] = useState(false);
-  const [parte, setParte] = useState<'datos' | 'imagenes'>('datos'); // dos pestañas: tus datos, y el logo y la firma
+  const [parte, setParte] = useState<'datos' | 'imagenes' | 'info'>('datos'); // tres pestañas: tus datos, el logo y la firma, y la información de la app
   async function cambiarPais(country: string) {
     setEligiendoPais(false);
     if (country === pais.country) return;
@@ -109,9 +109,9 @@ export default function Configurar() {
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <PestanasParte
-        partes={[{ id: 'datos', texto: 'Mis datos', icono: 'cliente' }, { id: 'imagenes', texto: 'Logo y firma', icono: 'galeria' }]}
+        partes={[{ id: 'datos', texto: 'Mis datos', icono: 'cliente' }, { id: 'imagenes', texto: 'Logo y firma', icono: 'galeria' }, { id: 'info', texto: 'Información', icono: 'info' }]}
         valor={parte}
-        alElegir={(id) => setParte(id as 'datos' | 'imagenes')}
+        alElegir={(id) => setParte(id as 'datos' | 'imagenes' | 'info')}
         etiqueta="Secciones de configuración"
       />
 
@@ -154,12 +154,12 @@ export default function Configurar() {
       </Seccion>
 
       <Seccion titulo="Tu cuenta" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
-        <Boton titulo="Enviar QR de recuperación a mi correo" icono="qr" variante="secundario" onPress={() => void enviarQr()} cargando={enviandoQr} />
+        <Boton titulo="Enviar QR de recuperación a mi correo" icono="qr" icono2="correo" colorIcono={t.acento} variante="secundario" onPress={() => void enviarQr()} cargando={enviandoQr} />
         <Texto variante="chico" suave>Sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número. Pedir uno nuevo deja sin efecto el anterior.</Texto>
-        <Boton titulo="Cerrar sesión" icono="salir" variante="secundario" onPress={confirmarSalida} />
+        <Boton titulo="Cerrar sesión" icono="salir" colorIcono={t.error} variante="secundario" onPress={confirmarSalida} />
       </Seccion>
         </>
-      ) : (
+      ) : parte === 'imagenes' ? (
         <>
       <Tarjeta>
         <ImagenPerfil ruta="logo" titulo="Logo" nombre="el logo" ayuda="Sale arriba en tus presupuestos, en su propia fila: sirve un logo horizontal. PNG o JPEG; se ajusta solo a un tamaño liviano." vacio="Todavía no subes un logo" />
@@ -170,9 +170,9 @@ export default function Configurar() {
       </Tarjeta>
 
         </>
-      )}
-
-      {/* Acerca de: la versión de la app y quién la creó. Se ve en las dos secciones. */}
+      ) : (
+        <>
+      {/* Acerca de: la versión de la app y quién la creó. */}
       <Seccion titulo="Acerca de" icono="info">
         <Tarjeta>
           <View style={e.filaInfo}>
@@ -189,6 +189,8 @@ export default function Configurar() {
           </View>
         </Tarjeta>
       </Seccion>
+        </>
+      )}
     </ScrollView>
   );
 }

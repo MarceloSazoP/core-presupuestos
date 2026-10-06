@@ -110,8 +110,8 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
               </View>
             </Animated.View>
           </View>
-          <Boton titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} variante="secundario" onPress={() => void elegir()} cargando={ocupado} />
-          {tiene ? <Boton titulo={`Quitar ${nombre}`} variante="texto" onPress={quitar} disabled={ocupado} /> : null}
+          <Boton titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} icono="galeria" colorIcono={t.acento} variante="secundario" onPress={() => void elegir()} cargando={ocupado} />
+          {tiene ? <Boton titulo={`Quitar ${nombre}`} icono="papelera" colorIcono={t.error} variante="secundario" onPress={quitar} disabled={ocupado} /> : null}
         </>
       ) : (
         <Texto variante="chico" suave>{`Apagado: ${nombre} no sale en tus presupuestos. Enciéndelo para subir la imagen.`}</Texto>

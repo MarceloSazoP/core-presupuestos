@@ -110,7 +110,7 @@ export function Presionable({ style, estilo, children, onPressIn, onPressOut, ..
   );
 }
 
-export function Boton({ titulo, variante = 'primario', icono, colorIcono, prefijo, cargando = false, disabled, style, ...props }: Omit<PressableProps, 'children' | 'style'> & { titulo: string; variante?: 'primario' | 'secundario' | 'texto' | 'peligro'; icono?: NombreIcono; colorIcono?: string; prefijo?: string; cargando?: boolean; style?: StyleProp<ViewStyle> }) {
+export function Boton({ titulo, variante = 'primario', icono, icono2, colorIcono, prefijo, cargando = false, disabled, style, ...props }: Omit<PressableProps, 'children' | 'style'> & { titulo: string; variante?: 'primario' | 'secundario' | 'texto' | 'peligro'; icono?: NombreIcono; icono2?: NombreIcono; colorIcono?: string; prefijo?: string; cargando?: boolean; style?: StyleProp<ViewStyle> }) {
   const t = useTema();
   const inactivo = disabled || cargando;
   const primario = variante === 'primario';
@@ -132,6 +132,7 @@ export function Boton({ titulo, variante = 'primario', icono, colorIcono, prefij
     >
       {prefijo ? <Text style={[e.textoBoton, { color: colorIcono ?? color }]}>{prefijo}</Text> : null}
       {cargando ? <ActivityIndicator color={color} /> : icono ? <Icono nombre={icono} tamano={18} color={colorIcono ?? color} /> : null}
+      {!cargando && icono2 ? <Icono nombre={icono2} tamano={18} color={colorIcono ?? color} /> : null}
       <Text style={[e.textoBoton, { color }]}>{titulo}</Text>
     </Presionable>
   );
