@@ -48,7 +48,7 @@
         {
           "backgroundColor": "#F6F6F6",
           "image": "./assets/images/splash-wordmark.png",
-          "imageWidth": 280,
+          "imageWidth": 320,
           "dark": {
             "backgroundColor": "#0A1226",
             "image": "./assets/images/splash-wordmark-dark.png"
