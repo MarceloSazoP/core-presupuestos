@@ -69,3 +69,10 @@ export function createApp(deps: { places?: Lugares; sendCode?: SendCode; sendMai
   app.use(errorHandler);
   return app;
 }
+
+// Entrada para Vercel: la plataforma toma `src/app.ts` como entrada y espera un handler como export por defecto (no una fábrica).
+let instancia: ReturnType<typeof createApp> | undefined;
+export default function handler(req: Request, res: Response) {
+  instancia ??= createApp();
+  return instancia(req, res);
+}
