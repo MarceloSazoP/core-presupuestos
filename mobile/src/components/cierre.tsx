@@ -1,4 +1,6 @@
 import * as Haptics from 'expo-haptics';
+import { ElegirDescuento } from '@/components/elegir-descuento';
+import { montoDeDescuento, porcentajeDe } from '@/lib/descuento';
 import { avisar } from '@/lib/toast';
 import { simboloUnidad } from '@/lib/unidades';
 import { CampoModal } from '@/components/campo-modal';
@@ -10,7 +12,7 @@ import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
 import { Boton, Campo, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
-import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
+import { dinero } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -32,7 +34,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       return { clave: i.id, tipo: tarea ? 'tarea' : 'item', description: i.description, quantity: String(i.quantity), unit: i.unit, unit_price: tarea && i.unit_price === 0 ? '' : String(i.unit_price) };
     }),
   );
-  const [descuento, setDescuento] = useState(String(q.discount || ''));
+  const [pct, setPct] = useState<number | null>(() => porcentajeDe(q.discount, q.subtotal)); // null: un monto fijo de antes
   const [conIva, setConIva] = useState(q.include_vat);
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
   const [garantia, setGarantia] = useState<string>(q.warranty.kind === 'CUSTOM' ? 'NONE' : q.warranty.kind);
@@ -53,7 +55,9 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   const clp = (n: number) => dinero(n, moneda); // los montos de este presupuesto, en su moneda
   const impuesto = q.vat_label ?? 'IVA';
   const tasa = q.vat_rate ?? 19;
-  const { iva, total } = totalesDe(subtotal, entero(descuento), conIva, tasa);
+  const desc = pct === null ? q.discount : montoDeDescuento(subtotal, pct); // el servidor guarda el monto; aquí se elige en porcentaje
+  const { iva, total } = totalesDe(subtotal, desc, conIva, tasa);
+  const detalle = conIva || desc > 0; // con impuesto o descuento, el cuadro desglosa; si no, dice solo «Total»
 
   async function guardar() {
     const llenas = filas.filter((f) => f.description.trim());
@@ -66,7 +70,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
     await api(`/quotes/${q.id}/items`, { method: 'PUT', body: { items } });
     await api(`/quotes/${q.id}`, {
       method: 'PATCH',
-      body: { discount: entero(descuento), include_vat: conIva, validity_days: Math.min(365, Math.max(1, entero(dias))), warranty: { kind: garantia }, observations: obs.trim() || null },
+      body: { discount: desc, include_vat: conIva, validity_days: Math.min(365, Math.max(1, entero(dias))), warranty: { kind: garantia }, observations: obs.trim() || null },
     });
   }
 
@@ -106,26 +110,28 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       {/* El total siempre a la vista, arriba, y es el real. Sin impuesto dice solo «Total»; con impuesto (IVA, o el del país) se desglosa:
           subtotal, descuento si hay, impuesto y total. */}
       <Tarjeta style={{ backgroundColor: t.kpi1Fondo, borderColor: t.borde }}>
-        <View accessible accessibilityLabel={conIva ? `Subtotal ${clp(subtotal)}.${entero(descuento) > 0 ? ` Descuento ${clp(entero(descuento))}.` : ''} ${impuesto} ${tasa} por ciento, ${clp(iva)}. Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
-          {conIva ? (
+        <View accessible accessibilityLabel={detalle ? `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''} Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
+          {detalle ? (
             <>
               <View style={e.filaDesglose}>
                 <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>Subtotal</Texto>
                 <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(subtotal)}</Texto>
               </View>
-              {entero(descuento) > 0 ? (
+              {desc > 0 ? (
                 <View style={e.filaDesglose}>
-                  <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>Descuento</Texto>
-                  <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>−{clp(entero(descuento))}</Texto>
+                  <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</Texto>
+                  <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>−{clp(desc)}</Texto>
                 </View>
               ) : null}
-              <View style={e.filaDesglose}>
-                <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>{impuesto} {tasa}%</Texto>
-                <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(iva)}</Texto>
-              </View>
+              {conIva ? (
+                <View style={e.filaDesglose}>
+                  <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>{impuesto} {tasa}%</Texto>
+                  <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(iva)}</Texto>
+                </View>
+              ) : null}
             </>
           ) : null}
-          <View style={[e.filaDesglose, conIva && e.total, conIva && { borderTopColor: `${t.kpi1Tinta}59` }]}>
+          <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: `${t.kpi1Tinta}59` }]}>
             <Texto fuerte style={{ color: t.kpi1Tinta }}>Total</Texto>
             <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto, { color: t.kpi1Tinta }]}>{clp(total)}</Texto>
           </View>
@@ -173,7 +179,10 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       {/* Todo lo que se acuerda con el cliente, en una sola tarjeta: descuento, impuesto, garantía, validez y observaciones. */}
       <Seccion titulo="Condiciones">
         <Tarjeta>
-          <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento, moneda)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
+          <View style={e.grupo}>
+            <Texto variante="chico" fuerte>Descuento (opcional)</Texto>
+            <ElegirDescuento valor={pct} respaldo={`Descuento fijo ${clp(q.discount)}`} alElegir={setPct} />
+          </View>
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
             <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} trackColor={{ true: t.acento }} />
