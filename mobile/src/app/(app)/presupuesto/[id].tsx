@@ -14,7 +14,6 @@ import { NuevaVersion } from '@/components/nueva-version';
 import { PartesDeslizables } from '@/components/partes-deslizables';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { Boton, Icono, Pastilla, Segmentos, Tarjeta, Texto } from '@/components/ui';
-import { leerCodigo } from '@/lib/codigos';
 import { dinero } from '@/lib/formato';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
@@ -29,7 +28,6 @@ export default function Detalle() {
   const t = useTema();
   const { id, nuevo } = useLocalSearchParams<{ id: string; nuevo?: string }>();
   const [q, setQ] = useState<Presupuesto | null>(null);
-  const [codigo, setCodigo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editandoCliente, setEditandoCliente] = useState(false);
   const [parte, setParte] = useState<string | null>(null); // pestaña elegida; null = la primera de su estado
@@ -45,7 +43,6 @@ export default function Detalle() {
   // La pantalla trabaja sobre la copia local (q); el servidor la reemplaza solo cuando no quedan cambios sin enviar.
   const recargar = useCallback(async () => {
     await vaciar();
-    void leerCodigo(id).then(setCodigo); // el código llega al sincronizar un presupuesto creado sin conexión
     try {
       const servidor = await api<Presupuesto>(`/quotes/${id}`);
       if (!(await hayPendientesDe(id))) {
