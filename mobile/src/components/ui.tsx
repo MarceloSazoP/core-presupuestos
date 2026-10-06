@@ -57,6 +57,8 @@ const ICONOS = {
   lista: { ios: 'list.bullet', android: 'list', web: 'list' },
   trabajo: { ios: 'briefcase.fill', android: 'work', web: 'work' },
   guardar: { ios: 'square.and.arrow.down', android: 'save', web: 'save' },
+  ojo: { ios: 'eye', android: 'visibility', web: 'visibility' },
+  ojoCerrado: { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },

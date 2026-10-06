@@ -8,7 +8,7 @@ import { CampoModal } from '@/components/campo-modal';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
@@ -37,6 +37,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   );
   const [pct, setPct] = useState<number | null>(() => porcentajeDe(q.discount, q.subtotal)); // null: un monto fijo de antes
   const [conIva, setConIva] = useState(q.include_vat);
+  const [bloqueado, setBloqueado] = useState(false); // el ojo: con los valores bloqueados nada de esta parte se edita por error
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
   const [garantia, setGarantia] = useState<string>(q.warranty.kind === 'CUSTOM' ? 'NONE' : q.warranty.kind);
   const [obs, setObs] = useState(q.observations ?? '');
@@ -139,12 +140,27 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
                 <Icono nombre="dinero" tamano={20} color={t.totalTinta} />
               </View>
               <Texto fuerte style={{ color: t.totalTinta }}>Total</Texto>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: bloqueado }}
+                accessibilityLabel={bloqueado ? 'Valores bloqueados. Tocar para desbloquear' : 'Bloquear los valores'}
+                hitSlop={10}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setBloqueado((b) => !b);
+                  avisar.info(bloqueado ? 'Valores desbloqueados' : 'Valores bloqueados', bloqueado ? 'Ya puedes editar los ítems y las condiciones.' : 'Toca el ojo para volver a editarlos.');
+                }}
+                style={({ pressed }) => [e.ojo, { backgroundColor: bloqueado ? `${t.totalTinta}26` : 'transparent', opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Icono nombre={bloqueado ? 'ojoCerrado' : 'ojo'} tamano={20} color={t.totalTinta} />
+              </Pressable>
             </View>
             <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
           </View>
         </View>
       </Tarjeta>
 
+      <View pointerEvents={bloqueado ? 'none' : 'auto'} accessibilityState={{ disabled: bloqueado }} style={[e.bloqueable, bloqueado && e.bloqueado]}>
       <Seccion titulo="Ítems y tareas" icono="lista" descripcion="Lo que cobras. Sale en el PDF.">
         {filas.length ? (
           <Tarjeta style={e.lista}>
@@ -209,6 +225,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           <CampoModal etiqueta="Observaciones (opcional)" titulo="Observaciones" agregar="Agregar observaciones" valor={obs} alCambiar={setObs} maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
         </Tarjeta>
       </Seccion>
+      </View>
 
       <Texto variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</Texto>
 
@@ -297,6 +314,9 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 
 const RESERVA_BARRA = espacio.xxl * 2; // igual al paddingBottom del contenido de la pantalla del presupuesto
 const e = StyleSheet.create({
+  bloqueable: { gap: espacio.l },
+  bloqueado: { opacity: 0.55 },
+  ojo: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   iconoTotal: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   bloqueTotal: { gap: espacio.s },
