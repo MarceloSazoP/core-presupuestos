@@ -1,7 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPendientes, useAvisos } from '@/lib/avisos';
 import { deNotificacion, sinLeer } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
@@ -49,16 +49,27 @@ export default function AppLayout() {
         }}
       />
       {/* título normal: las pestañas quedan fijas debajo */}
-      <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio' }} />
-      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio' }} />
+      <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Avisos" icono={{ ios: 'bell.fill', android: 'notifications', web: 'notifications' }} /> }} />
+      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Presupuestos" icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} /> }} />
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
       <Stack.Screen name="escanear" options={{ presentation: 'modal', title: 'Ver en la web', headerBackTitle: 'Atrás' }} />
-      <Stack.Screen name="configurar" options={{ title: 'Configurar', headerBackTitle: 'Atrás' }} />
+      <Stack.Screen name="configurar" options={{ title: 'Configurar', headerBackTitle: 'Atrás', headerTitle: () => <TituloConIcono texto="Configurar" icono={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }} /> }} />
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
       </Stack>
     </>
+  );
+}
+
+// Título de la barra con su ícono al lado (el mismo del botón que lleva a esa pantalla).
+function TituloConIcono({ texto, icono }: { texto: string; icono: SymbolViewProps['name'] }) {
+  const t = useTema();
+  return (
+    <View accessible accessibilityRole="header" accessibilityLabel={texto} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <SymbolView name={icono} size={20} tintColor={t.acento} fallback={<View />} />
+      <Text style={{ color: t.texto, fontSize: 17, fontWeight: '600' }}>{texto}</Text>
+    </View>
   );
 }
 

@@ -144,7 +144,7 @@ export default function Configurar() {
         <Tarjeta>
         <CampoModal etiqueta="Nombre o negocio" titulo="Nombre o negocio" agregar="Agregar nombre" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="name" />
         <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
-        <CampoModal etiqueta="Correo de contacto" titulo="Correo de contacto" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder={usuario?.email ?? ''} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
+        <CampoModal etiqueta="Correo de contacto" titulo="Correo de contacto" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder="email@email.com" ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />
         </Tarjeta>
