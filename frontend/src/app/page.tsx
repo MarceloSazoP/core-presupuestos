@@ -57,7 +57,7 @@ export default function Landing() {
           <p className="text-lg font-extrabold tracking-tight">CORE Presupuestos</p>
         </nav>
 
-        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_48rem] 2xl:grid-cols-[minmax(0,1fr)_60rem] 2xl:gap-24">
+        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_49.5rem] 2xl:grid-cols-[minmax(0,1fr)_60rem] 2xl:gap-24">
           <div className="flex flex-col gap-6">
             <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.04] tracking-[-0.025em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:text-[clamp(2.5rem,3.6vw,4.5rem)] xl:max-w-[34rem] 2xl:max-w-[44rem]">
               Del terreno al presupuesto, sin olvidar nada.
@@ -74,7 +74,7 @@ export default function Landing() {
             <section
               id="consulta"
               aria-labelledby="consultar"
-              className="ficha scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:relative xl:z-10 xl:mx-0 xl:mt-12 xl:-mr-5 xl:w-[22rem] xl:max-w-none xl:shrink-0 2xl:w-[26rem] 2xl:p-6"
+              className="ficha scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:relative xl:z-10 xl:mx-0 xl:mt-8 xl:-mr-2 xl:w-[21.5rem] xl:max-w-none xl:shrink-0 2xl:w-[26rem] 2xl:p-6"
             >
               <ConsultaForm />
               <p aria-hidden="true" className="my-4 flex items-center gap-3 text-sm font-medium text-muted">

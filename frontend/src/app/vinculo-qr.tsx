@@ -74,14 +74,14 @@ export function VinculoQr() {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 [@media(max-height:780px)]:gap-2">
       <div className="flex flex-col gap-1">
         <h3 className="seccion text-lg">Escanéalo con la app</h3>
         <p className="ayuda">Abre el presupuesto en este computador, sin escribir nada.</p>
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="relative size-32 shrink-0 overflow-hidden rounded-lg border border-borde bg-white p-1.5">
+        <div className="relative size-32 shrink-0 overflow-hidden rounded-lg border border-borde bg-white p-1.5 [@media(max-height:780px)]:size-24">
           {activo ? (
             // eslint-disable-next-line @next/next/no-img-element -- imagen generada en el servidor (data URL), no hay nada que optimizar
             <img src={activo.v.qr} alt="Código QR para abrir un presupuesto desde la app de CORE Presupuestos" width={116} height={116} className={`size-full transition-[filter,opacity] duration-200 ${vencido || activo.listo ? "opacity-30 blur-sm" : ""}`} />
