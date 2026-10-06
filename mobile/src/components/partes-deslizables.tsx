@@ -1,22 +1,19 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { StyleSheet, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { Easing, interpolate, ReduceMotion, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, ReduceMotion, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { espacio } from '@/theme';
 
-const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
-
-// Las partes de un presupuesto (Visita ↔ Presupuesto…) se cambian deslizando hacia los lados, y el contenido sigue al dedo:
-// - Al arrastrar, se mueve con el dedo y se aclara un poco; sin parte al otro lado, se resiste (cuesta un cuarto del recorrido).
-// - Al soltar, un empujón rápido o 70 pt cambian de parte: lo actual sale hacia el lado del gesto y la parte nueva entra desde el
-//   lado contrario. Si no alcanza, vuelve a su sitio con un resorte suave.
-// - Al cambiar con las pestañas de arriba entra igual, desde el lado que corresponde. «Reducir movimiento»: solo un fundido.
+// Las partes de un presupuesto (Visita ↔ Presupuesto…) se cambian como las páginas de iPhone: el contenido sigue al dedo, sin
+// atenuarse, y al soltar sale entero hacia un lado mientras la parte nueva entra desde el otro y se asienta con un resorte.
+// Un empujón rápido o 70 pt cambian de parte; si no alcanza, vuelve a su sitio. Sin parte al otro lado, resiste (un cuarto del
+// recorrido). Con las pestañas de arriba entra igual. «Reducir movimiento»: cambia sin deslizar.
 export function PartesDeslizables({ posicion, total, alIr, children }: { posicion: number; total: number; alIr: (paso: number) => void; children: ReactNode }) {
   const ancho = useWindowDimensions().width;
   const reducido = useReducedMotion();
   const x = useSharedValue(0);
   const previa = useRef(posicion);
-  const salto = ancho * 0.3;
+  const salto = ancho; // la página entra y sale entera, como en iPhone
 
   // La parte nueva entra desde el lado contrario al que se fue (también al tocar las pestañas).
   useEffect(() => {
@@ -24,7 +21,7 @@ export function PartesDeslizables({ posicion, total, alIr, children }: { posicio
     const adelante = posicion > previa.current;
     previa.current = posicion;
     x.set(reducido ? 0 : (adelante ? 1 : -1) * salto);
-    x.set(withTiming(0, { duration: 280, easing: EASE_OUT, reduceMotion: ReduceMotion.System }));
+    x.set(withSpring(0, { damping: 30, stiffness: 320, mass: 0.9, reduceMotion: ReduceMotion.System })); // se asienta sin rebote notorio
   }, [posicion, reducido, salto, x]);
 
   const gesto = Gesture.Pan()
@@ -43,14 +40,13 @@ export function PartesDeslizables({ posicion, total, alIr, children }: { posicio
         x.set(withSpring(0, { damping: 24, stiffness: 260, reduceMotion: ReduceMotion.System }));
         return;
       }
-      // Sale en 140 ms; al terminar cambia la parte (y el efecto de arriba hace entrar la nueva).
-      x.set(withTiming(-paso * salto, { duration: 140, easing: EASE_OUT }, (fin) => {
+      // Sale entero (más rápido si el gesto fue rápido); al terminar cambia la parte (y el efecto de arriba hace entrar la nueva).
+      x.set(withTiming(-paso * salto, { duration: Math.max(120, Math.min(220, 260 - Math.abs(ev.velocityX) / 8)), easing: Easing.bezier(0.3, 0, 0.8, 0.6) }, (fin) => {
         if (fin) runOnJS(alIr)(paso);
       }));
     });
 
   const estilo = useAnimatedStyle(() => ({
-    opacity: interpolate(Math.abs(x.get()), [0, salto], [1, 0.2], 'clamp'),
     transform: [{ translateX: x.get() }],
   }));
 
