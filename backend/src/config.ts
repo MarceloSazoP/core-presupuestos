@@ -32,10 +32,7 @@ const schema = z
     AUTH_PHONE_LIMIT_PER_HOUR: z.coerce.number().int().min(1).optional(),
     OTP_LOG_CODES: bool,
 
-    // Proveedores: opcionales en desarrollo, obligatorios en producción
-    TWILIO_ACCOUNT_SID: z.string().optional(),
-    TWILIO_AUTH_TOKEN: z.string().optional(),
-    TWILIO_FROM: z.string().optional(),
+    // Proveedores: correo obligatorio en producción
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
     // Alternativa a Resend: SMTP (p. ej. Gmail con contraseña de aplicación). Pensado para desarrollo y pruebas.
@@ -56,9 +53,6 @@ const schema = z
     const resend = !!c.RESEND_API_KEY && !!c.EMAIL_FROM;
     const smtp = !!c.SMTP_HOST && !!c.SMTP_USER && !!c.SMTP_PASSWORD;
     if (!resend && !smtp) ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'en producción hace falta Resend (RESEND_API_KEY y EMAIL_FROM) o SMTP' });
-    // SMS: Twilio (opcional si el correo está configurado).
-    const tieneSms = c.TWILIO_ACCOUNT_SID && c.TWILIO_AUTH_TOKEN && c.TWILIO_FROM;
-    if (!tieneSms && !resend && !smtp) ctx.addIssue({ code: 'custom', path: ['TWILIO_ACCOUNT_SID'], message: 'en producción hace falta SMS (Twilio) o correo (Resend/SMTP)' });
   });
 
 const parsed = schema.safeParse(process.env);
