@@ -141,7 +141,7 @@ export default function Detalle() {
         }}
       />
       <Sincronizacion />
-      {editandoCliente ? <EditarCliente key={`${q.customer.name}|${q.customer.phone}|${q.customer.email}`} q={q} cambiar={cambiar} alCerrar={() => setEditandoCliente(false)} /> : null}
+      {editandoCliente ? <EditarCliente q={q} cambiar={cambiar} alCerrar={() => setEditandoCliente(false)} /> : null}
 
       {/* Cabecera: quién es el cliente y en qué va. Lo demás vive en las pestañas de abajo. */}
       <View style={e.bloque}>

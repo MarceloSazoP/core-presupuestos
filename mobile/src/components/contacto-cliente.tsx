@@ -69,9 +69,11 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
     const mail = correo.trim().toLowerCase() || null;
     try {
       cambiar((p) => ({ ...p, customer: { ...p.customer, name: nom, phone: tel, email: mail } }));
+      // Se cierra la hoja antes de esperar la cola: con los datos ya cambiados, esperar con la hoja abierta la dejaba a medio cerrar
+      // (una hoja blanca que bloqueaba toda la pantalla).
+      alCerrar();
       await encolar({ quote_id: q.id, method: 'PATCH', path: `/quotes/${q.id}/customer`, body: { phone: tel, email: mail, name: nom } });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      alCerrar();
     } catch (err) {
       setAviso(mensajeDe(err));
       avisar.error('No se pudo guardar', mensajeDe(err));
