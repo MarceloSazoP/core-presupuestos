@@ -108,6 +108,7 @@ export default function Detalle() {
       <Stack.Screen
         options={{
           title: q.customer.name,
+          gestureEnabled: false, // el deslizar es para cambiar de parte: el gesto nativo de «volver» lo pisaba y dejaba la pantalla por error (se vuelve con el botón de la barra)
           headerTitle: () => <TituloCliente q={q} alEditar={() => setEditandoCliente(true)} />,
           headerRight: () => (
             <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={8} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
