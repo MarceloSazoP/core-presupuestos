@@ -4,11 +4,11 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { INICIO } from '@/lib/montos';
 import { BotonOjo } from '@/components/boton-ojo';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Resumen } from '@/components/resumen';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { Icono, TituloBloque } from '@/components/ui';
+import { TituloBloque } from '@/components/ui';
 import { espacio, useTema } from '@/theme';
 
 // Inicio (primera pantalla): cómo va el mes, a quién contactar hoy y, junto al título «Resumen», «Nuevo presupuesto». La lista con sus pestañas por estado
@@ -58,16 +58,10 @@ export default function Inicio() {
         }
       >
         <Sincronizacion />
-        {/* «Resumen» y, a su lado, el botón para crear: siempre a la vista, aunque todavía no haya datos que mostrar. */}
+        {/* «Resumen» y, a la derecha, el ojo que oculta los montos del inicio. */}
         <View style={e.titulo}>
-          <View style={e.izquierda}>
-            <TituloBloque titulo="Resumen" icono="tendencia" />
-            <BotonOjo clave={INICIO} chico />
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Nuevo presupuesto" onPress={() => router.push('/nuevo')} hitSlop={8} style={({ pressed }) => [e.nuevo, { backgroundColor: `${t.acento}1A`, opacity: pressed ? 0.6 : 1 }]}>
-            <Text style={[e.textoNuevo, { color: t.acento }]}>+</Text>
-            <Icono nombre="documentoNuevo" tamano={16} color={t.acento} />
-          </Pressable>
+          <TituloBloque titulo="Resumen" icono="tendencia" />
+          <BotonOjo clave={INICIO} />
         </View>
         {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
         <Resumen key={actualizar} ronda={ronda} />
