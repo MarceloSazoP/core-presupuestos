@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { avisar } from '@/lib/toast';
 import { simboloUnidad } from '@/lib/unidades';
 import { CampoModal } from '@/components/campo-modal';
 import { router } from 'expo-router';
@@ -175,12 +176,12 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento, moneda)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
-            <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
+            <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} trackColor={{ true: t.acento }} />
           </View>
           {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Garantía</Texto>
-            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => setGarantia(on ? 'D30' : 'NONE')} trackColor={{ true: t.acento }} />
+            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => { setGarantia(on ? 'D30' : 'NONE'); avisar.info(on ? 'Garantía activada' : 'Garantía desactivada', on ? 'Elige cuánto dura.' : 'El presupuesto sale sin garantía.'); }} trackColor={{ true: t.acento }} />
           </View>
           {garantia !== 'NONE' ? (
             <View style={e.grupo}>

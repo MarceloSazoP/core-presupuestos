@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { avisar } from '@/lib/toast';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -30,6 +31,10 @@ export default function Detalle() {
   const [q, setQ] = useState<Presupuesto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editandoCliente, setEditandoCliente] = useState(false);
+  // Al llegar desde «Nuevo presupuesto», un aviso desde arriba en vez de un recuadro fijo en la pantalla.
+  useEffect(() => {
+    if (nuevo === '1') avisar.exito('Presupuesto creado', 'Sigue con la visita y después arma el precio. El código para abrirlo en la web está en el ícono QR.');
+  }, [nuevo]);
   const [parte, setParte] = useState<string | null>(null); // pestaña elegida; null = la primera de su estado
   const [vista, setVista] = useState({ cierre: 0, levantamiento: 0 }); // sube cuando el servidor trae cambios de otro lugar (la web)
   const actual = useRef<Presupuesto | null>(null);
@@ -121,16 +126,6 @@ export default function Detalle() {
         </View>
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
       </View>
-
-      {nuevo === '1' ? (
-        <View style={[e.exito, { backgroundColor: `${t.ok}1A`, borderColor: `${t.ok}66` }]}>
-          <Icono nombre="listo" tamano={22} color={t.ok} />
-          <View style={e.flex}>
-            <Texto fuerte color="ok">Presupuesto creado</Texto>
-            <Texto variante="chico" suave>Sigue con la visita y después arma el precio. El código para abrirlo en la web está arriba, en el ícono QR.</Texto>
-          </View>
-        </View>
-      ) : null}
 
       <Segmentos opciones={partes} valor={actualId} alElegir={setParte} etiqueta="Partes del presupuesto" />
 
