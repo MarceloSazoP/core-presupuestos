@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
+import { correoPresupuesto } from '../../lib/correo-presupuesto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Request, Router } from 'express';
@@ -212,6 +213,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
       to,
       subject: `Presupuesto ${s.number} de ${s.professional.name}`,
       text: `${b.message ?? `Hola ${s.customer.name}, te adjunto el presupuesto ${s.number}.`}\n\nTambién puedes verlo en línea: ${url}\n\n${s.professional.name} · ${s.professional.phone}`,
+      html: correoPresupuesto(s, url, b.message),
       attachment: { filename: `${s.number}.pdf`, content: await readFile(pathOf(doc[0]!.storage_key)) },
     });
     await registerSend(req, q, 'EMAIL'); // solo si el envío salió bien

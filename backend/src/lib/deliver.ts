@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { aviso, correoCorporativo, destacado, parrafo } from './plantilla-correo';
 import { AppError } from '../errors';
 import { hayCorreo, mandarCorreo } from './mail';
 
@@ -6,6 +7,18 @@ export type Channel = 'SMS' | 'EMAIL';
 export type SendCode = (channel: Channel, destination: string, code: string) => Promise<void>;
 
 const MENSAJE = (code: string) => `CorePresupuesto: tu código es ${code}. Vale 10 minutos. No lo compartas con nadie.`;
+
+// El mismo código con formato corporativo: grande y a la vista, con el plazo y la advertencia de no compartirlo.
+export const correoCodigo = (code: string) =>
+  correoCorporativo({
+    preheader: `Tu código de ingreso es ${code}. Vale 10 minutos.`,
+    titulo: 'Tu código de ingreso',
+    cuerpo:
+      parrafo('Usa este código para entrar a CORE Presupuestos:') +
+      destacado(code, { grande: true, etiqueta: 'Código de verificación' }) +
+      parrafo('Vale <strong>10 minutos</strong> y sirve una sola vez.') +
+      aviso('<strong>No lo compartas con nadie.</strong> Nuestro equipo nunca te lo pedirá. Si no intentaste entrar, ignora este correo.'),
+  });
 
 async function postSms(url: string, init: RequestInit): Promise<void> {
   for (let intento = 0; intento < 2; intento++) {
@@ -28,7 +41,7 @@ export const sendCode: SendCode = async (channel, destination, code) => {
   if (dev) console.log(`[OTP] ${channel} ${destination}: ${code}`);
 
   if (channel === 'EMAIL') {
-    if (hayCorreo()) return mandarCorreo({ to: destination, subject: 'Tu código de CorePresupuesto', text: MENSAJE(code) });
+    if (hayCorreo()) return mandarCorreo({ to: destination, subject: 'Tu código de CorePresupuesto', text: MENSAJE(code), html: correoCodigo(code) });
     if (dev) return;
     throw new AppError(502, 'DELIVERY_FAILED', 'El envío por correo no está configurado.');
   }
