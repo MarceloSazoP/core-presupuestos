@@ -57,23 +57,24 @@ export default function Landing() {
           <p className="text-lg font-extrabold tracking-tight">CORE Presupuestos</p>
         </nav>
 
-        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12">
+        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_48rem] 2xl:grid-cols-[minmax(0,1fr)_60rem] 2xl:gap-24">
           <div className="flex flex-col gap-6">
-            <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.04] tracking-[-0.025em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:max-w-[34rem]">
+            <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.04] tracking-[-0.025em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:text-[clamp(2.5rem,3.6vw,4.5rem)] xl:max-w-[34rem] 2xl:max-w-[44rem]">
               Del terreno al presupuesto, sin olvidar nada.
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-tinta/85 lg:max-w-[min(100%,30rem)] xl:max-w-[32rem]">
+            <p className="max-w-xl text-lg leading-relaxed text-tinta/85 lg:max-w-[min(100%,30rem)] xl:max-w-[32rem] 2xl:max-w-[38rem] 2xl:text-xl">
               Anota lo que ves en la visita (notas, fotos, medidas y voz) y entrega un presupuesto profesional en minutos.
               Hecho para electricistas, gasfíteres, instaladores y técnicos independientes.
             </p>
             <p className="w-fit rounded-full border border-tinta/25 bg-white/40 px-3.5 py-1 text-sm font-semibold">Próximamente en Android y iPhone</p>
           </div>
 
-          <div className="relative flex flex-col gap-10 lg:block lg:pb-3.5 xl:static">
+          {/* Con pantalla ancha, la ficha flotante va a la izquierda de la hoja y la cubre solo en su margen (1,25 rem): nunca tapa texto de la hoja. */}
+          <div className="flex flex-col gap-10 lg:pb-3.5 xl:flex-row xl:items-start xl:gap-0">
             <section
               id="consulta"
               aria-labelledby="consultar"
-              className="ficha scroll-mt-6 p-5 lg:absolute lg:top-0 lg:-left-20 lg:z-10 lg:w-[22rem] xl:top-12 xl:left-[54%] xl:-translate-x-1/2"
+              className="ficha scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:relative xl:z-10 xl:mx-0 xl:mt-12 xl:-mr-5 xl:w-[22rem] xl:max-w-none xl:shrink-0 2xl:w-[26rem] 2xl:p-6"
             >
               <ConsultaForm />
               <p aria-hidden="true" className="my-4 flex items-center gap-3 text-sm font-medium text-muted">
@@ -81,7 +82,9 @@ export default function Landing() {
               </p>
               <VinculoQr />
             </section>
-            <HojaDemo />
+            <div className="xl:min-w-0 xl:flex-1">
+              <HojaDemo />
+            </div>
           </div>
         </section>
       </div>

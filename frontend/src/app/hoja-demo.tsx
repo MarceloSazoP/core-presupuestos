@@ -12,7 +12,7 @@ const ITEMS = [
 export function HojaDemo() {
   const { total } = calcularTotales(ITEMS, 0);
   return (
-    <div aria-hidden="true" className="asentar relative mx-auto w-full max-w-md lg:ml-auto lg:mr-0">
+    <div aria-hidden="true" className="asentar relative mx-auto w-full max-w-md lg:ml-auto lg:mr-0 2xl:max-w-[34rem]">
       <div className="absolute inset-0 translate-x-5 translate-y-5 rotate-[3deg] rounded-md bg-rosa" />
       <div className="absolute inset-0 translate-x-2.5 translate-y-2.5 rotate-[1.5deg] rounded-md" style={{ background: "oklch(0.93 0.035 240)" }} />
       <div className="relative -rotate-[1.5deg] rounded-md bg-white p-6 text-tinta ring-1 ring-tinta/15">
