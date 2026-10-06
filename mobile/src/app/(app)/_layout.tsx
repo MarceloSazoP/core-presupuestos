@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { LISTA } from '@/lib/montos';
 import { BotonOjo } from '@/components/boton-ojo';
+import { TituloIr } from '@/components/titulo-ir';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
@@ -10,6 +11,9 @@ import { deNotificacion, sinLeer } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
 import { iniciarCola, vaciar } from '@/sync/cola';
 import { MIN_TOQUE, useTema } from '@/theme';
+
+const INICIO_PANTALLA = { texto: 'Inicio', icono: { ios: 'house.fill', android: 'home', web: 'home' } } as const;
+const PRESUPUESTOS_PANTALLA = { texto: 'Presupuestos', icono: { ios: 'doc.text.fill', android: 'description', web: 'description' } } as const;
 
 // Pila nativa de Expo Router (UINavigationController en iOS): título grande, gesto de volver y modal del sistema.
 export default function AppLayout() {
@@ -35,7 +39,8 @@ export default function AppLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          // A la izquierda, configurar; a la derecha, el ícono de la lista de presupuestos por estado (las pestañas).
+          // El título lleva a Presupuestos («Inicio → Presupuestos»); a la izquierda, configurar; a la derecha, los avisos.
+          headerTitle: () => <TituloIr sentido="adelante" actual={INICIO_PANTALLA} destino={PRESUPUESTOS_PANTALLA} alIr={() => router.push('/presupuestos')} />,
           headerLeft: () => (
             <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
               <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
@@ -44,16 +49,13 @@ export default function AppLayout() {
           headerRight: () => (
             <View style={{ flexDirection: 'row' }}>
               <CampanaAvisos />
-            <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los presupuestos" onPress={() => router.push('/presupuestos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-              <SymbolView name={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} size={22} tintColor={t.acento} fallback={<View />} />
-            </Pressable>
             </View>
           ),
         }}
       />
       {/* título normal: las pestañas quedan fijas debajo */}
       <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Avisos" icono={{ ios: 'bell.fill', android: 'notifications', web: 'notifications' }} /> }} />
-      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', headerRight: () => <BotonOjo clave={LISTA} />, headerTitle: () => <TituloConIcono texto="Presupuestos" icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} /> }} />
+      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', headerRight: () => <BotonOjo clave={LISTA} />, headerTitle: () => <TituloIr sentido="atras" actual={PRESUPUESTOS_PANTALLA} destino={INICIO_PANTALLA} alIr={() => (router.canGoBack() ? router.back() : router.replace('/'))} /> }} />
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
