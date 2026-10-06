@@ -1,3 +1,5 @@
+/* Orden de capas: los estilos de Material UI (/presupuesto) van después de la base de Tailwind y antes de sus utilidades. */
+@layer theme, base, mui, components, utilities;
 @import "tailwindcss";
 
 /* Paleta en OKLCH, neutros teñidos hacia el tono de la marca (262). Pares texto/fondo verificados a ≥ 4,5:1. */
