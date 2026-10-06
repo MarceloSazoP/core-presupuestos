@@ -61,6 +61,12 @@ export default function AppLayout() {
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
       <Stack.Screen name="escanear" options={{ presentation: 'modal', title: 'Ver en la web', headerBackTitle: 'Atrás' }} />
       <Stack.Screen name="configurar" options={{ title: 'Configurar', headerBackTitle: 'Atrás', headerTitle: () => <TituloConIcono texto="Configurar" icono={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }} /> }} />
+      <Stack.Screen name="configurar-datos" options={{ title: 'Mis datos', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Mis datos" icono={{ ios: 'person.fill', android: 'person', web: 'person' }} /> }} />
+      <Stack.Screen name="configurar-imagenes" options={{ title: 'Logo y firma', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Logo y firma" icono={{ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }} /> }} />
+      <Stack.Screen name="configurar-pais" options={{ title: 'País', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="País" icono={{ ios: 'globe', android: 'public', web: 'public' }} /> }} />
+      <Stack.Screen name="configurar-apariencia" options={{ title: 'Apariencia', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Apariencia" icono={{ ios: 'moon.fill', android: 'dark_mode', web: 'dark_mode' }} /> }} />
+      <Stack.Screen name="configurar-informacion" options={{ title: 'Información', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Información" icono={{ ios: 'info.circle.fill', android: 'info', web: 'info' }} /> }} />
+      <Stack.Screen name="configurar-cuenta" options={{ title: 'Mi cuenta', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Mi cuenta" icono={{ ios: 'person.crop.circle.fill', android: 'account_circle', web: 'account_circle' }} /> }} />
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
       </Stack>
     </>
