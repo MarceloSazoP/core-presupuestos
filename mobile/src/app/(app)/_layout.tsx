@@ -55,7 +55,7 @@ export default function AppLayout() {
       />
       {/* título normal: las pestañas quedan fijas debajo */}
       <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Avisos" icono={{ ios: 'bell.fill', android: 'notifications', web: 'notifications' }} /> }} />
-      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', headerRight: () => <BotonOjo clave={LISTA} />, headerTitle: () => <TituloIr sentido="atras" actual={PRESUPUESTOS_PANTALLA} destino={INICIO_PANTALLA} alIr={() => (router.canGoBack() ? router.back() : router.replace('/'))} /> }} />
+      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', gestureEnabled: false, headerRight: () => <BotonOjo clave={LISTA} />, headerTitle: () => <TituloIr sentido="atras" actual={PRESUPUESTOS_PANTALLA} destino={INICIO_PANTALLA} alIr={() => (router.canGoBack() ? router.back() : router.replace('/'))} /> }} />
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
