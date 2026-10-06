@@ -11,6 +11,7 @@ import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { Sincronizacion } from '@/components/sincronizacion';
+import { TituloConIcono } from '@/components/titulo-con-icono';
 import { Boton, Icono, Pastilla, Segmentos, Tarjeta, Texto } from '@/components/ui';
 import { leerCodigo } from '@/lib/codigos';
 import { dinero } from '@/lib/formato';
@@ -94,6 +95,7 @@ export default function Detalle() {
       <Stack.Screen
         options={{
           title: codigo ?? q.code_id ?? 'Presupuesto',
+          headerTitle: () => <TituloConIcono texto={codigo ?? q.code_id ?? 'Presupuesto'} icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} />,
           headerRight: () => (
             <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={8} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
               <Icono nombre="qr" tamano={22} color={t.acento} />

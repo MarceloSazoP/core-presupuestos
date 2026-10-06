@@ -1,4 +1,5 @@
 import { randomUUID } from 'expo-crypto';
+import { TituloConIcono } from '@/components/titulo-con-icono';
 import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
@@ -88,7 +89,7 @@ export default function Nuevo() {
           <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={cancelar} hitSlop={8} style={e.lado}>
             <Texto color="acento">Cancelar</Texto>
           </Pressable>
-          <Texto fuerte accessibilityRole="header">Nuevo presupuesto</Texto>
+          <TituloConIcono texto="Nuevo presupuesto" icono={{ ios: 'doc.badge.plus', android: 'note_add', web: 'note_add' }} />
           <View style={e.lado} />
         </View>
       </View>

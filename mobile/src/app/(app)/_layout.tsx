@@ -1,7 +1,8 @@
 import { router, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SymbolView, type SymbolViewProps } from 'expo-symbols';
+import { SymbolView } from 'expo-symbols';
+import { TituloConIcono } from '@/components/titulo-con-icono';
 import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPendientes, useAvisos } from '@/lib/avisos';
 import { deNotificacion, sinLeer } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
@@ -59,17 +60,6 @@ export default function AppLayout() {
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
       </Stack>
     </>
-  );
-}
-
-// Título de la barra con su ícono al lado (el mismo del botón que lleva a esa pantalla).
-function TituloConIcono({ texto, icono }: { texto: string; icono: SymbolViewProps['name'] }) {
-  const t = useTema();
-  return (
-    <View accessible accessibilityRole="header" accessibilityLabel={texto} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <SymbolView name={icono} size={20} tintColor={t.acento} fallback={<View />} />
-      <Text style={{ color: t.texto, fontSize: 17, fontWeight: '600' }}>{texto}</Text>
-    </View>
   );
 }
 
