@@ -208,7 +208,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
             </View>
           ) : null}
           <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
-          <CampoModal etiqueta="Observaciones (opcional)" titulo="Observaciones" agregar="Agregar observaciones" valor={obs} alCambiar={setObs} maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
+          <CampoModal etiqueta="Observaciones (opcional)" titulo="Observaciones" agregar="Agregar observaciones" icono="documento" valor={obs} alCambiar={setObs} maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
         </Tarjeta>
       </Seccion>
 

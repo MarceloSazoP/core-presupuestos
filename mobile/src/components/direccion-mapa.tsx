@@ -27,7 +27,7 @@ export function DireccionMapa({ etiqueta, direccion, latitude, longitude, alCamb
   const punto = puntoDe(latitude, longitude);
   // La web (vista previa en el navegador) no trae mapas nativos: solo el texto.
   if (Platform.OS === 'web') {
-    return <CampoModal etiqueta={etiqueta} titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={(v) => alCambiar({ direccion: v, latitude: null, longitude: null })} multiline={false} maxLength={300} />;
+    return <CampoModal etiqueta={etiqueta} titulo="Dirección" agregar="Agregar dirección" icono="ubicacion" valor={direccion} alCambiar={(v) => alCambiar({ direccion: v, latitude: null, longitude: null })} multiline={false} maxLength={300} />;
   }
   const lleno = direccion.trim().length > 0 || punto !== null;
   return (

@@ -92,7 +92,7 @@ function Trabajo({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" maxPalabras={69} valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion, punto); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
+      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" icono="trabajo" maxPalabras={69} valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion, punto); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
       <DireccionMapa etiqueta="Dirección del trabajo (opcional)" direccion={direccion} latitude={punto.latitude} longitude={punto.longitude} alCambiar={(d) => { setDireccion(d.direccion); setPunto({ latitude: d.latitude, longitude: d.longitude }); void guardar(servicio, d.direccion, { latitude: d.latitude, longitude: d.longitude }); }} />
     </View>
   );
@@ -117,7 +117,7 @@ function Notas({ q, cambiar }: Props) {
   }
 
   return (
-    <CampoModal etiqueta="Notas" titulo="Notas" agregar="Agregar nota" valor={notas} alCambiar={(v) => { setNotas(v); setEstado(null); void guardar(v); }} placeholder="Qué viste, qué pidió el cliente, lo que no puedes olvidar" error={estado && estado !== 'Guardado' ? estado : null} ayuda={estado === 'Guardado' ? 'Guardado' : undefined} />
+    <CampoModal etiqueta="Notas" titulo="Notas" agregar="Agregar nota" icono="lapiz" valor={notas} alCambiar={(v) => { setNotas(v); setEstado(null); void guardar(v); }} placeholder="Qué viste, qué pidió el cliente, lo que no puedes olvidar" error={estado && estado !== 'Guardado' ? estado : null} ayuda={estado === 'Guardado' ? 'Guardado' : undefined} />
   );
 }
 

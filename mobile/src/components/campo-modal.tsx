@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { palabrasDe, recortarPalabras } from '@/lib/palabras';
 import { Modal, Pressable, ScrollView, StyleSheet, View, type TextInputProps } from 'react-native';
-import { Boton, Campo, Icono, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Texto, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Un texto largo (servicio, dirección, notas) que se escribe en su propia hoja: vacío es un botón «Agregar …»; con texto, la
@@ -17,11 +17,12 @@ type Props = {
   placeholder?: string;
   ayuda?: string;
   error?: string | null;
+  icono?: NombreIcono; // el ícono del campo (persona, sobre, maletín…): va de color en el botón y en la tarjeta
   multiline?: boolean;
   maxPalabras?: number; // tope de palabras (se corta al escribir y se muestra la cuenta)
 } & Entrada;
 
-export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeholder, ayuda, error, multiline = true, maxPalabras, ...entrada }: Props) {
+export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeholder, ayuda, error, icono = 'mas', multiline = true, maxPalabras, ...entrada }: Props) {
   const t = useTema();
   const [abierto, setAbierto] = useState(false);
   const lleno = valor.trim().length > 0;
@@ -30,11 +31,12 @@ export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeh
       <Texto variante="chico" fuerte>{etiqueta}</Texto>
       {lleno ? (
         <Pressable accessibilityRole="button" accessibilityLabel={`${etiqueta}: ${valor}. Editar`} onPress={() => setAbierto(true)} style={({ pressed }) => [e.tarjeta, { backgroundColor: t.tarjeta, borderColor: error ? t.error : t.bordeCampo, opacity: pressed ? 0.7 : 1 }]}>
+          <Icono nombre={icono} tamano={18} color={t.acento} />
           <Texto style={e.flex}>{valor}</Texto>
           <Icono nombre="lapiz" tamano={18} color={t.acento} />
         </Pressable>
       ) : (
-        <Boton titulo={agregar} icono="mas" variante="secundario" onPress={() => setAbierto(true)} />
+        <Boton titulo={agregar} icono={icono} colorIcono={t.acento} variante="secundario" onPress={() => setAbierto(true)} />
       )}
       {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : ayuda ? <Texto variante="chico" suave>{ayuda}</Texto> : null}
       {abierto ? (
