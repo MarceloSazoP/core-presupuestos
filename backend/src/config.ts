@@ -32,6 +32,12 @@ const schema = z
     AUTH_PHONE_LIMIT_PER_HOUR: z.coerce.number().int().min(1).optional(),
     OTP_LOG_CODES: bool,
 
+    // Opcionales: SMS por Twilio y correo por Resend. Con SMTP completo no hace falta ninguno.
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_FROM: z.string().optional(),
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
     // SMTP para correo (p. ej. Gmail con contraseña de aplicación)
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().int().default(587),
@@ -46,6 +52,9 @@ const schema = z
     }
     if (c.NODE_ENV !== 'production') return;
     if (c.OTP_LOG_CODES) ctx.addIssue({ code: 'custom', path: ['OTP_LOG_CODES'], message: 'no puede estar activo en producción' });
+    // El correo es lo único obligatorio: SMTP completo o Resend.
+    const smtp = !!c.SMTP_HOST && !!c.SMTP_USER && !!c.SMTP_PASSWORD;
+    if (!smtp && !(c.RESEND_API_KEY && c.EMAIL_FROM)) ctx.addIssue({ code: 'custom', path: ['SMTP_HOST'], message: 'en producción hace falta SMTP (SMTP_HOST, SMTP_USER y SMTP_PASSWORD)' });
   });
 
 const parsed = schema.safeParse(process.env);
