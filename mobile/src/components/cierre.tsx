@@ -102,15 +102,32 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
 
   return (
     <>
-      {/* El total siempre a la vista, arriba, y es el real: con el impuesto incluido. Debajo se desglosa (neto + IVA, o el impuesto del país). */}
+      {/* El total siempre a la vista, arriba, y es el real. Sin impuesto dice solo «Total»; con impuesto (IVA, o el del país) se desglosa:
+          subtotal, descuento si hay, impuesto y total. */}
       <Tarjeta style={{ backgroundColor: t.kpi1Fondo, borderColor: t.borde }}>
-        <View accessible accessibilityLabel={`Total ${clp(total)}${conIva ? `, con ${impuesto} incluido` : ''}`} style={e.bloqueTotal}>
-        <View style={e.totalArriba}>
-          <Texto fuerte style={{ color: t.kpi1Tinta }}>Total</Texto>
-          <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
-        </View>
-        {conIva ? <Texto variante="chico" style={{ color: t.kpi1Tinta }}>{`Neto ${clp(total - iva)} + ${impuesto} (${tasa} %) ${clp(iva)}`}</Texto> : null}
-        {entero(descuento) > 0 ? <Texto variante="chico" style={{ color: t.kpi1Tinta }}>{`Subtotal ${clp(subtotal)} · Descuento −${clp(entero(descuento))}`}</Texto> : null}
+        <View accessible accessibilityLabel={conIva ? `Subtotal ${clp(subtotal)}.${entero(descuento) > 0 ? ` Descuento ${clp(entero(descuento))}.` : ''} ${impuesto} ${tasa} por ciento, ${clp(iva)}. Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
+          {conIva ? (
+            <>
+              <View style={e.filaDesglose}>
+                <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>Subtotal</Texto>
+                <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(subtotal)}</Texto>
+              </View>
+              {entero(descuento) > 0 ? (
+                <View style={e.filaDesglose}>
+                  <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>Descuento</Texto>
+                  <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>−{clp(entero(descuento))}</Texto>
+                </View>
+              ) : null}
+              <View style={e.filaDesglose}>
+                <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>{impuesto} {tasa}%</Texto>
+                <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(iva)}</Texto>
+              </View>
+            </>
+          ) : null}
+          <View style={[e.filaDesglose, conIva && e.total, conIva && { borderTopColor: `${t.kpi1Tinta}59` }]}>
+            <Texto fuerte style={{ color: t.kpi1Tinta }}>Total</Texto>
+            <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto, { color: t.kpi1Tinta }]}>{clp(total)}</Texto>
+          </View>
         </View>
       </Tarjeta>
 
@@ -259,8 +276,8 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 }
 
 const e = StyleSheet.create({
-  bloqueTotal: { gap: espacio.xs },
-  totalArriba: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
+  bloqueTotal: { gap: espacio.s },
+  filaDesglose: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   totalMonto: { flexShrink: 1, textAlign: 'right' },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   flex: { flex: 1 },
@@ -276,7 +293,7 @@ const e = StyleSheet.create({
   textoIva: { flex: 1 },
   filaTotal: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
   totales: { gap: espacio.s, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m },
-  total: { borderTopWidth: 2, paddingTop: espacio.m, marginTop: espacio.xs },
+  total: { borderTopWidth: 1, paddingTop: espacio.m, marginTop: espacio.xs },
   acciones: { gap: espacio.m, paddingTop: espacio.s },
   monto: { fontVariant: ['tabular-nums'] },
   centrado: { textAlign: 'center' },
