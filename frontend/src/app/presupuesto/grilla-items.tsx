@@ -2,6 +2,9 @@
 
 import { AllCommunityModule, ModuleRegistry, themeQuartz, type CellEditingStoppedEvent, type ColDef, type GridApi } from "ag-grid-community";
 import { AgGridReact, type CustomCellEditorProps } from "ag-grid-react";
+import Close from "@mui/icons-material/Close";
+import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { dinero, miles, milesConDecimal } from "@/lib/formato";
 import { GRUPOS_UNIDAD, simboloUnidad, textoUnidad } from "@/lib/opciones";
@@ -17,19 +20,20 @@ export type Fila = { clave: number; tipo: "item" | "tarea"; descripcion: string;
 const aNumero = (s: string) => Number(s.trim().replace(",", ".")) || 0;
 const aEntero = (s: string) => Number(s.replace(/[^\d]/g, "")) || 0;
 
-// Colores y medidas enlazados a los tokens de la app, para que siga el tema claro/oscuro.
+// Colores y medidas enlazados a las variables del tema de Material UI, para que siga el modo claro/oscuro.
 const tema = themeQuartz.withParams({
   fontFamily: "inherit",
   fontSize: 16,
-  rowHeight: 44,
-  headerHeight: 40,
-  backgroundColor: "var(--card)",
-  foregroundColor: "var(--foreground)",
-  headerBackgroundColor: "color-mix(in oklab, var(--foreground) 5%, var(--card))",
-  headerTextColor: "var(--muted)",
-  borderColor: "var(--borde)",
-  accentColor: "var(--acento-texto)",
-  wrapperBorderRadius: 12,
+  rowHeight: 48,
+  headerHeight: 44,
+  backgroundColor: "var(--mui-palette-background-paper)",
+  foregroundColor: "var(--mui-palette-text-primary)",
+  headerBackgroundColor: "var(--mui-palette-action-hover)",
+  headerTextColor: "var(--mui-palette-text-primary)",
+  headerFontWeight: 500,
+  borderColor: "var(--mui-palette-divider)",
+  accentColor: "var(--mui-palette-primary-main)",
+  wrapperBorderRadius: 4,
   headerColumnResizeHandleWidth: 0, // columnas fijas: sin las barras entre los títulos
 });
 
@@ -76,7 +80,7 @@ function EditorNumero({
         onValueChange(limpio);
       }}
       onFocus={(e) => (tecleado === null ? e.target.select() : undefined)}
-      className="size-full bg-card px-3 text-right text-foreground outline-none"
+      style={{ width: "100%", height: "100%", padding: "0 12px", textAlign: "right", background: "var(--mui-palette-background-paper)", color: "var(--mui-palette-text-primary)", outline: "none", border: 0 }}
     />
   );
 }
@@ -93,7 +97,7 @@ function EditorUnidad({ initialValue, onValueChange }: CustomCellEditorProps<Fil
         setValor(e.target.value);
         onValueChange(e.target.value);
       }}
-      className="size-full bg-card px-2 text-foreground"
+      style={{ width: "100%", height: "100%", padding: "0 8px", background: "var(--mui-palette-background-paper)", color: "var(--mui-palette-text-primary)", border: 0 }}
     >
       {GRUPOS_UNIDAD.map((g) => (
         <optgroup key={g.grupo} label={g.grupo}>
@@ -150,11 +154,11 @@ export function GrillaItems({
         // La etiqueta distingue las tareas de los ítems de un vistazo.
         cellRenderer: (p: { data?: Fila; value?: string }) =>
           !p.value ? (
-            <span className="text-muted">{p.data?.tipo === "tarea" ? "Por ejemplo: botar escombros" : "Qué vas a hacer o vender"}</span>
+            <span style={{ color: "var(--mui-palette-text-secondary)" }}>{p.data?.tipo === "tarea" ? "Por ejemplo: botar escombros" : "Qué vas a hacer o vender"}</span>
           ) : p.data?.tipo === "tarea" ? (
-            <span className="flex items-center gap-2">
-              <span className="shrink-0 rounded border border-borde px-1.5 text-xs font-semibold uppercase tracking-wide text-muted">Tarea</span>
-              <span className="truncate">{p.value}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Chip label="Tarea" size="small" variant="outlined" />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.value}</span>
             </span>
           ) : (
             p.value
@@ -170,7 +174,7 @@ export function GrillaItems({
         cellEditorParams: { formatear: milesConDecimal, limpiar: limpiarCantidad },
         valueFormatter: (p) => (p.data?.tipo === "tarea" ? "—" : milesConDecimal(p.value ?? "")),
         valueParser: (p) => limpiarCantidad(String(p.newValue ?? "")),
-        cellClassRules: { "text-error": (p) => p.data?.tipo !== "tarea" && aNumero(p.value ?? "") <= 0 }, // la cantidad de un ítem debe ser mayor que 0
+        cellStyle: (p) => (p.data?.tipo !== "tarea" && aNumero(p.value ?? "") <= 0 ? { color: "var(--mui-palette-error-main)" } : null), // la cantidad de un ítem debe ser mayor que 0
       },
       {
         field: "unidad",
@@ -196,7 +200,8 @@ export function GrillaItems({
         width: 160, // cabe $999.999.999 en negrita sin cortarse
         type: "rightAligned",
         editable: false,
-        cellClass: ["ag-right-aligned-cell", "font-medium"],
+        cellClass: "ag-right-aligned-cell",
+        cellStyle: { fontWeight: 500 },
         valueGetter: (p) => {
           if (!p.data) return "";
           if (p.data.tipo === "tarea") return aEntero(p.data.precio) > 0 ? clp(aEntero(p.data.precio)) : "Incluido";
@@ -209,17 +214,9 @@ export function GrillaItems({
         editable: false,
         cellRenderer: (p: { data?: Fila }) =>
           filas.length > 1 && p.data ? (
-            <button
-              type="button"
-              aria-label="Quitar línea"
-              onClick={() => onChange(filas.filter((f) => f.clave !== p.data?.clave))}
-              title="Quitar línea"
-              className="boton-icono size-full !min-h-0 hover:!text-error"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                <path d="M6 6l12 12M18 6 6 18" />
-              </svg>
-            </button>
+            <IconButton aria-label="Quitar línea" title="Quitar línea" size="small" onClick={() => onChange(filas.filter((f) => f.clave !== p.data?.clave))} sx={{ "&:hover": { color: "error.main" } }}>
+              <Close fontSize="small" />
+            </IconButton>
           ) : null,
       },
     ],

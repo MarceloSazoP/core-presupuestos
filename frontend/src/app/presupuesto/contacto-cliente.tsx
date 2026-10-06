@@ -1,9 +1,26 @@
 "use client";
 
+import EditOutlined from "@mui/icons-material/EditOutlined";
+import Alert from "@mui/material/Alert";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useState, useTransition } from "react";
 import { bandera, PAISES_ORDENADOS, separarTelefono } from "@/lib/paises";
 import { formatearTelefono, plantillaTelefono } from "@/lib/telefono";
 import { corregirClienteAction } from "../actions";
+
+const iniciales = (nombre: string) =>
+  nombre
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
 
 // Teléfono y correo del cliente, siempre corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
 // después, incluso con el presupuesto terminado. No lleva <form> propio: se usa dentro del formulario del editor.
@@ -26,14 +43,18 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
 
   if (!editando) {
     return (
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex flex-col">
-          {nombre !== undefined && <p className="text-lg font-semibold text-foreground">{nombre}</p>}
-          <p className="text-muted">{telefono}</p>
-          <p className="text-muted">{correo ?? "Sin correo"}</p>
-        </div>
-        <button
-          type="button"
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        {nombre !== undefined ? <Avatar aria-hidden="true">{iniciales(nombre)}</Avatar> : null}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {nombre !== undefined ? <Typography sx={{ fontWeight: 500 }}>{nombre}</Typography> : null}
+          <Typography variant="body2" color="text.secondary">
+            {telefono}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
+            {correo ?? "Sin correo"}
+          </Typography>
+        </Box>
+        <IconButton
           onClick={() => {
             setNom(nombre ?? "");
             const sep = separarTelefono(telefono, prefijo ?? "+56");
@@ -43,65 +64,66 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
             setError(null);
             setEditando(true);
           }}
-          className="boton-icono -mr-2 -mt-2 shrink-0"
           aria-label="Corregir los datos del cliente"
           title="Corregir los datos del cliente"
+          sx={{ alignSelf: "flex-start" }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-        </button>
-      </div>
+          <EditOutlined />
+        </IconButton>
+      </Box>
     );
   }
   return (
-    <div className="flex flex-col gap-3" role="group" aria-label="Corregir los datos del cliente">
-      {nombre !== undefined && (
-        <label className="flex flex-col gap-1">
-          <span className="etiqueta">Nombre del cliente</span>
-          <input type="text" autoComplete="off" value={nom} onChange={(e) => setNom(e.target.value)} className="campo" />
-        </label>
-      )}
-      <div className="flex flex-col gap-1">
-        <label htmlFor="tel-cliente" className="etiqueta">Teléfono del cliente</label>
-        <div className="flex gap-2">
-          {/* El código de país: Chile primero y luego todos por nombre. */}
-          <select
-            aria-label="Código de país"
-            value={cod}
-            onChange={(e) => {
-              setCod(e.target.value);
-              setTel(formatearTelefono(tel, e.target.value)); // lo ya escrito toma el formato del nuevo país
-            }}
-            className="campo w-auto shrink-0"
-          >
-            {PAISES_ORDENADOS.map((p) => (
-              <option key={p.country} value={p.calling_code}>
-                {bandera(p.country)} {p.name} {p.calling_code}
-              </option>
-            ))}
-          </select>
-          <input id="tel-cliente" type="tel" inputMode="tel" autoComplete="off" value={formatearTelefono(tel, cod)} onChange={(e) => setTel(formatearTelefono(e.target.value, cod))} maxLength={24} placeholder={plantillaTelefono(cod)} className="campo min-w-0 flex-1" />
-        </div>
-      </div>
-      <label className="flex flex-col gap-1">
-        <span className="etiqueta">Correo del cliente</span>
-        <input type="email" inputMode="email" autoComplete="off" autoCapitalize="none" value={mail} onChange={(e) => setMail(e.target.value)} placeholder="Déjalo vacío si no tiene" className="campo" />
-      </label>
-      {error && (
-        <p role="alert" className="text-sm text-error">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={enCurso} onClick={guardar} className="boton">
-          {enCurso ? "Guardando…" : "Guardar"}
-        </button>
-        <button type="button" disabled={enCurso} onClick={() => setEditando(false)} className="boton-secundario">
+    <Stack spacing={2.5} role="group" aria-label="Corregir los datos del cliente" sx={{ pt: 1 }}>
+      {nombre !== undefined ? <TextField label="Nombre del cliente" autoComplete="off" value={nom} onChange={(e) => setNom(e.target.value)} /> : null}
+      <Box sx={{ display: "flex", gap: 1 }}>
+        {/* El código de país: Chile primero y luego todos por nombre. */}
+        <TextField
+          select
+          label="País"
+          value={cod}
+          onChange={(e) => {
+            setCod(e.target.value);
+            setTel(formatearTelefono(tel, e.target.value)); // lo ya escrito toma el formato del nuevo país
+          }}
+          slotProps={{ select: { native: true } }}
+          sx={{ width: "auto", flexShrink: 0, maxWidth: "45%" }}
+        >
+          {PAISES_ORDENADOS.map((p) => (
+            <option key={p.country} value={p.calling_code}>
+              {bandera(p.country)} {p.name} {p.calling_code}
+            </option>
+          ))}
+        </TextField>
+        <TextField
+          label="Teléfono del cliente"
+          type="tel"
+          autoComplete="off"
+          value={formatearTelefono(tel, cod)}
+          onChange={(e) => setTel(formatearTelefono(e.target.value, cod))}
+          placeholder={plantillaTelefono(cod)}
+          slotProps={{ htmlInput: { inputMode: "tel", maxLength: 24 } }}
+          sx={{ minWidth: 0 }}
+        />
+      </Box>
+      <TextField
+        label="Correo del cliente"
+        type="email"
+        autoComplete="off"
+        value={mail}
+        onChange={(e) => setMail(e.target.value)}
+        placeholder="Déjalo vacío si no tiene"
+        slotProps={{ htmlInput: { inputMode: "email", autoCapitalize: "none" } }}
+      />
+      {error ? <Alert severity="error">{error}</Alert> : null}
+      <Stack direction="row" spacing={1}>
+        <Button variant="contained" loading={enCurso} onClick={guardar}>
+          Guardar
+        </Button>
+        <Button disabled={enCurso} onClick={() => setEditando(false)}>
           Cancelar
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Stack>
+    </Stack>
   );
 }

@@ -104,6 +104,7 @@ export type EstadoEdicion = {
     total: string;
     correo: { ok: boolean; mensaje: string };
     whatsappUrl: string;
+    enlace: string | null; // vista pública de solo lectura
   };
 };
 
@@ -237,6 +238,7 @@ export async function completarPresupuestoAction(_previo: EstadoEdicion, datos: 
         total,
         correo,
         whatsappUrl: enlaceWhatsApp(q.customer.phone, mensajePresupuesto({ nombre: q.customer.name, numero: q.number!, total, descripcion: q.service_description, enlace: q.public_url })),
+        enlace: q.public_url,
       },
     };
   } catch (e) {

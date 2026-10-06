@@ -1,11 +1,12 @@
 "use client";
 
+import Typography from "@mui/material/Typography";
 import { useEffect, useState } from "react";
 
-const fecha = new Intl.DateTimeFormat("es-CL", { dateStyle: "full" });
+const fecha = new Intl.DateTimeFormat("es-CL", { weekday: "short", day: "numeric", month: "short" });
 const hora = new Intl.DateTimeFormat("es-CL", { timeStyle: "short", hourCycle: "h23" });
 
-// Se dibuja solo en el navegador: el servidor y el cliente nunca coincidirían en el segundo exacto.
+// Se dibuja solo en el navegador: el servidor y el cliente nunca coincidirían en el segundo exacto. Hereda el color de la barra.
 export function Reloj() {
   const [ahora, setAhora] = useState<Date | null>(null);
 
@@ -17,11 +18,14 @@ export function Reloj() {
   }, []);
 
   return (
-    <div className="flex flex-col sm:items-end" aria-live="off">
-      <time dateTime={ahora?.toISOString()} className="text-xl font-semibold tabular-nums leading-none">
-        {ahora ? hora.format(ahora) : "--:--"}
-      </time>
-      <span className="mt-1 block text-sm text-muted first-letter:uppercase">{ahora ? fecha.format(ahora) : " "}</span>
-    </div>
+    <Typography component="p" variant="body2" aria-live="off" sx={{ opacity: 0.9, fontVariantNumeric: "tabular-nums", "&::first-letter": { textTransform: "uppercase" } }}>
+      {ahora ? (
+        <>
+          {fecha.format(ahora)} · <time dateTime={ahora.toISOString()}>{hora.format(ahora)}</time>
+        </>
+      ) : (
+        " "
+      )}
+    </Typography>
   );
 }

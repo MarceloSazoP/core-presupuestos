@@ -1,5 +1,12 @@
 "use client";
 
+import Close from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useSyncExternalStore } from "react";
 import { dinero, milesConDecimal } from "@/lib/formato";
 import { GRUPOS_UNIDAD, textoUnidad } from "@/lib/opciones";
@@ -28,99 +35,86 @@ export function ListaItemsMovil({ moneda, filas, onChange }: { moneda: string; f
   const clp = (n: number) => dinero(n, moneda);
   const cambiar = (clave: number, campos: Partial<Fila>) => onChange(filas.map((f) => (f.clave === clave ? { ...f, ...campos } : f)));
   return (
-    <ul className="flex flex-col gap-3">
+    <Stack component="ul" spacing={1.5} sx={{ m: 0, p: 0, listStyle: "none" }}>
       {filas.map((f, n) => {
         const tarea = f.tipo === "tarea";
         const total = tarea ? (aEntero(f.precio) > 0 ? clp(aEntero(f.precio)) : "Incluido") : clp(totalLinea(aNumero(f.cantidad), aEntero(f.precio)));
         return (
-          <li key={f.clave} className="flex flex-col gap-3 rounded-xl border border-borde bg-background p-3">
-            <div className="flex items-center justify-between gap-2">
-              <p className="seccion">
+          <Paper component="li" key={f.clave} variant="outlined" sx={{ p: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+              <Typography variant="subtitle1" component="p" sx={{ fontWeight: 500 }}>
                 {tarea ? "Tarea" : "Ítem"} {n + 1}
-              </p>
-              {filas.length > 1 && (
-                <button type="button" onClick={() => onChange(filas.filter((x) => x.clave !== f.clave))} aria-label={`Quitar la línea ${n + 1}`} className="boton-icono -mr-1 -mt-1 hover:!text-error">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <path d="M6 6l12 12M18 6 6 18" />
-                  </svg>
-                </button>
-              )}
-            </div>
+              </Typography>
+              {filas.length > 1 ? (
+                <IconButton onClick={() => onChange(filas.filter((x) => x.clave !== f.clave))} aria-label={`Quitar la línea ${n + 1}`} sx={{ mr: -1, "&:hover": { color: "error.main" } }}>
+                  <Close />
+                </IconButton>
+              ) : null}
+            </Box>
 
-            <label className="flex flex-col gap-1">
-              <span className="etiqueta">{tarea ? "Qué se hace" : "Descripción"}</span>
-              <input
-                type="text"
-                maxLength={300}
-                autoComplete="off"
-                value={f.descripcion}
-                onChange={(e) => cambiar(f.clave, { descripcion: e.target.value })}
-                placeholder={tarea ? "Por ejemplo: botar escombros" : "Qué vas a hacer o vender"}
-                className="campo"
-              />
-            </label>
+            <TextField
+              label={tarea ? "Qué se hace" : "Descripción"}
+              autoComplete="off"
+              value={f.descripcion}
+              onChange={(e) => cambiar(f.clave, { descripcion: e.target.value })}
+              placeholder={tarea ? "Por ejemplo: botar escombros" : "Qué vas a hacer o vender"}
+              slotProps={{ htmlInput: { maxLength: 300 } }}
+            />
 
             {tarea ? (
-              <label className="flex flex-col gap-1">
-                <span className="etiqueta">Valor (opcional)</span>
-                <input
-                  inputMode="numeric"
+              <TextField
+                label="Valor (opcional)"
+                autoComplete="off"
+                value={f.precio ? clp(aEntero(f.precio)) : ""}
+                onChange={(e) => cambiar(f.clave, { precio: limpiarPrecio(e.target.value) })}
+                placeholder="$0"
+                helperText="Si lo dejas vacío, la tarea va incluida en el presupuesto."
+                slotProps={{ htmlInput: { inputMode: "numeric", style: { textAlign: "right" } } }}
+              />
+            ) : (
+              <Box sx={{ display: "grid", gridTemplateColumns: "6rem minmax(0, 1fr)", gap: 2 }}>
+                <TextField
+                  label="Cantidad"
+                  autoComplete="off"
+                  value={milesConDecimal(f.cantidad)}
+                  onChange={(e) => cambiar(f.clave, { cantidad: limpiarCantidad(e.target.value) })}
+                  error={aNumero(f.cantidad) <= 0}
+                  slotProps={{ htmlInput: { inputMode: "decimal", style: { textAlign: "right" } } }}
+                />
+                <TextField select label="Unidad" value={f.unidad} onChange={(e) => cambiar(f.clave, { unidad: e.target.value })} slotProps={{ select: { native: true } }}>
+                  {GRUPOS_UNIDAD.map((g) => (
+                    <optgroup key={g.grupo} label={g.grupo}>
+                      {g.unidades.map((u) => (
+                        <option key={u.codigo} value={u.codigo}>
+                          {textoUnidad(u)}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Precio unitario"
                   autoComplete="off"
                   value={f.precio ? clp(aEntero(f.precio)) : ""}
                   onChange={(e) => cambiar(f.clave, { precio: limpiarPrecio(e.target.value) })}
                   placeholder="$0"
-                  className="campo text-right"
+                  slotProps={{ htmlInput: { inputMode: "numeric", style: { textAlign: "right" } } }}
+                  sx={{ gridColumn: "1 / -1" }}
                 />
-                <span className="ayuda">Si lo dejas vacío, la tarea va incluida en el presupuesto.</span>
-              </label>
-            ) : (
-              <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-3">
-                <label className="flex flex-col gap-1">
-                  <span className="etiqueta">Cantidad</span>
-                  <input
-                    inputMode="decimal"
-                    autoComplete="off"
-                    value={milesConDecimal(f.cantidad)}
-                    onChange={(e) => cambiar(f.clave, { cantidad: limpiarCantidad(e.target.value) })}
-                    aria-invalid={aNumero(f.cantidad) <= 0}
-                    className="campo text-right"
-                  />
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="etiqueta">Unidad</span>
-                  <select value={f.unidad} onChange={(e) => cambiar(f.clave, { unidad: e.target.value })} className="campo">
-                    {GRUPOS_UNIDAD.map((g) => (
-                      <optgroup key={g.grupo} label={g.grupo}>
-                        {g.unidades.map((u) => (
-                          <option key={u.codigo} value={u.codigo}>
-                            {textoUnidad(u)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </label>
-                <label className="col-span-2 flex flex-col gap-1">
-                  <span className="etiqueta">Precio unitario</span>
-                  <input
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={f.precio ? clp(aEntero(f.precio)) : ""}
-                    onChange={(e) => cambiar(f.clave, { precio: limpiarPrecio(e.target.value) })}
-                    placeholder="$0"
-                    className="campo text-right"
-                  />
-                </label>
-              </div>
+              </Box>
             )}
 
-            <p className="flex items-baseline justify-between border-t border-borde pt-2 tabular-nums">
-              <span className="text-sm text-muted">Total de la línea</span>
-              <span className="text-lg font-semibold">{total}</span>
-            </p>
-          </li>
+            <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", borderTop: 1, borderColor: "divider", pt: 1.5, fontVariantNumeric: "tabular-nums" }}>
+              <Typography variant="body2" color="text.secondary">
+                Total de la línea
+              </Typography>
+              <Typography variant="h6" component="p">
+                {total}
+              </Typography>
+            </Box>
+          </Paper>
         );
       })}
-    </ul>
+    </Stack>
   );
 }

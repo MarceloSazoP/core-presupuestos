@@ -1,5 +1,13 @@
 "use client";
 
+import EditOutlined from "@mui/icons-material/EditOutlined";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useState, useTransition } from "react";
 import { guardarNotasAction } from "../actions";
 
@@ -20,51 +28,47 @@ export function NotasVisita({ notas }: { notas: string | null }) {
 
   if (!editando) {
     return (
-      <div className="flex items-start justify-between gap-2">
-        {notas ? <p className="whitespace-pre-line">{notas}</p> : <p className="text-muted">Sin notas.</p>}
-        <button
-          type="button"
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+        {notas ? (
+          <Typography sx={{ whiteSpace: "pre-line" }}>{notas}</Typography>
+        ) : (
+          <Typography color="text.secondary">Sin notas.</Typography>
+        )}
+        <IconButton
           onClick={() => {
             setTexto(notas ?? "");
             setError(null);
             setEditando(true);
           }}
-          className="boton-icono -mr-2 -mt-2 shrink-0"
           aria-label="Editar las notas de la visita"
           title="Editar las notas de la visita"
+          sx={{ mt: -1, mr: -1 }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-        </button>
-      </div>
+          <EditOutlined />
+        </IconButton>
+      </Box>
     );
   }
   return (
-    <div className="flex flex-col gap-3">
-      <textarea
+    <Stack spacing={1.5}>
+      <TextField
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
-        rows={5}
-        maxLength={10000}
-        aria-label="Notas de la visita"
-        className="campo"
+        multiline
+        minRows={4}
+        label="Notas de la visita"
         autoFocus
+        slotProps={{ htmlInput: { maxLength: 10000 } }}
       />
-      {error && (
-        <p role="alert" className="text-sm text-error">
-          {error}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={enCurso} onClick={guardar} className="boton">
-          {enCurso ? "Guardando…" : "Guardar"}
-        </button>
-        <button type="button" disabled={enCurso} onClick={() => setEditando(false)} className="boton-secundario">
+      {error ? <Alert severity="error">{error}</Alert> : null}
+      <Stack direction="row" spacing={1}>
+        <Button variant="contained" loading={enCurso} onClick={guardar}>
+          Guardar
+        </Button>
+        <Button disabled={enCurso} onClick={() => setEditando(false)}>
           Cancelar
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Stack>
+    </Stack>
   );
 }

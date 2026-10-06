@@ -1,32 +1,24 @@
-// Esqueleto con la forma de la pantalla: título, «De la visita», la hoja del presupuesto y, en pantallas anchas, el resumen a la
-// derecha. Evita el salto de layout mientras carga el presupuesto.
+import Box from "@mui/material/Box";
+import Skeleton from "@mui/material/Skeleton";
+import Stack from "@mui/material/Stack";
+
+// Esqueleto con la forma de la pantalla: barra superior, título, «De la visita», la hoja del presupuesto y el resumen. Evita el salto
+// de layout mientras carga el presupuesto.
 export default function Cargando() {
   return (
-    <main className="mx-auto flex w-full max-w-[84rem] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-10" aria-busy="true" aria-label="Cargando presupuesto">
-      <div className="esqueleto h-14 w-full" />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-start xl:gap-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <div className="esqueleto h-9 w-80 max-w-full" />
-            <div className="esqueleto h-5 w-96 max-w-full" />
-          </div>
-          <div className="esqueleto h-36 w-full" />
-          <div className="flex flex-col gap-8 rounded-xl border border-borde bg-card p-5 sm:p-8">
-            <div className="flex flex-col gap-2">
-              <div className="esqueleto h-4 w-20" />
-              <div className="esqueleto h-6 w-48 max-w-full" />
-            </div>
-            <div className="esqueleto h-20 w-full" />
-            <div className="esqueleto h-32 w-full" />
-            <div className="esqueleto h-24 w-full" />
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 rounded-xl border border-borde bg-card p-5 sm:p-6">
-          <div className="esqueleto h-5 w-24" />
-          <div className="esqueleto h-24 w-full" />
-          <div className="esqueleto h-11 w-full" />
-        </div>
-      </div>
-    </main>
+    <Box aria-busy="true" aria-label="Cargando presupuesto">
+      <Skeleton variant="rectangular" height={72} animation="wave" />
+      <Box sx={{ mx: "auto", maxWidth: "84rem", px: { xs: 2, sm: 3, lg: 5 }, py: 3, display: "flex", flexDirection: "column", gap: 3 }}>
+        <Stack spacing={1}>
+          <Skeleton variant="text" sx={{ fontSize: "2.125rem", width: "20rem", maxWidth: "100%" }} />
+          <Skeleton variant="text" sx={{ width: "28rem", maxWidth: "100%" }} />
+        </Stack>
+        <Box sx={{ display: "grid", gap: 3, alignItems: "start", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 21rem", xl: "20rem minmax(0, 1fr) 21rem" } }}>
+          <Skeleton variant="rounded" height={260} />
+          <Skeleton variant="rounded" height={560} sx={{ display: { xs: "none", xl: "block" } }} />
+          <Skeleton variant="rounded" height={360} />
+        </Box>
+      </Box>
+    </Box>
   );
 }

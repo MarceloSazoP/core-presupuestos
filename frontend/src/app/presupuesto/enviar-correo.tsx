@@ -1,33 +1,43 @@
 "use client";
 
-import { Icono } from "./iconos";
+import MailOutline from "@mui/icons-material/MailOutlined";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { useActionState } from "react";
 import { avisar, useAvisar } from "../avisos";
 import { enviarCorreoAction, type EstadoCorreo } from "../actions";
 
 // `destino` es el correo del cliente enmascarado; sin correo guardado se pide uno.
-export function EnviarCorreo({ destino }: { destino: string | null }) {
+export function EnviarCorreo({ destino, etiqueta = "Enviar a correo" }: { destino: string | null; etiqueta?: string }) {
   const [estado, accion, pendiente] = useActionState<EstadoCorreo, FormData>(enviarCorreoAction, {});
   useAvisar(estado, () => estado.mensaje && (estado.ok ? avisar("exito", "Correo enviado", estado.mensaje) : avisar("error", "No se pudo enviar el correo", estado.mensaje)));
 
   return (
-    <form action={accion} className="flex flex-col gap-1.5">
-      {!destino && (
-        <>
-          <label htmlFor="para" className="etiqueta">
-            Correo del cliente
-          </label>
-          <input id="para" name="para" type="email" required autoComplete="off" maxLength={254} placeholder="cliente@correo.cl" className="campo" />
-        </>
+    <Stack component="form" action={accion} spacing={1}>
+      {destino ? null : (
+        <TextField
+          name="para"
+          type="email"
+          label="Correo del cliente"
+          required
+          autoComplete="off"
+          placeholder="cliente@correo.cl"
+          size="small"
+          slotProps={{ htmlInput: { maxLength: 254 } }}
+          sx={{ mt: 1 }}
+        />
       )}
-      <button type="submit" className="boton-secundario" disabled={pendiente}>
-        {pendiente && <span className="spinner" aria-hidden="true" />}
-        {pendiente ? "Enviando…" : (<><Icono n="correo" />Enviar a correo</>)}
-      </button>
-      <p className="ayuda">{destino ? `Se envía con el PDF adjunto a ${destino}.` : "Se envía con el PDF adjunto."}</p>
-      <p role="status" aria-live="polite" className={`min-h-5 text-sm ${estado.ok ? "text-ok" : "text-error"}`}>
+      <Button type="submit" variant="outlined" startIcon={<MailOutline />} loading={pendiente} loadingPosition="start" sx={{ alignSelf: "flex-start" }}>
+        {etiqueta}
+      </Button>
+      <Typography variant="caption" color="text.secondary">
+        {destino ? `Se envía con el PDF adjunto a ${destino}.` : "Se envía con el PDF adjunto."}
+      </Typography>
+      <Typography role="status" aria-live="polite" variant="body2" color={estado.ok ? "success.main" : "error.main"} sx={{ minHeight: 20 }}>
         {estado.mensaje}
-      </p>
-    </form>
+      </Typography>
+    </Stack>
   );
 }

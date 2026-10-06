@@ -1,6 +1,33 @@
 "use client";
 
-import { Icono } from "./iconos";
+import Add from "@mui/icons-material/Add";
+import MailOutline from "@mui/icons-material/MailOutlined";
+import Save from "@mui/icons-material/SaveOutlined";
+import Send from "@mui/icons-material/Send";
+import Visibility from "@mui/icons-material/VisibilityOutlined";
+import WhatsApp from "@mui/icons-material/WhatsApp";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import Checkbox from "@mui/material/Checkbox";
+import Chip from "@mui/material/Chip";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Step from "@mui/material/Step";
+import StepLabel from "@mui/material/StepLabel";
+import Stepper from "@mui/material/Stepper";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { avisar, useAvisar } from "../avisos";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
@@ -9,14 +36,13 @@ import { paisDe } from "@/lib/paises";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
 import { completarPresupuestoAction, type EstadoEdicion } from "../actions";
-import { EnlaceWhatsApp } from "./enlace-whatsapp";
 import { ContactoCliente } from "./contacto-cliente";
-import { EnviarCorreo } from "./enviar-correo";
 import { NotasVisita } from "./notas-visita";
 import { CamposItems, GrillaItems, type Fila } from "./grilla-items";
 import { ListaItemsMovil, useEsAngosto } from "./lista-items-movil";
 import { DeLaVisita, Medidas } from "./de-la-visita";
 import { Multimedia } from "./multimedia";
+import { PanelEnvio } from "./panel-envio";
 
 type Inicial = {
   descripcion: string;
@@ -42,7 +68,6 @@ const aEntero = (s: string) => Number(s.replace(/[^\d]/g, "")) || 0;
 const MAX_ITEMS = 100; // igual que el servidor
 const filaVacia = (clave: number, tipo: Fila["tipo"] = "item"): Fila => ({ clave, tipo, descripcion: "", cantidad: "1", unidad: UNIDAD_POR_DEFECTO, precio: "" });
 
-// En pantallas anchas: [contexto] [formulario] [resumen y acciones]. En el teléfono: una columna en ese mismo orden.
 export function Editor({ inicial }: { inicial: Inicial }) {
   const [estado, accion, pendiente] = useActionState<EstadoEdicion, FormData>(completarPresupuestoAction, {});
   useAvisar(estado, () => estado.errores && avisar("error", "Revisa el presupuesto", estado.errores?.join(" · ")));
@@ -51,7 +76,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     const t = estado.terminado;
     if (!t) return;
     avisar("exito", `Presupuesto ${t.numero} terminado`, `Total ${t.total}`);
-    if (!t.correo.ok) avisar("error", "El correo no se pudo enviar", t.correo.mensaje);
+    if (!t.correo.ok && inicial.cliente.correo) avisar("error", "El correo no se pudo enviar", t.correo.mensaje); // sin correo del cliente no es un error
   });
   const { moneda, impuesto } = inicial; // los montos de este presupuesto, con su moneda y su impuesto
   const clp = (n: number) => dinero(n, moneda);
@@ -126,7 +151,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     enTransicion(() => accion(datos));
   };
   // El total de la barra fija solo se muestra cuando el resumen (con el mismo total) no está a la vista: así no aparece dos veces.
-  const resumen = useRef<HTMLElement>(null);
+  const resumen = useRef<HTMLDivElement>(null);
   const [resumenVisible, setResumenVisible] = useState(false);
   useEffect(() => {
     const el = resumen.current;
@@ -135,13 +160,6 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  const modal = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = modal.current;
-    if (!d) return;
-    if (confirmando && !d.open) d.showModal();
-    if (!confirmando && d.open) d.close();
-  }, [confirmando]);
 
   // <form action> reinicia el formulario al terminar y los <select> vuelven a su valor inicial en pantalla (y se
   // reenviaría el viejo). Enviando con onSubmit y una transición no hay reinicio. method="post" evita que, si el envío
@@ -168,7 +186,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     if (e.key !== "Enter" || !(e.target instanceof HTMLInputElement) || e.target.closest(".ag-root-wrapper")) return;
     e.preventDefault();
     const campos = [...e.currentTarget.elements].filter(
-      (el): el is HTMLElement => el instanceof HTMLElement && !el.matches("[type=hidden], :disabled, .ag-root-wrapper *"),
+      // Solo controles que reciben foco: los <fieldset> del borde de los campos de MUI también están en form.elements.
+      (el): el is HTMLElement => el instanceof HTMLElement && el.matches("input:not([type=hidden]), select, textarea, button") && !el.matches(":disabled, .ag-root-wrapper *"),
     );
     campos[campos.indexOf(e.target) + 1]?.focus();
   };
@@ -189,335 +208,416 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   };
 
   if (estado.terminado) {
-    const { numero, total, correo, whatsappUrl } = estado.terminado;
+    const { numero, total, correo, whatsappUrl, enlace } = estado.terminado;
     return (
-      <section aria-labelledby="listo" className="flex w-full max-w-2xl flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <span className="estado estado-cerrado self-start">Cerrado</span>
-          <h2 id="listo" className="text-2xl font-semibold">
+      <Stack spacing={3} sx={{ width: "100%", maxWidth: "48rem" }}>
+        <Alert variant="filled" severity="success">
+          <AlertTitle component="h2" variant="h6" sx={{ mb: 0 }}>
             Presupuesto {numero} terminado
-          </h2>
-          <p className="text-muted">Total {total}</p>
-        </div>
-
-        <p role="status" aria-live="polite" className={correo.ok ? "text-ok" : "text-error"}>
-          Correo: {correo.mensaje}
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <EnlaceWhatsApp href={whatsappUrl} className="boton" />
-          {!correo.ok && <EnviarCorreo destino={inicial.cliente.correo} />}
-          <a href="/presupuesto/pdf" download className="boton-secundario">
-            Descargar PDF
-          </a>
-          <a href="/presupuesto" className="boton-secundario">
-            Ver presupuesto
-          </a>
-        </div>
-      </section>
+          </AlertTitle>
+          Para {inicial.cliente.nombre} · Total {total}
+        </Alert>
+        <PanelEnvio nombre={inicial.cliente.nombre} whatsappUrl={whatsappUrl} enlace={enlace} correo={inicial.cliente.correo} resultadoCorreo={correo} />
+        <Button href="/presupuesto" sx={{ alignSelf: "flex-start" }}>
+          Ver presupuesto
+        </Button>
+      </Stack>
     );
   }
 
-  // Pantallas anchas: [título · «De la visita» · hoja del presupuesto] a la izquierda y [resumen con el total y las acciones] fijo a la
-  // derecha. Más angostas: una columna en ese mismo orden y una barra fija abajo con el total y la acción principal.
+  // Pantallas muy anchas: [de la visita · hoja · resumen]. Anchas: [de la visita / hoja] a la izquierda y el resumen con el total y
+  // las acciones fijo a la derecha. Más angostas: una columna en ese mismo orden y una barra fija abajo con el total y la acción principal.
   return (
-    <form ref={formulario} method="post" onSubmit={enviar} onKeyDown={alPulsarTecla} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem] xl:items-start xl:gap-8">
-      <div className="flex min-w-0 flex-col gap-6">
-        {hayNovedad && (
-          <p role="status" className="aparecer flex flex-wrap items-center justify-between gap-3 rounded-lg border border-aviso p-3 text-sm">
+    <Box
+      component="form"
+      id="form-presupuesto"
+      ref={formulario}
+      method="post"
+      onSubmit={enviar}
+      onKeyDown={alPulsarTecla}
+      sx={{
+        display: "grid",
+        gap: 3,
+        alignItems: "start",
+        gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 21rem", xl: "20rem minmax(0, 1fr) 21rem" },
+        gridTemplateAreas: {
+          xs: '"cabecera" "visita" "hoja" "resumen" "extra" "barra"',
+          lg: '"cabecera cabecera" "visita resumen" "hoja resumen"',
+          xl: '"cabecera cabecera cabecera" "visita hoja resumen"',
+        },
+      }}
+    >
+      <Stack spacing={2} sx={{ gridArea: "cabecera", minWidth: 0 }}>
+        {hayNovedad ? (
+          <Alert
+            severity="warning"
+            role="status"
+            action={
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => {
+                  setHayNovedad(false);
+                  router.refresh();
+                }}
+              >
+                Actualizar (se pierde lo que no guardaste)
+              </Button>
+            }
+          >
             Hay cambios nuevos hechos desde otro lugar.
-            <button
-              type="button"
-              onClick={() => {
-                setHayNovedad(false);
-                router.refresh();
-              }}
-              className="boton-secundario"
-            >
-              Actualizar (se pierde lo que no guardaste)
-            </button>
-          </p>
-        )}
+          </Alert>
+        ) : null}
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+          <Stack spacing={1} sx={{ minWidth: 0 }}>
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5 }}>
+              <Typography variant="h4" component="h2" sx={{ fontSize: { xs: "1.75rem", sm: "2.125rem" } }}>
+                Presupuesto de {inicial.cliente.nombre}
+              </Typography>
+              <Chip label={`Borrador${inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}`} color="warning" size="small" />
+            </Box>
+            {inicial.numeroAnterior ? (
+              <Typography variant="body2" color="text.secondary">
+                Reemplaza al presupuesto {inicial.numeroAnterior}
+              </Typography>
+            ) : null}
+            <Typography color="text.secondary" sx={{ maxWidth: "62ch" }}>
+              Lo que completes en la hoja sale en el PDF del cliente. Lo que anotaste en la visita es solo para ti.
+            </Typography>
+          </Stack>
+          <Stepper activeStep={1} aria-label="Avance del presupuesto" sx={{ display: { xs: "none", md: "flex" }, minWidth: "24rem" }}>
+            <Step>
+              <StepLabel>En terreno</StepLabel>
+            </Step>
+            <Step>
+              <StepLabel>Presupuesta</StepLabel>
+            </Step>
+            <Step>
+              <StepLabel>Envía</StepLabel>
+            </Step>
+          </Stepper>
+        </Box>
+      </Stack>
 
-        <header className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <h2 className="text-[1.75rem] font-semibold leading-tight tracking-[-0.015em]">Presupuesto de {inicial.cliente.nombre}</h2>
-            <span className="estado estado-pendiente">Borrador{inicial.version > 1 ? ` · Versión ${inicial.version}` : ""}</span>
-          </div>
-          {inicial.numeroAnterior && <p className="text-sm text-muted">Reemplaza al presupuesto {inicial.numeroAnterior}</p>}
-          <p className="max-w-prose text-muted">Lo que completes en la hoja sale en el PDF del cliente. Lo que anotaste en la visita es solo para ti.</p>
-        </header>
-
+      <Box sx={{ gridArea: "visita", minWidth: 0 }}>
         <DeLaVisita>
           <NotasVisita notas={inicial.levantamiento.notas} />
           <Medidas medidas={inicial.levantamiento.medidas} />
           <Multimedia fotos={inicial.levantamiento.fotos} audios={inicial.levantamiento.audios} editable />
         </DeLaVisita>
+      </Box>
 
-        {/* La hoja: lo que recibe el cliente, en el orden del PDF. */}
-        <section aria-label="Hoja del presupuesto" className="tarjeta @container flex flex-col gap-10 p-5 sm:p-8">
-          <section aria-labelledby="cliente" className="flex flex-col gap-1">
-            <h3 id="cliente" className="seccion flex items-center gap-2">
-              <Icono n="usuario" />
+      {/* La hoja: lo que recibe el cliente, en el orden del PDF. */}
+      <Paper component="section" aria-label="Hoja del presupuesto" sx={{ gridArea: "hoja", minWidth: 0, overflow: "hidden" }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", columnGap: 3, px: { xs: 2, sm: 3 }, py: 1.5, borderBottom: 1, borderColor: "divider" }}>
+          <Typography variant="overline" color="text.secondary">
+            Presupuesto · borrador
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            El número y la fecha se asignan al terminar
+          </Typography>
+        </Box>
+        <Stack spacing={4} sx={{ p: { xs: 2, sm: 3 } }}>
+          <Stack component="section" aria-labelledby="cliente" spacing={1}>
+            <Typography id="cliente" variant="h6" component="h3">
               Cliente
-            </h3>
+            </Typography>
             <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} prefijo={paisDe(inicial.pais).calling_code} />
-          </section>
+          </Stack>
 
           {/* Servicio y dirección son un solo grupo: más cerca entre sí que del resto. */}
-          <div className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1">
-              <label htmlFor="descripcion" className="etiqueta">
-                Servicio
-              </label>
-              <textarea
-                id="descripcion"
-                name="descripcion"
-                rows={2}
-                maxLength={2000}
-                autoFocus={!servicio.trim()}
-                placeholder="Qué trabajo se va a hacer"
-                value={servicio}
-                onChange={(e) => setServicio(e.target.value)}
-                className="campo"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="direccion" className="etiqueta">
-                Dirección del trabajo <span className="ayuda">(opcional)</span>
-              </label>
-              <input
-                id="direccion"
-                name="direccion"
-                type="text"
-                maxLength={300}
-                autoComplete="off"
-                placeholder="Calle, número y comuna"
-                value={direccion}
-                onChange={(e) => setDireccion(e.target.value)}
-                className="campo"
-              />
-            </div>
-          </div>
+          <Stack component="section" aria-labelledby="titulo-servicio" spacing={2.5}>
+            <Typography id="titulo-servicio" variant="h6" component="h3">
+              Servicio
+            </Typography>
+            <TextField
+              id="descripcion"
+              name="descripcion"
+              label="Qué trabajo se va a hacer"
+              multiline
+              minRows={2}
+              autoFocus={!servicio.trim()}
+              value={servicio}
+              onChange={(e) => setServicio(e.target.value)}
+              slotProps={{ htmlInput: { maxLength: 2000 } }}
+            />
+            <TextField
+              id="direccion"
+              name="direccion"
+              label="Dirección del trabajo"
+              autoComplete="off"
+              placeholder="Calle, número y comuna"
+              helperText="Opcional"
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              slotProps={{ htmlInput: { maxLength: 300 } }}
+            />
+          </Stack>
 
-          <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
-            <h3 id="titulo-items" className="seccion flex items-center gap-2">
-              <Icono n="lista" />
+          <Stack component="section" aria-labelledby="titulo-items" spacing={1.5}>
+            <Typography id="titulo-items" variant="h6" component="h3">
               Ítems y tareas
-            </h3>
+            </Typography>
             {esAngosto ? <ListaItemsMovil moneda={moneda} filas={filas} onChange={setFilas} /> : <GrillaItems moneda={moneda} filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
             <CamposItems filas={filas} />
-            <div className="-ml-4 flex flex-wrap items-center gap-x-2 gap-y-2">
-              <button type="button" onClick={() => agregar("item")} className="boton-suave">
-                <Icono n="mas" tamano={16} />
+            <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1, ml: -1 }}>
+              <Button startIcon={<Add />} onClick={() => agregar("item")}>
                 Agregar ítem
-              </button>
-              <button type="button" onClick={() => agregar("tarea")} className="boton-suave" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
-                <Icono n="mas" tamano={16} />
+              </Button>
+              <Button startIcon={<Add />} onClick={() => agregar("tarea")} title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
                 Agregar tarea
-              </button>
-              {!esAngosto && <p className="ayuda">Enter pasa a la celda siguiente y, al final, crea otra fila.</p>}
-            </div>
-          </section>
+              </Button>
+              {esAngosto ? null : (
+                <Typography variant="caption" color="text.secondary">
+                  Enter pasa a la celda siguiente y, al final, crea otra fila.
+                </Typography>
+              )}
+            </Box>
+          </Stack>
 
-          <section aria-labelledby="titulo-condiciones" className="flex flex-col gap-4">
-            <h3 id="titulo-condiciones" className="seccion flex items-center gap-2">
-              <Icono n="condiciones" />
+          <Stack component="section" aria-labelledby="titulo-condiciones" spacing={2.5}>
+            <Typography id="titulo-condiciones" variant="h6" component="h3">
               Condiciones
-            </h3>
-            <div className="grid gap-4 @xl:grid-cols-2">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="garantia" className="etiqueta">
-                  Garantía
-                </label>
-                <select id="garantia" name="garantia" value={garantia} onChange={(e) => setGarantia(e.target.value)} className="campo">
-                  {GARANTIAS.map((g) => (
-                    <option key={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="validezDias" className="etiqueta">
-                  Validez del presupuesto
-                </label>
-                <select id="validezDias" name="validezDias" value={validez} onChange={(e) => setValidez(e.target.value)} className="campo">
-                  {VALIDEZ_DIAS.map((d) => (
-                    <option key={d} value={d}>
-                      {d} días
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="observaciones" className="etiqueta">
-                Observaciones <span className="ayuda">(opcional)</span>
-              </label>
-              <textarea
-                id="observaciones"
-                name="observaciones"
-                rows={3}
-                maxLength={5000}
-                placeholder="Aclaraciones para el cliente"
-                value={observaciones}
-                onChange={(e) => setObservaciones(e.target.value)}
-                className="campo"
-              />
-            </div>
-          </section>
-        </section>
-      </div>
+            </Typography>
+            <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))" } }}>
+              <TextField select id="garantia" name="garantia" label="Garantía" value={garantia} onChange={(e) => setGarantia(e.target.value)} slotProps={{ select: { native: true } }}>
+                {GARANTIAS.map((g) => (
+                  <option key={g}>{g}</option>
+                ))}
+              </TextField>
+              <TextField select id="validezDias" name="validezDias" label="Validez del presupuesto" value={validez} onChange={(e) => setValidez(e.target.value)} slotProps={{ select: { native: true } }}>
+                {VALIDEZ_DIAS.map((d) => (
+                  <option key={d} value={d}>
+                    {d} días
+                  </option>
+                ))}
+              </TextField>
+            </Box>
+            <TextField
+              id="observaciones"
+              name="observaciones"
+              label="Observaciones"
+              multiline
+              minRows={3}
+              placeholder="Aclaraciones para el cliente"
+              helperText="Opcional"
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              slotProps={{ htmlInput: { maxLength: 5000 } }}
+            />
+          </Stack>
+        </Stack>
+      </Paper>
 
-      <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
-        <section ref={resumen} aria-labelledby="titulo-resumen" className="tarjeta flex flex-col gap-4 p-5 sm:p-6">
-          <h3 id="titulo-resumen" className="seccion flex items-center gap-2">
-            <Icono n="resumen" />
+      <Card ref={resumen} component="aside" aria-labelledby="titulo-resumen" elevation={3} sx={{ gridArea: "resumen", minWidth: 0, position: { lg: "sticky" }, top: { lg: 24 } }}>
+        <Stack spacing={2} sx={{ p: 2.5 }}>
+          <Typography id="titulo-resumen" variant="h6" component="h3">
             Resumen
-          </h3>
-          <dl className="flex flex-col gap-2 tabular-nums">
-            <div className="flex justify-between gap-3 text-muted">
+          </Typography>
+          <Stack component="dl" spacing={1.5} sx={{ m: 0, fontVariantNumeric: "tabular-nums" }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, color: "text.secondary" }}>
               <dt>Subtotal</dt>
-              <dd>{clp(totales.subtotal)}</dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt>
-                <label htmlFor="descuento" className="etiqueta">
-                  Descuento
-                </label>
-              </dt>
-              <dd>
-                <input
+              <Box component="dd" sx={{ m: 0 }}>
+                {clp(totales.subtotal)}
+              </Box>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+              <Box component="dt" sx={{ color: "text.secondary" }}>
+                Descuento
+              </Box>
+              <Box component="dd" sx={{ m: 0, width: "9rem" }}>
+                <TextField
                   id="descuento"
                   name="descuento"
-                  inputMode="numeric"
+                  label="Monto"
+                  size="small"
                   autoComplete="off"
                   placeholder="$0"
                   value={miles(descuento, moneda)}
                   onChange={(e) => setDescuento(e.target.value.replace(/\D/g, "").slice(0, 9))}
-                  aria-invalid={descuentoExcesivo}
-                  className="campo w-32 text-right"
+                  error={descuentoExcesivo}
+                  slotProps={{ htmlInput: { inputMode: "numeric", style: { textAlign: "right" }, "aria-invalid": descuentoExcesivo } }}
                 />
-              </dd>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt>
-                <label htmlFor="iva" className="etiqueta">
-                  Agregar {impuesto.nombre} ({impuesto.tasa}%)
-                </label>
-              </dt>
-              <dd>
-                {/* El casillero nativo no crece con relleno: la etiqueta que lo envuelve da el área de 44 px. */}
-                <label className="-mr-2.5 grid size-11 cursor-pointer place-items-center">
-                  <input id="iva" name="iva" value="1" type="checkbox" checked={conIva} onChange={(e) => setConIva(e.target.checked)} className="size-6 cursor-pointer accent-[var(--acento-texto)]" />
-                </label>
-              </dd>
-            </div>
-            {conIva && (
-              <div className="flex justify-between gap-3 text-muted">
-                <dt>{impuesto.nombre} ({impuesto.tasa}%)</dt>
-                <dd>{clp(totales.iva)}</dd>
-              </div>
-            )}
-            <div className="mt-1 flex items-baseline justify-between gap-3 border-t-2 border-foreground pt-3">
-              <dt className="text-lg font-semibold">Total</dt>
-              <dd className={`text-[2rem] font-bold leading-none tracking-[-0.02em] ${descuentoExcesivo ? "text-error" : ""}`} aria-live="polite">
+              </Box>
+            </Box>
+            <Box component="div" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+              <dt className="sr-only">Impuesto</dt>
+              <Box component="dd" sx={{ m: 0, flex: 1 }}>
+                <FormControlLabel
+                  control={<Checkbox id="iva" name="iva" value="1" checked={conIva} onChange={(e) => setConIva(e.target.checked)} />}
+                  label={`Agregar ${impuesto.nombre} (${impuesto.tasa}%)`}
+                  labelPlacement="start"
+                  sx={{ m: 0, mr: -1.5, width: "calc(100% + 12px)", justifyContent: "space-between" }}
+                />
+              </Box>
+            </Box>
+            {conIva ? (
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, color: "text.secondary" }}>
+                <dt>
+                  {impuesto.nombre} ({impuesto.tasa}%)
+                </dt>
+                <Box component="dd" sx={{ m: 0 }}>
+                  {clp(totales.iva)}
+                </Box>
+              </Box>
+            ) : null}
+            <Divider />
+            <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 2 }}>
+              <Box component="dt" sx={{ typography: "subtitle1", fontWeight: 500 }}>
+                Total
+              </Box>
+              <Box component="dd" aria-live="polite" sx={{ m: 0, typography: "h4", color: descuentoExcesivo ? "error.main" : "text.primary" }}>
                 {clp(totales.total)}
-              </dd>
-            </div>
-          </dl>
-          {descuentoExcesivo && <p className="text-sm text-error">El descuento no puede superar el subtotal.</p>}
+              </Box>
+            </Box>
+          </Stack>
 
-          {estado.errores && (
-            <ul role="alert" className="aparecer list-disc pl-5 text-sm text-error">
-              {estado.errores.map((e) => (
-                <li key={e}>{e}</li>
-              ))}
-            </ul>
-          )}
-          {intentoTerminar && sinItems && (
-            <p role="alert" className="aparecer text-sm text-error">
+          {descuentoExcesivo ? <Alert severity="error">El descuento no puede superar el subtotal.</Alert> : null}
+          {estado.errores ? (
+            <Alert severity="error" role="alert">
+              <Box component="ul" sx={{ m: 0, pl: 2 }}>
+                {estado.errores.map((e) => (
+                  <li key={e}>{e}</li>
+                ))}
+              </Box>
+            </Alert>
+          ) : null}
+          {intentoTerminar && sinItems ? (
+            <Alert severity="error" role="alert">
               Agrega al menos un ítem con descripción y precio.
-            </p>
-          )}
-          {sinVentana && estado.vistaPrevia && (
-            <p role="status" className="aparecer text-sm">
+            </Alert>
+          ) : null}
+          {sinVentana && estado.vistaPrevia ? (
+            <Alert severity="info" role="status">
               El navegador bloqueó la pestaña nueva.{" "}
-              <a href={`/presupuesto/vista-previa?t=${estado.vistaPrevia}`} target="_blank" rel="noopener" className="font-semibold underline underline-offset-4">
+              <Link href={`/presupuesto/vista-previa?t=${estado.vistaPrevia}`} target="_blank" rel="noopener" sx={{ fontWeight: 500 }}>
                 Abrir la vista previa
-              </a>
-            </p>
-          )}
-          {estado.guardado && (
-            <p role="status" className="aparecer text-sm text-ok">
+              </Link>
+            </Alert>
+          ) : null}
+          {estado.guardado ? (
+            <Alert severity="success" role="status">
               {estado.guardado}
-            </p>
-          )}
+            </Alert>
+          ) : null}
+
+          <Box component="section" aria-label="A quién se envía" sx={{ bgcolor: "action.hover", borderRadius: 1, p: 1.5, display: "flex", flexDirection: "column", gap: 1 }}>
+            <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+              Al terminar se envía a
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <MailOutline color="action" />
+              <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+                {inicial.cliente.correo ? (
+                  <>
+                    {inicial.cliente.correo}
+                    <Typography component="span" variant="body2" color="text.secondary">
+                      {" "}
+                      · con el PDF
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography component="span" variant="body2" color="text.secondary">
+                    Sin correo: se cerrará sin enviarlo
+                  </Typography>
+                )}
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <WhatsApp color="action" />
+              <Typography variant="body2">
+                {inicial.cliente.telefono}
+                <Typography component="span" variant="body2" color="text.secondary">
+                  {" "}
+                  · WhatsApp, cuando tú lo abras
+                </Typography>
+              </Typography>
+            </Box>
+          </Box>
 
           {/* En pantallas anchas las acciones viven aquí, junto al total; en las demás, en la barra fija de abajo. */}
-          <div className="hidden flex-col gap-3 border-t border-borde pt-4 xl:flex">
-            <button type="button" onClick={intentarTerminar} className="boton w-full" disabled={pendiente}>
-              {pendiente && <span className="spinner" aria-hidden="true" />}
-              {pendiente ? "Procesando…" : (<><Icono n="enviar" />Terminar y enviar</>)}
-            </button>
-            <button type="submit" name="accion" value="guardar" className="boton-secundario w-full" disabled={pendiente}>
-              <Icono n="guardar" />Guardar y seguir después
-            </button>
-            <button type="button" onClick={previsualizar} className="boton-texto w-full" disabled={pendiente}>
-              <Icono n="ojo" />Previsualizar presupuesto
-            </button>
-            <p className="ayuda text-center">Al terminar se numera, se genera el PDF y se envía al cliente.</p>
-          </div>
-        </section>
+          <Stack spacing={1} sx={{ display: { xs: "none", lg: "flex" } }}>
+            <Button variant="contained" size="large" startIcon={<Send />} loading={pendiente} loadingPosition="start" onClick={intentarTerminar}>
+              {pendiente ? "Procesando…" : "Terminar y enviar"}
+            </Button>
+            <Button type="submit" name="accion" value="guardar" variant="outlined" startIcon={<Save />} disabled={pendiente}>
+              Guardar y seguir después
+            </Button>
+            <Button onClick={previsualizar} startIcon={<Visibility />} disabled={pendiente}>
+              Previsualizar el PDF
+            </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
+              Al terminar se numera, se genera el PDF y se envía al cliente.
+            </Typography>
+          </Stack>
+        </Stack>
+      </Card>
 
-        <dialog ref={modal} aria-labelledby="confirmar" onClose={() => setConfirmando(false)} className="modal m-auto w-[min(92vw,26rem)] rounded-xl border border-borde bg-card p-5 text-foreground">
-          <div className="flex flex-col gap-3">
-            <h2 id="confirmar" className="text-lg font-semibold">
-              ¿Cerrar y enviar este presupuesto?
-            </h2>
-            <p className="ayuda">
-              {inicial.cliente.correo ? `Se enviará el PDF a ${inicial.cliente.correo}` : "El cliente no tiene correo: se cerrará sin enviarlo"} y ya no podrás editarlo.
-            </p>
-            <div className="mt-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setConfirmando(false)} className="boton-secundario">
-                Volver a editar
-              </button>
-              <button type="submit" name="accion" value="terminar" className="boton" disabled={pendiente}>
-                Sí, terminar y enviar
-              </button>
-            </div>
-          </div>
-        </dialog>
-      </aside>
+      {/* El diálogo se dibuja fuera del formulario (en un portal): su botón lo envía con el atributo `form`. */}
+      <Dialog open={confirmando} onClose={() => setConfirmando(false)} aria-labelledby="confirmar" maxWidth="xs" fullWidth>
+        <DialogTitle id="confirmar">¿Cerrar y enviar este presupuesto?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {inicial.cliente.correo ? `Se enviará el PDF a ${inicial.cliente.correo}` : "El cliente no tiene correo: se cerrará sin enviarlo"} y ya no podrás editarlo.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmando(false)}>Volver a editar</Button>
+          <Button type="submit" form="form-presupuesto" name="accion" value="terminar" variant="contained" disabled={pendiente}>
+            Sí, terminar y enviar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Lo que no cabe en la barra fija: en el teléfono, guardar y previsualizar; en tablet, solo previsualizar. */}
-      <div className="flex flex-col gap-3 sm:items-start lg:hidden">
-        <button type="submit" name="accion" value="guardar" className="boton-secundario sm:hidden" disabled={pendiente}>
-          <Icono n="guardar" />Guardar y seguir después
-        </button>
-        <button type="button" onClick={previsualizar} className="boton-secundario" disabled={pendiente}>
-          <Icono n="ojo" />Previsualizar presupuesto
-        </button>
-      </div>
+      <Stack spacing={1.5} sx={{ gridArea: "extra", display: { xs: "flex", md: "none" }, alignItems: { sm: "flex-start" } }}>
+        <Button type="submit" name="accion" value="guardar" variant="outlined" startIcon={<Save />} disabled={pendiente} sx={{ display: { sm: "none" } }}>
+          Guardar y seguir después
+        </Button>
+        <Button onClick={previsualizar} variant="outlined" startIcon={<Visibility />} disabled={pendiente}>
+          Previsualizar el PDF
+        </Button>
+      </Stack>
 
-      {/* Barra fija (hasta pantallas medianas): el total y las acciones siempre a la vista. Va de borde a borde de la página. */}
-      <div className="sticky bottom-0 z-10 -mx-4 flex items-center justify-between gap-3 border-t border-borde bg-background/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 xl:hidden">
-        <p aria-hidden={resumenVisible} className={`flex flex-col leading-tight tabular-nums transition-opacity duration-150 motion-reduce:transition-none ${resumenVisible ? "opacity-0" : ""}`}>
-          <span className="text-sm text-muted">Total</span>
-          <span className={`text-2xl font-bold ${descuentoExcesivo ? "text-error" : ""}`}>{clp(totales.total)}</span>
-        </p>
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <button type="button" onClick={previsualizar} className="boton-texto hidden whitespace-nowrap lg:inline-flex" disabled={pendiente}>
-            <Icono n="ojo" />Previsualizar presupuesto
-          </button>
-          <button type="submit" name="accion" value="guardar" className="boton-secundario hidden whitespace-nowrap sm:inline-flex" disabled={pendiente}>
-            <Icono n="guardar" />Guardar y seguir después
-          </button>
-          <button type="button" onClick={intentarTerminar} className="boton whitespace-nowrap" disabled={pendiente}>
-            {pendiente && <span className="spinner" aria-hidden="true" />}
-            {pendiente ? "Procesando…" : (<><Icono n="enviar" />Terminar y enviar</>)}
-          </button>
-        </div>
-      </div>
-    </form>
+      {/* Barra fija (hasta pantallas anchas): el total y las acciones siempre a la vista. Va de borde a borde de la página. */}
+      <Paper
+        square
+        elevation={8}
+        sx={{
+          gridArea: "barra",
+          display: { xs: "flex", lg: "none" },
+          position: "sticky",
+          bottom: 0,
+          zIndex: 10,
+          mx: { xs: -2, sm: -3 },
+          px: { xs: 2, sm: 3 },
+          pt: 1.5,
+          pb: "max(12px, env(safe-area-inset-bottom))",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 1.5,
+        }}
+      >
+        <Box aria-hidden={resumenVisible} sx={{ display: "flex", flexDirection: "column", lineHeight: 1.2, fontVariantNumeric: "tabular-nums", opacity: resumenVisible ? 0 : 1, transition: "opacity 150ms", "@media (prefers-reduced-motion: reduce)": { transition: "none" } }}>
+          <Typography variant="caption" color="text.secondary">
+            Total
+          </Typography>
+          <Typography variant="h6" component="span" color={descuentoExcesivo ? "error" : "textPrimary"} sx={{ fontWeight: 700 }}>
+            {clp(totales.total)}
+          </Typography>
+        </Box>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+          <Button onClick={previsualizar} startIcon={<Visibility />} disabled={pendiente} sx={{ display: { xs: "none", md: "inline-flex" }, whiteSpace: "nowrap" }}>
+            Previsualizar
+          </Button>
+          <Button type="submit" name="accion" value="guardar" variant="outlined" startIcon={<Save />} disabled={pendiente} sx={{ display: { xs: "none", sm: "inline-flex" }, whiteSpace: "nowrap" }}>
+            Guardar y seguir después
+          </Button>
+          <Button variant="contained" startIcon={<Send />} loading={pendiente} loadingPosition="start" onClick={intentarTerminar} sx={{ whiteSpace: "nowrap" }}>
+            {pendiente ? "Procesando…" : "Terminar y enviar"}
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }
