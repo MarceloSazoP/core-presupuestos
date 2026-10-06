@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { unitSymbol } from '../modules/quotes/units';
@@ -16,14 +15,14 @@ type Pdfmake = {
 // Se le da un punto de corte invisible cada 24 caracteres seguidos.
 const cortable = (t: string) => t.replace(/\S{24}/g, '$&​');
 
-const nodeRequire = createRequire(__filename);
 let engine: Pdfmake | null = null;
 
 function pdfmake(): Pdfmake {
   if (engine) return engine;
-  const p = nodeRequire('pdfmake') as Pdfmake;
-  const fontsDir = path.dirname(nodeRequire.resolve('pdfmake/fonts/Roboto'));
-  p.setFonts(nodeRequire('pdfmake/fonts/Roboto'));
+  // `require` con texto literal (no `createRequire`): así el empaquetado de Vercel detecta pdfmake y lo incluye en la función.
+  const p = require('pdfmake') as Pdfmake;
+  const fontsDir = path.dirname(require.resolve('pdfmake/fonts/Roboto'));
+  p.setFonts(require('pdfmake/fonts/Roboto'));
   // Sin descargas ni lectura de archivos desde el contenido del usuario: solo las fuentes propias (Arquitectura §3).
   p.setUrlAccessPolicy(() => false);
   p.setLocalAccessPolicy((f) => path.resolve(f).startsWith(fontsDir));
