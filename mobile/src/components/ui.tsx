@@ -152,14 +152,17 @@ export function BarraTeclado({ id = TECLADO_ID }: { id?: string }) {
 }
 
 // Campo con su etiqueta arriba. Relleno gris sobre la tarjeta blanca y borde de 3:1; al escribir, el borde toma el azul de la acción.
-export function Campo({ etiqueta, error, ayuda, izquierda, ref, style, onFocus, onBlur, ...props }: TextInputProps & { etiqueta: string; error?: string | null; ayuda?: string; izquierda?: ReactNode; ref?: React.Ref<TextInput> }) {
+export function Campo({ etiqueta, icono, error, ayuda, izquierda, ref, style, onFocus, onBlur, ...props }: TextInputProps & { etiqueta: string; icono?: NombreIcono; error?: string | null; ayuda?: string; izquierda?: ReactNode; ref?: React.Ref<TextInput> }) {
   const t = useTema();
   const [enfocado, setEnfocado] = useState(false);
   return (
     <View style={e.campo}>
-      <Texto variante="chico" fuerte>
-        {etiqueta}
-      </Texto>
+      <View style={e.etiquetaCampo}>
+        {icono ? <Icono nombre={icono} tamano={15} color={t.acento} /> : null}
+        <Texto variante="chico" fuerte>
+          {etiqueta}
+        </Texto>
+      </View>
       {/* `izquierda`: algo antes de la caja en la misma fila (el selector de país del teléfono). */}
       <View style={izquierda ? e.filaCampo : undefined}>
       {izquierda}
@@ -318,6 +321,7 @@ const e = StyleSheet.create({
   tarjeta: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
   sombra: { boxShadow: '0 1px 2px rgba(24, 27, 32, 0.05), 0 4px 16px rgba(24, 27, 32, 0.05)' },
   seccion: { gap: espacio.m },
+  etiquetaCampo: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
   filaTitulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   iconoTitulo: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   textoTitulo: { fontSize: letra.cuerpo + 1, fontWeight: '700', letterSpacing: -0.2 },

@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'reac
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { Boton, Campo, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Tarjeta, TituloBloque, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { esCorreo, formatearTelefono, normalizarTelefono } from '@/lib/telefono';
 import { cargarUltimoAcceso, olvidarAcceso, recordarAcceso } from '@/lib/ultimo-acceso';
@@ -48,13 +48,6 @@ export default function Ingresar() {
       setSugeridos(true);
     });
   }, []);
-  const otrosDatos = () => {
-    setTelefono('');
-    setCorreo('');
-    setNombre('');
-    setSugeridos(false);
-    void olvidarAcceso();
-  };
   const refCorreo = useRef<TextInput>(null);
 
   const telefonoE164 = normalizarTelefono(telefono, prefijo);
@@ -129,18 +122,17 @@ export default function Ingresar() {
 
       {paso === 'datos' ? (
         <Tarjeta style={e.bloque}>
-          <Texto variante="subtitulo">Tus datos</Texto>
-          {sugeridos ? (
-            <View style={e.sugerencia}>
-              <Texto variante="chico" suave style={e.flexTexto}>Escribimos los datos con que entraste la última vez. Si son otros, cámbialos.</Texto>
-              <Pressable accessibilityRole="button" accessibilityLabel="Borrar los datos recordados y escribir otros" onPress={otrosDatos} hitSlop={8} style={e.otros}>
-                <Texto color="acento" fuerte>Usar otros datos</Texto>
-              </Pressable>
-            </View>
-          ) : null}
-          <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoComplete="name" textContentType="name" autoCapitalize="words" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
-          <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" ayuda="Es tu identidad en la app." />
-          <Campo ref={refCorreo} etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
+          {/* «Tus datos» y, a su altura, el ícono para entrar con el QR del correo (sin escribir nada). */}
+          <View style={e.filaDatos}>
+            <TituloBloque titulo="Tus datos" icono="cliente" />
+            <Pressable accessibilityRole="button" accessibilityLabel="Entrar con el QR de mi correo" onPress={() => router.push('/recuperar')} hitSlop={8} style={({ pressed }) => [e.qr, { backgroundColor: `${t.acento}1A`, opacity: pressed ? 0.6 : 1 }]}>
+              <Icono nombre="qr" tamano={22} color={t.acento} />
+            </Pressable>
+          </View>
+          {sugeridos ? <Texto variante="chico" suave>Escribimos los datos con que entraste la última vez. Si son otros, cámbialos.</Texto> : null}
+          <Campo etiqueta="Nombre" icono="cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoComplete="name" textContentType="name" autoCapitalize="words" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
+          <CampoTelefono ref={refTelefono} codigo={prefijo} alCodigo={setPrefijo} etiqueta="Teléfono" icono="llamar" value={telefono} onChangeText={setTelefono} error={errores.telefono} textContentType="telephoneNumber" ayuda="Es tu identidad en la app." />
+          <Campo ref={refCorreo} etiqueta="Correo" icono="correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" returnKeyType="done" onSubmitEditing={continuar} />
           <View style={e.recordar}>
             <View style={e.flexTexto}>
               <Texto>Recordar mis datos en este teléfono</Texto>
@@ -149,7 +141,6 @@ export default function Ingresar() {
             <Switch accessibilityLabel="Recordar mis datos en este teléfono" value={recordar} onValueChange={setRecordar} trackColor={{ true: t.acento }} />
           </View>
           <Boton titulo="Continuar" onPress={continuar} />
-          <Boton titulo="Entrar con el QR de mi correo" variante="texto" onPress={() => router.push('/recuperar')} />
         </Tarjeta>
       ) : null}
 
@@ -212,9 +203,9 @@ export default function Ingresar() {
 }
 
 const e = StyleSheet.create({
-  sugerencia: { gap: espacio.xs },
+  filaDatos: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  qr: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: -espacio.s }, // pegado al borde derecho de la tarjeta
   flexTexto: { flex: 1 },
-  otros: { minHeight: MIN_TOQUE, justifyContent: 'center', alignSelf: 'flex-start' },
   recordar: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   contenido: { padding: espacio.l, gap: espacio.xl },
   encabezado: { gap: espacio.xs, paddingTop: espacio.xl, paddingHorizontal: espacio.s },
