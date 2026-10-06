@@ -117,7 +117,7 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   const t = useTema();
   const clp = (n: number) => dinero(n, moneda);
   const max = Math.max(1, ...meses.flatMap((m) => [m.quoted_amount, m.accepted_amount]));
-  const ALTO = 120;
+  const ALTO = 90;
   return (
     <Tarjeta>
       <View style={e.barras} accessibilityLabel={`Presupuestado y aceptado por mes. ${meses.map((m) => `${NOMBRES[Number(m.month.slice(5)) - 1]}: ${clp(m.quoted_amount)} presupuestado, ${clp(m.accepted_amount)} aceptado`).join('. ')}`}>
