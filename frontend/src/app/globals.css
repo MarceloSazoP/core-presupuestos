@@ -110,6 +110,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.5;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--acento-texto) 28%, transparent);
+}
+
+/* Cifras alineadas en columna en toda la interfaz. */
+.tabular-nums,
+dd {
+  font-variant-numeric: tabular-nums;
 }
 
 h1,
@@ -194,7 +207,7 @@ button {
     @apply text-sm font-medium text-foreground;
   }
   .seccion {
-    @apply text-base font-semibold text-foreground;
+    @apply text-[1.0625rem] font-semibold leading-snug tracking-tight text-foreground;
   }
   .ayuda {
     @apply text-[0.8125rem] leading-snug text-muted;
@@ -205,12 +218,13 @@ button {
     @apply min-h-11 w-full rounded-lg border px-3 py-2 text-foreground placeholder:text-muted;
     border-color: var(--borde-campo);
     background: var(--campo-fondo);
+    box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.04);
     transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
   }
   .campo:focus-visible {
-    outline: 2px solid var(--acento-texto);
-    outline-offset: 1px;
+    outline: none;
     border-color: var(--acento-texto);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--acento-texto) 25%, transparent);
   }
   .campo:disabled {
     @apply cursor-not-allowed opacity-60;
@@ -251,11 +265,14 @@ button {
   .boton {
     background: var(--acento);
     color: oklch(1 0 0);
+    font-weight: 600;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 1px 2px rgb(0 0 0 / 0.18);
   }
   .boton-secundario {
     border: 1px solid var(--borde);
-    background: var(--campo-fondo);
+    background: var(--card);
     color: var(--foreground);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
   }
   .boton-texto {
     color: var(--muted);
@@ -296,7 +313,16 @@ button {
 
   /* Superficies */
   .tarjeta {
-    @apply rounded-xl border border-borde bg-card p-4;
+    @apply rounded-xl border border-borde bg-card p-4 sm:p-5;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+  }
+  :root[data-theme="dark"] .tarjeta {
+    box-shadow: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .tarjeta {
+      box-shadow: none;
+    }
   }
 
   /* Notas de la visita: hoja amarilla del talonario con el borde de arriba perforado (medios círculos del color de la página).
@@ -377,6 +403,12 @@ button {
   }
   .fila-lectura {
     @apply flex items-start justify-between gap-4 border-b border-borde py-3 last:border-b-0;
+    transition: background-color 150ms var(--ease);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .fila-lectura:hover {
+      background: color-mix(in oklab, var(--foreground) 4%, transparent);
+    }
   }
   .solo-ancho {
     display: none;
@@ -391,7 +423,7 @@ button {
       gap: 0.5rem;
     }
     .cab-lectura {
-      @apply border-b border-borde pb-2 text-[0.8125rem] font-medium text-muted;
+      @apply border-b border-borde pb-2 text-[0.8125rem] font-semibold text-muted;
     }
     .solo-ancho {
       display: block;
