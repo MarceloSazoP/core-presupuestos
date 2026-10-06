@@ -3,7 +3,7 @@ import { hayDeslizadoReciente } from '@/lib/deslizado';
 import { IconoDinero } from '@/components/icono-dinero';
 import { LISTA, useDinero } from '@/lib/montos';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
 import { Pressable as Toque } from 'react-native-gesture-handler';
 import Animated, { cancelAnimation, Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
@@ -66,9 +66,12 @@ export function FilaPresupuesto({
       { text: 'Eliminar', style: 'destructive', onPress: () => onEliminar?.(q) },
     ]);
   };
-  // Un toque abre el presupuesto. Soltar el dedo tras deslizar entre pestañas no cuenta como toque.
+  // Un toque corto abre el presupuesto. No lo abre: soltar el dedo tras deslizar entre pestañas, ni soltarlo después de mantener
+  // apretado (cuando ya empezó a llenarse la barra roja o ya preguntó si eliminar): eso es «eliminar», no «entrar».
+  const desde = useRef(0); // cuándo se apretó la tarjeta
   const abrir = () => {
     if (hayDeslizadoReciente()) return;
+    if (puedeEliminar && Date.now() - desde.current > ESPERA_MS + 80) return;
     abrirYa();
   };
   // Al apretar, tras ESPERA_MS empieza a llenarse la barra; al llenarse, pide confirmar. Al soltar se vacía.
@@ -105,6 +108,7 @@ export function FilaPresupuesto({
       }}
       onPress={abrir}
       onPressIn={() => {
+        desde.current = Date.now();
         setPresionado(true);
         empezarLlenado();
       }}
