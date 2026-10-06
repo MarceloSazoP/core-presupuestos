@@ -32,7 +32,7 @@ Vercel ejecuta el backend como **funciones sin estado**: cada petición puede ca
 
 ## 3. Variables de entorno
 
-**API (`backend/`):** `DATABASE_URL`, `DATABASE_POOL_MAX=3`, `AUTH_CODE_PEPPER`, `WEB_BASE_URL` (la URL pública de la web), `CORS_ORIGINS` (la de la web), `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET`, `LIVE_EVENTS=false`, `TRUST_PROXY=1`, el correo (Resend o SMTP) y, si se usan, `GOOGLE_PLACES_API_KEY` y `TWILIO_*`.
+**API (`backend/`):** `DATABASE_URL`, `DATABASE_POOL_MAX=3`, `AUTH_CODE_PEPPER`, `WEB_BASE_URL` (la URL pública de la web), `CORS_ORIGINS` (la de la web), `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET`, `LIVE_EVENTS=false`, `TRUST_PROXY=1`, el correo (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, o Resend) y, si se usa, `GOOGLE_PLACES_API_KEY`. No hay SMS: el código llega por correo.
 
 **Web (`frontend/`):** `API_BASE_URL` (la URL pública de la API con `/api/v1`).
 

@@ -35,21 +35,8 @@ export const correoCodigoEliminar = (code: string) =>
       parrafo('Si no fuiste tú, ignora este correo: tu cuenta sigue intacta.', { suave: true }),
   });
 
-async function postSms(url: string, init: RequestInit): Promise<void> {
-  for (let intento = 0; intento < 2; intento++) {
-    try {
-      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
-      if (res.ok) return;
-      if (res.status < 500) break; // un 4xx no se arregla reintentando
-    } catch {
-      /* error de red: un reintento */
-    }
-  }
-  throw new AppError(502, 'DELIVERY_FAILED', 'No se pudo enviar el código. Intenta de nuevo.');
-}
-
-// El código de verificación sale por el proveedor configurado. Correo: el mismo SMTP o Resend de los presupuestos. SMS:
-// Twilio por HTTPS sin SDK (Arquitectura A13). En desarrollo, OTP_LOG_CODES además lo escribe en el log y, si no hay
+// El código de verificación sale por el proveedor configurado. Correo: el mismo SMTP o Resend de los presupuestos. SMS: aún no
+// existe. En desarrollo, OTP_LOG_CODES además lo escribe en el log y, si no hay
 // proveedor de correo, es la única salida.
 export const sendCode: SendCode = async (channel, destination, code, motivo = 'ingreso') => {
   const dev = config.OTP_LOG_CODES && config.NODE_ENV !== 'production';
@@ -67,14 +54,8 @@ export const sendCode: SendCode = async (channel, destination, code, motivo = 'i
     throw new AppError(502, 'DELIVERY_FAILED', 'El envío por correo no está configurado.');
   }
 
-  const { TWILIO_ACCOUNT_SID: sid, TWILIO_AUTH_TOKEN: token, TWILIO_FROM: from } = config;
-  // Sin Twilio el SMS no puede llegar: se avisa, en vez de dar por enviado un código que solo quedó en el log.
-  if (!sid || !token || !from) throw new AppError(502, 'DELIVERY_FAILED', 'El envío por SMS aún no está disponible. Elige correo.');
-  return postSms(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}` },
-    body: new URLSearchParams({ To: destination, From: from, Body: MENSAJE(code) }),
-  });
+  // El SMS no está disponible: se avisa, en vez de dar por enviado un código que solo quedó en el log.
+  throw new AppError(502, 'DELIVERY_FAILED', 'El envío por SMS aún no está disponible. Elige correo.');
 };
 
 export const maskDestination = (channel: Channel, destination: string) =>

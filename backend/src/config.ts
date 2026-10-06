@@ -32,10 +32,7 @@ const schema = z
     AUTH_PHONE_LIMIT_PER_HOUR: z.coerce.number().int().min(1).optional(),
     OTP_LOG_CODES: bool,
 
-    // Opcionales: SMS por Twilio y correo por Resend. Con SMTP completo no hace falta ninguno.
-    TWILIO_ACCOUNT_SID: z.string().optional(),
-    TWILIO_AUTH_TOKEN: z.string().optional(),
-    TWILIO_FROM: z.string().optional(),
+    // Correo por Resend (opcional: con SMTP completo no hace falta).
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().optional(),
     // SMTP para correo (p. ej. Gmail con contraseña de aplicación)
