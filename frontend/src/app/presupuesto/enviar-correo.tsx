@@ -1,5 +1,6 @@
 "use client";
 
+import { Icono } from "./iconos";
 import { useActionState } from "react";
 import { avisar, useAvisar } from "../avisos";
 import { enviarCorreoAction, type EstadoCorreo } from "../actions";
@@ -21,7 +22,7 @@ export function EnviarCorreo({ destino }: { destino: string | null }) {
       )}
       <button type="submit" className="boton-secundario" disabled={pendiente}>
         {pendiente && <span className="spinner" aria-hidden="true" />}
-        {pendiente ? "Enviando…" : "Enviar a correo"}
+        {pendiente ? "Enviando…" : (<><Icono n="correo" />Enviar a correo</>)}
       </button>
       <p className="ayuda">{destino ? `Se envía con el PDF adjunto a ${destino}.` : "Se envía con el PDF adjunto."}</p>
       <p role="status" aria-live="polite" className={`min-h-5 text-sm ${estado.ok ? "text-ok" : "text-error"}`}>

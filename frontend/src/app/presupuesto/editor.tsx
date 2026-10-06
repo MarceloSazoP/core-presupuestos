@@ -1,5 +1,6 @@
 "use client";
 
+import { Icono } from "./iconos";
 import { avisar, useAvisar } from "../avisos";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
@@ -256,7 +257,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         {/* La hoja: lo que recibe el cliente, en el orden del PDF. */}
         <section aria-label="Hoja del presupuesto" className="tarjeta @container flex flex-col gap-10 p-5 sm:p-8">
           <section aria-labelledby="cliente" className="flex flex-col gap-1">
-            <h3 id="cliente" className="seccion">
+            <h3 id="cliente" className="seccion flex items-center gap-2">
+              <Icono n="usuario" />
               Cliente
             </h3>
             <ContactoCliente nombre={inicial.cliente.nombre} telefono={inicial.cliente.telefono} correo={inicial.cliente.correo} prefijo={paisDe(inicial.pais).calling_code} />
@@ -299,24 +301,28 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           </div>
 
           <section aria-labelledby="titulo-items" className="flex flex-col gap-3">
-            <h3 id="titulo-items" className="seccion">
+            <h3 id="titulo-items" className="seccion flex items-center gap-2">
+              <Icono n="lista" />
               Ítems y tareas
             </h3>
             {esAngosto ? <ListaItemsMovil moneda={moneda} filas={filas} onChange={setFilas} /> : <GrillaItems moneda={moneda} filas={filas} onChange={setFilas} onAgregar={() => agregar("item")} />}
             <CamposItems filas={filas} />
             <div className="-ml-4 flex flex-wrap items-center gap-x-2 gap-y-2">
               <button type="button" onClick={() => agregar("item")} className="boton-suave">
-                + Agregar ítem
+                <Icono n="mas" tamano={16} />
+                Agregar ítem
               </button>
               <button type="button" onClick={() => agregar("tarea")} className="boton-suave" title="Una actividad sin cantidad ni unidad, por ejemplo botar escombros">
-                + Agregar tarea
+                <Icono n="mas" tamano={16} />
+                Agregar tarea
               </button>
               {!esAngosto && <p className="ayuda">Enter pasa a la celda siguiente y, al final, crea otra fila.</p>}
             </div>
           </section>
 
           <section aria-labelledby="titulo-condiciones" className="flex flex-col gap-4">
-            <h3 id="titulo-condiciones" className="seccion">
+            <h3 id="titulo-condiciones" className="seccion flex items-center gap-2">
+              <Icono n="condiciones" />
               Condiciones
             </h3>
             <div className="grid gap-4 @xl:grid-cols-2">
@@ -364,7 +370,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
 
       <aside className="flex flex-col gap-4 xl:sticky xl:top-6">
         <section ref={resumen} aria-labelledby="titulo-resumen" className="tarjeta flex flex-col gap-4 p-5 sm:p-6">
-          <h3 id="titulo-resumen" className="seccion">
+          <h3 id="titulo-resumen" className="seccion flex items-center gap-2">
+            <Icono n="resumen" />
             Resumen
           </h3>
           <dl className="flex flex-col gap-2 tabular-nums">
@@ -450,13 +457,13 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           <div className="hidden flex-col gap-3 border-t border-borde pt-4 xl:flex">
             <button type="button" onClick={intentarTerminar} className="boton w-full" disabled={pendiente}>
               {pendiente && <span className="spinner" aria-hidden="true" />}
-              {pendiente ? "Procesando…" : "Terminar y enviar"}
+              {pendiente ? "Procesando…" : (<><Icono n="enviar" />Terminar y enviar</>)}
             </button>
             <button type="submit" name="accion" value="guardar" className="boton-secundario w-full" disabled={pendiente}>
-              Guardar y seguir después
+              <Icono n="guardar" />Guardar y seguir después
             </button>
             <button type="button" onClick={previsualizar} className="boton-texto w-full" disabled={pendiente}>
-              Previsualizar presupuesto
+              <Icono n="ojo" />Previsualizar presupuesto
             </button>
             <p className="ayuda text-center">Al terminar se numera, se genera el PDF y se envía al cliente.</p>
           </div>
@@ -485,10 +492,10 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       {/* Lo que no cabe en la barra fija: en el teléfono, guardar y previsualizar; en tablet, solo previsualizar. */}
       <div className="flex flex-col gap-3 sm:items-start lg:hidden">
         <button type="submit" name="accion" value="guardar" className="boton-secundario sm:hidden" disabled={pendiente}>
-          Guardar y seguir después
+          <Icono n="guardar" />Guardar y seguir después
         </button>
         <button type="button" onClick={previsualizar} className="boton-secundario" disabled={pendiente}>
-          Previsualizar presupuesto
+          <Icono n="ojo" />Previsualizar presupuesto
         </button>
       </div>
 
@@ -500,14 +507,14 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         </p>
         <div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" onClick={previsualizar} className="boton-texto hidden whitespace-nowrap lg:inline-flex" disabled={pendiente}>
-            Previsualizar presupuesto
+            <Icono n="ojo" />Previsualizar presupuesto
           </button>
           <button type="submit" name="accion" value="guardar" className="boton-secundario hidden whitespace-nowrap sm:inline-flex" disabled={pendiente}>
-            Guardar y seguir después
+            <Icono n="guardar" />Guardar y seguir después
           </button>
           <button type="button" onClick={intentarTerminar} className="boton whitespace-nowrap" disabled={pendiente}>
             {pendiente && <span className="spinner" aria-hidden="true" />}
-            {pendiente ? "Procesando…" : "Terminar y enviar"}
+            {pendiente ? "Procesando…" : (<><Icono n="enviar" />Terminar y enviar</>)}
           </button>
         </div>
       </div>

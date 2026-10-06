@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Icono } from "./iconos";
 import { redirect } from "next/navigation";
 import { dinero, cant } from "@/lib/formato";
 import { paisDe } from "@/lib/paises";
@@ -179,6 +180,7 @@ export default async function PresupuestoPage() {
 
           <div className="flex flex-col gap-3">
             <a href="/presupuesto/pdf" download className="boton">
+              <Icono n="pdf" />
               Descargar PDF
             </a>
             <EnlaceWhatsApp href={whatsappUrl} className="boton-secundario" />
