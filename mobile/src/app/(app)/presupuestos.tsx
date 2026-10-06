@@ -125,7 +125,14 @@ export default function ListaPresupuestos() {
           <View style={e.aviso}>
             <Sincronizacion />
             {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-            {pestana === 'pendientes' && visibles.length > 0 ? <Texto variante="chico" suave>Para eliminar uno, mantén apretada su tarjeta.</Texto> : null}
+            {/* La glosa de la pestaña: qué contiene y si se pueden eliminar (y cómo). */}
+            <View style={[e.glosa, { backgroundColor: `${t.acento}0F`, borderColor: t.borde }]}>
+              <Icono nombre="info" tamano={18} color={t.acento} />
+              <View style={e.glosaTextos}>
+                <Texto variante="chico">{PESTANAS[posicion]!.glosa}</Texto>
+                <Texto variante="chico" suave>{PESTANAS[posicion]!.eliminar}</Texto>
+              </View>
+            </View>
           </View>
         }
         ListEmptyComponent={
@@ -162,6 +169,8 @@ export default function ListaPresupuestos() {
 const Separador = () => <View style={{ height: espacio.m }} />;
 
 const e = StyleSheet.create({
+  glosa: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.s, borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m },
+  glosaTextos: { flex: 1, gap: 2 },
   aviso: { gap: espacio.s, paddingBottom: espacio.m },
   cargando: { marginTop: espacio.xxl },
   vacio: { alignItems: 'center', gap: espacio.s, paddingTop: espacio.xxl * 2, paddingHorizontal: espacio.xl },

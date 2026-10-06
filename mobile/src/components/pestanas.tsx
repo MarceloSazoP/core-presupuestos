@@ -9,7 +9,7 @@ import { espacio, letra, radio, useTema, type Color } from '@/theme';
 // desliza con un resorte (no salta). Cada estado es un punto de su color, su nombre y cuántos hay; el color solo aparece donde dice
 // algo (el punto) y en lo elegido. Con cinco estados la pista se desliza de lado; al elegir uno solo se mueve lo justo para que el
 // elegido se vea entero: si ya se ve, no se mueve.
-const COLOR: Record<Pestana, Color> = { pendientes: 'aviso', enviados: 'ok', seguimiento: 'seguimiento', aceptados: 'info', rechazados: 'error' };
+const COLOR: Record<Pestana, Color> = { pendientes: 'aviso', cerrados: 'suave', enviados: 'ok', seguimiento: 'seguimiento', aceptados: 'info', rechazados: 'error' };
 const PAD = 3;
 
 export function Pestanas({ activa, cuentas, alElegir }: { activa: Pestana; cuentas: Record<Pestana, number>; alElegir: (p: Pestana) => void }) {

@@ -40,13 +40,16 @@ export default function Nuevo() {
   const hayDatos = [nombre, telefono, correo, direccion, servicio].some((v) => v.trim());
   const cancelar = () => {
     if (!hayDatos) return router.back();
-    Alert.alert('¿Descartar este presupuesto?', 'Lo que escribiste no se guardará.', [
+    Alert.alert('¿Descartar este presupuesto?', 'Lo que escribiste no se guardará. Si quieres continuar después, guárdalo.', [
       { text: 'Seguir editando', style: 'cancel' },
+      { text: 'Guardar', onPress: () => void crear(false) },
       { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
     ]);
   };
 
-  async function crear() {
+  // `abrir`: «Crear presupuesto» sigue con él (la pantalla del presupuesto). «Guardar» lo deja creado en Pendientes y vuelve a la lista, para
+  // continuar después; pide lo mismo que crear (cliente con nombre y teléfono), porque un borrador sin presupuesto no existe.
+  async function crear(abrir = true) {
     const tel = normalizarTelefono(telefono, codigo);
     const e = {
       nombre: nombre.trim() ? undefined : 'Escribe el nombre del cliente',
@@ -54,7 +57,10 @@ export default function Nuevo() {
       correo: !correo.trim() || esCorreo(correo) ? undefined : 'Revisa el correo',
     };
     setErrores(e);
-    if (e.nombre || e.telefono || e.correo) return;
+    if (e.nombre || e.telefono || e.correo) {
+      if (!abrir) avisar.aviso('Falta algo para guardar', 'Escribe el nombre y el teléfono del cliente.');
+      return;
+    }
 
     setCargando(true);
     setAviso(null);
@@ -74,7 +80,11 @@ export default function Nuevo() {
         },
       });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace({ pathname: '/presupuesto/[id]', params: { id, nuevo: '1' } });
+      if (abrir) router.replace({ pathname: '/presupuesto/[id]', params: { id, nuevo: '1' } });
+      else {
+        router.back();
+        avisar.exito('Presupuesto guardado', 'Está en Pendientes: ábrelo cuando quieras seguir.');
+      }
     } catch (err) {
       setAviso(mensajeDe(err));
       avisar.error('No se pudo guardar', mensajeDe(err));
@@ -93,7 +103,9 @@ export default function Nuevo() {
             <Texto color="acento">Cancelar</Texto>
           </Pressable>
           <TituloConIcono texto="Nuevo presupuesto" icono={{ ios: 'doc.badge.plus', android: 'note_add', web: 'note_add' }} />
-          <View style={e.lado} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Guardar el presupuesto para continuar después" onPress={() => void crear(false)} disabled={cargando} hitSlop={8} style={[e.lado, e.derecha]}>
+            <Texto color="acento" fuerte>Guardar</Texto>
+          </Pressable>
         </View>
       </View>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ flex: 1 }} contentContainerStyle={e.contenido}>
@@ -112,7 +124,7 @@ export default function Nuevo() {
       </Seccion>
       <View style={e.acciones}>
         {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
-        <Boton titulo="Crear presupuesto" icono="mas" onPress={crear} cargando={cargando} />
+        <Boton titulo="Crear presupuesto" icono="mas" onPress={() => void crear()} cargando={cargando} />
         <Boton titulo="Cancelar" variante="texto" onPress={cancelar} disabled={cargando} />
       </View>
     </ScrollView>
@@ -134,6 +146,7 @@ const e = StyleSheet.create({
   agarre: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, opacity: 0.5 },
   barra: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
+  derecha: { alignItems: 'flex-end' },
   contenido: { padding: espacio.l, paddingBottom: espacio.xxl, gap: espacio.xl },
   acciones: { gap: espacio.m, paddingTop: espacio.s },
 });
