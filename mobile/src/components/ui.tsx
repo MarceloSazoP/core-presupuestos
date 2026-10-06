@@ -64,6 +64,7 @@ const ICONOS = {
   papelera: { ios: 'trash', android: 'delete', web: 'delete' },
   buscar: { ios: 'magnifyingglass', android: 'search', web: 'search' },
   siguiente: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
+  borrar: { ios: 'delete.left', android: 'backspace', web: 'backspace' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },

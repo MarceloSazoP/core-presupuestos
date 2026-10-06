@@ -1,4 +1,5 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { PantallaCarga } from '@/components/pantalla-carga';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
@@ -22,10 +23,11 @@ function Navegador() {
       .catch(() => {}) // si algo falla, la app sigue al sistema: nunca debe quedar esperando el tema
       .finally(() => setTemaListo(true));
   }, []);
+  // El splash nativo se oculta al arrancar la interfaz: sigue la pantalla de carga de la app, con el mismo logotipo y un indicador.
   useEffect(() => {
-    if (estado !== 'cargando' && temaListo) void SplashScreen.hideAsync(); // el splash cubre la lectura del token y del tema guardados
-  }, [estado, temaListo]);
-  if (estado === 'cargando' || !temaListo) return null;
+    void SplashScreen.hideAsync();
+  }, []);
+  if (estado === 'cargando' || !temaListo) return <PantallaCarga />; // el logotipo y «Iniciando…»; el splash nativo ya se ocultó
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
