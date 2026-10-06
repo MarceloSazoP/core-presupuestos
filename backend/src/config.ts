@@ -11,6 +11,15 @@ const schema = z
     WEB_BASE_URL: z.string().url().default('http://localhost:3012'),
     CORS_ORIGINS: z.string().default(''),
     STORAGE_DIR: z.string().default('./storage'),
+    // Archivos: en disco (desarrollo y servidor propio) o en Supabase Storage (Vercel, donde el disco no es permanente).
+    STORAGE_DRIVER: z.enum(['disk', 'supabase']).default('disk'),
+    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_SERVICE_KEY: z.string().optional(),
+    SUPABASE_BUCKET: z.string().default('archivos'),
+    // Conexiones por instancia: en funciones sin estado (Vercel) conviene un valor chico (3).
+    DATABASE_POOL_MAX: z.coerce.number().int().min(1).default(10),
+    // Avisos en vivo (SSE + LISTEN): apagarlos en hosting sin procesos de larga duración; el endpoint responde 204.
+    LIVE_EVENTS: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
     TRUST_PROXY: z.coerce.number().int().min(0).default(0),
 
     // Verificación por código (Arquitectura §3, Autenticación)
@@ -38,6 +47,9 @@ const schema = z
     GOOGLE_PLACES_API_KEY: z.string().optional(),
   })
   .superRefine((c, ctx) => {
+    if (c.STORAGE_DRIVER === 'supabase') {
+      for (const k of ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY'] as const) if (!c[k]) ctx.addIssue({ code: 'custom', path: [k], message: 'obligatoria con STORAGE_DRIVER=supabase' });
+    }
     if (c.NODE_ENV !== 'production') return;
     if (c.OTP_LOG_CODES) ctx.addIssue({ code: 'custom', path: ['OTP_LOG_CODES'], message: 'no puede estar activo en producción' });
     for (const k of ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_FROM'] as const) {

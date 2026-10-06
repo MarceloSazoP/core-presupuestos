@@ -6,7 +6,7 @@ types.setTypeParser(types.builtins.INT8, Number);
 types.setTypeParser(types.builtins.NUMERIC, Number);
 types.setTypeParser(types.builtins.DATE, (v) => v);
 
-export const pool = new Pool({ connectionString: config.DATABASE_URL });
+export const pool = new Pool({ connectionString: config.DATABASE_URL, max: config.DATABASE_POOL_MAX });
 
 export function query<T extends QueryResultRow = QueryResultRow>(
   text: string,

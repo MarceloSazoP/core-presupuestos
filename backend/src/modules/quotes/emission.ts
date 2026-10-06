@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { correoPresupuesto } from '../../lib/correo-presupuesto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Request, Router } from 'express';
 import rateLimit from 'express-rate-limit';
@@ -14,7 +14,7 @@ import { audit } from '../../lib/audit';
 import type { SendMail } from '../../lib/mail';
 import { buildPdf, type Image } from '../../lib/pdf';
 import { warrantyText, type Snapshot } from '../../lib/snapshot';
-import { ensureTmp, keyFor, pathOf, put, remove, tmpDir } from '../../lib/storage';
+import { ensureTmp, keyFor, put, read, remove, send, tmpDir } from '../../lib/storage';
 import { allow, editable, loadQuote, session } from './guard';
 import { quoteDetail, type QuoteRow } from './serialize';
 
@@ -37,7 +37,7 @@ function problems(q: QuoteRow, items: ItemRow[], user: UserRow): Detail[] {
 async function readImage(fileId: string | null): Promise<Image | undefined> {
   if (!fileId) return undefined;
   const { rows } = await query<{ storage_key: string; mime_type: string }>('SELECT storage_key, mime_type FROM files WHERE id = $1', [fileId]);
-  return rows[0] ? { data: await readFile(pathOf(rows[0].storage_key)), mime: rows[0].mime_type } : undefined;
+  return rows[0] ? { data: await read(rows[0].storage_key), mime: rows[0].mime_type } : undefined;
 }
 
 // Registrar el envío (Contrato API §7): NONE → SENT solo la primera vez; siempre queda en la auditoría con su canal.
@@ -167,7 +167,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
                           ELSE (SELECT CASE WHEN use_logo THEN logo_file_id END FROM users WHERE id = $3) END`,
       [q.id, q.doc_status === 'FINALIZED', q.user_id]);
     if (!rows[0]) throw new AppError(404, 'NOT_FOUND', 'No encontrado');
-    res.type(rows[0].mime_type).sendFile(pathOf(rows[0].storage_key));
+    await send(req, res.type(rows[0].mime_type), rows[0].storage_key);
   });
 
   // ── Salidas de un presupuesto finalizado ─────────────────────────────────────────────────────
@@ -176,7 +176,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     finalizedOnly(q);
     const { rows } = await query<{ storage_key: string }>(
       'SELECT f.storage_key FROM quote_documents d JOIN files f ON f.id = d.pdf_file_id WHERE d.quote_id = $1', [q.id]);
-    res.attachment(`${q.number}.pdf`).type('application/pdf').sendFile(pathOf(rows[0]!.storage_key));
+    await send(req, res.attachment(`${q.number}.pdf`).type('application/pdf'), rows[0]!.storage_key);
   });
 
   r.get('/:id/share', allow('USER', 'QUOTE_CODE'), async (req, res) => {
@@ -214,7 +214,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
       subject: `Presupuesto ${s.number} de ${s.professional.name}`,
       text: `${b.message ?? `Hola ${s.customer.name}, te adjunto el presupuesto ${s.number}.`}\n\nTambién puedes verlo en línea: ${url}\n\n${s.professional.name} · ${s.professional.phone}`,
       html: correoPresupuesto(s, url, b.message),
-      attachment: { filename: `${s.number}.pdf`, content: await readFile(pathOf(doc[0]!.storage_key)) },
+      attachment: { filename: `${s.number}.pdf`, content: await read(doc[0]!.storage_key) },
     });
     await registerSend(req, q, 'EMAIL'); // solo si el envío salió bien
     res.json(await quoteDetail(await loadQuote(req, q.id)));

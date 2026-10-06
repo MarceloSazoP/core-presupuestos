@@ -9,6 +9,7 @@ export async function GET(req: Request) {
   const s = await sesionActual();
   if (!s) return new Response("No autorizado", { status: 401 });
   const arriba = await fetch(`${BASE}/quotes/${s.quoteId}/events`, { headers: { Authorization: `Bearer ${s.token}` }, signal: req.signal, cache: "no-store" }).catch(() => null);
+  if (arriba?.status === 204) return new Response(null, { status: 204 }); // la API tiene los avisos apagados: EventSource no reintenta
   if (!arriba?.ok || !arriba.body) return new Response("No disponible", { status: arriba?.status ?? 503 });
   return new Response(arriba.body, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-store, no-transform", "X-Accel-Buffering": "no" } });
 }

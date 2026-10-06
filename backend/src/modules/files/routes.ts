@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { query } from '../../db';
 import { notFound } from '../../errors';
 import { requireSession } from '../../http/session';
-import { pathOf } from '../../lib/storage';
+import { send } from '../../lib/storage';
 import { session } from '../quotes/guard';
 
 // Descarga autenticada (Contrato API §6). Un usuario solo ve lo suyo; una sesión QUOTE_CODE, solo los archivos de su
@@ -19,8 +19,8 @@ export const fileRoutes = () => {
       `SELECT storage_key, mime_type FROM files WHERE id = $1 AND user_id = $2 AND ($3::uuid IS NULL OR quote_id = $3)`,
       [id.data, s.userId, s.scope === 'QUOTE_CODE' ? s.quoteId : null]);
     if (!rows[0]) throw notFound();
-    res.type(rows[0].mime_type).sendFile(pathOf(rows[0].storage_key), (err) => {
-      if (err && !res.headersSent) res.status(404).end();
+    await send(req, res.type(rows[0].mime_type), rows[0].storage_key).catch(() => {
+      if (!res.headersSent) res.status(404).end();
     });
   });
   return r;

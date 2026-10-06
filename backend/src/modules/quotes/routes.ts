@@ -15,6 +15,7 @@ import { addEmissionRoutes } from './emission';
 import { addFollowUpRoutes } from './followups';
 import { addMediaRoutes } from './media';
 import { CreateQuote, Items, ListQuotes, Measurements, PatchQuote, Survey } from './schemas';
+import { config } from '../../config';
 import { suscribir } from '../../lib/events';
 import { quoteDetail, type QuoteRow } from './serialize';
 import { FOLLOW_UP, SUMMARY_COLS, SUMMARY_FROM, toSummary } from './summary';
@@ -232,6 +233,7 @@ export const quoteRoutes = (deps: { sendMail: SendMail; mailLimit?: number }) =>
   // Avisos en vivo (Contrato API §6): `changed` cada vez que algo del presupuesto cambia, desde cualquier cliente.
   r.get('/:id/events', allow('USER', 'QUOTE_CODE'), async (req, res) => {
     const q = await loadQuote(req, req.params.id);
+    if (!config.LIVE_EVENTS) return void res.status(204).end(); // 204 = el cliente no reintenta
     res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
     res.flushHeaders();
     res.write('retry: 3000\n\n');

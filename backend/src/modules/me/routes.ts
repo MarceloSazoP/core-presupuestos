@@ -12,7 +12,7 @@ import { IMAGES } from '../../lib/filetype';
 import { discardUpload, removeMany, storeFile, type FileKind } from '../../lib/files';
 import { audit } from '../../lib/audit';
 import type { SendMail } from '../../lib/mail';
-import { pathOf } from '../../lib/storage';
+import { send } from '../../lib/storage';
 import { enviarQrRecuperacion } from '../auth/recuperacion';
 import { maskDestination, type SendCode } from '../../lib/deliver';
 import { hashCode, randomCode6, safeEqual } from '../../lib/crypto';
@@ -167,7 +167,7 @@ export const meRoutes = (sendMail?: SendMail, sendCode?: SendCode) => {
     r.get(`/${path}`, async (req, res) => {
       const f = (await query<{ storage_key: string; mime_type: string }>(`SELECT f.storage_key, f.mime_type FROM files f JOIN users u ON u.${column} = f.id WHERE u.id = $1`, [uid(req)])).rows[0];
       if (!f) throw notFound();
-      res.type(f.mime_type).sendFile(pathOf(f.storage_key));
+      await send(req, res.type(f.mime_type), f.storage_key);
     });
     r.delete(`/${path}`, async (req, res) => {
       const oldKey = await withTx((c) => setSlot(c, uid(req), column, null));

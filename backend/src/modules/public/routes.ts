@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { query } from '../../db';
 import { AppError, notFound } from '../../errors';
 import type { Snapshot } from '../../lib/snapshot';
-import { pathOf } from '../../lib/storage';
+import { send } from '../../lib/storage';
 
 // Vista pública del cliente (Contrato API §10): sin autenticación, el token de la URL es la credencial. Solo expone
 // el snapshot (nunca user_id, IDs internos, levantamiento, fotos, notas ni seguimiento) y sin teléfono ni correo del cliente.
@@ -53,7 +53,7 @@ export function publicRoutes(ipLimit = 60) {
 
   r.get('/quotes/:token/pdf', async (req, res) => {
     const { snapshot, pdf_key } = await docByToken(req.params.token);
-    res.attachment(`${snapshot.number}.pdf`).type('application/pdf').sendFile(pathOf(pdf_key));
+    await send(req, res.attachment(`${snapshot.number}.pdf`).type('application/pdf'), pdf_key);
   });
 
   // Logo y firma salen del archivo que el snapshot fija; la firma solo si el presupuesto la incluye.
@@ -64,7 +64,7 @@ export function publicRoutes(ipLimit = 60) {
       if (!fileId || (name === 'signature' && !snapshot.include_signature)) throw notFound();
       const { rows } = await query<{ storage_key: string; mime_type: string }>('SELECT storage_key, mime_type FROM files WHERE id = $1', [fileId]);
       if (!rows[0]) throw notFound();
-      res.type(rows[0].mime_type).sendFile(pathOf(rows[0].storage_key));
+      await send(req, res.type(rows[0].mime_type), rows[0].storage_key);
     });
   }
 
