@@ -8,10 +8,10 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, Linking, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Icono, Nota, Seccion, Tarjeta, TECLADO_ID, Texto, type NombreIcono } from '@/components/ui';
+import { Boton, Icono, Nota, Presionable, Seccion, Tarjeta, TECLADO_ID, Texto, type NombreIcono } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
 import { guardarArchivo } from '@/sync/archivos';
 import { descartarSubida, encolar } from '@/sync/cola';
@@ -47,10 +47,45 @@ export function Levantamiento({ q, cambiar }: Props) {
       <Nota titulo="De la visita" icono="ubicacion">
         <Notas q={q} cambiar={cambiar} />
         <Medidas q={q} cambiar={cambiar} />
-        <Fotos q={q} cambiar={cambiar} />
-        <Voz q={q} cambiar={cambiar} />
+        <Multimedia q={q} cambiar={cambiar} />
       </Nota>
     </>
+  );
+}
+
+// Fotos y notas de voz de la visita, en su propia ventana: en la nota solo queda una fila con lo que hay (cuántas fotos y notas de voz).
+function Multimedia({ q, cambiar }: Props) {
+  const t = useTema();
+  const [abierta, setAbierta] = useState(false);
+  const fotos = q.survey.photos.length;
+  const voces = q.survey.voice_notes.length;
+  const resumen = fotos + voces === 0 ? 'Todavía no agregas fotos ni notas de voz' : [fotos ? `${fotos} ${fotos === 1 ? 'foto' : 'fotos'}` : null, voces ? `${voces} ${voces === 1 ? 'nota de voz' : 'notas de voz'}` : null].filter(Boolean).join(' · ');
+  return (
+    <View style={e.bloque}>
+      <Rotulo icono="camara" texto="Fotos y notas de voz" />
+      <Presionable accessibilityRole="button" accessibilityLabel={`Fotos y notas de voz: ${resumen}. Abrir`} onPress={() => setAbierta(true)} estilo={[e.filaMultimedia, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+        <Texto style={e.flexMultimedia} suave={fotos + voces === 0}>{resumen}</Texto>
+        <Icono nombre="siguiente" tamano={14} color={t.suave} />
+      </Presionable>
+      {abierta ? (
+        <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setAbierta(false)}>
+          <View style={[e.hojaMultimedia, { backgroundColor: t.fondo }]}>
+            <View style={e.barraMultimedia}>
+              <View style={e.ladoMultimedia} />
+              <Texto fuerte accessibilityRole="header">Fotos y notas de voz</Texto>
+              <Pressable accessibilityRole="button" accessibilityLabel="Listo" onPress={() => setAbierta(false)} hitSlop={8} style={[e.ladoMultimedia, e.derechaMultimedia]}>
+                <Texto color="acento" fuerte>Listo</Texto>
+              </Pressable>
+            </View>
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={e.contenidoMultimedia}>
+              <Fotos q={q} cambiar={cambiar} />
+              <Voz q={q} cambiar={cambiar} />
+              <Boton titulo="Listo" icono="listo" onPress={() => setAbierta(false)} />
+            </ScrollView>
+          </View>
+        </Modal>
+      ) : null}
+    </View>
   );
 }
 
@@ -153,8 +188,8 @@ function Medidas({ q, cambiar }: Props) {
       <Rotulo icono="regla" texto="Medidas" />
       {filas.map((f) => (
         <View key={f.clave} style={e.filaMedida}>
-          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
-          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" keyboardType="decimal-pad" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v.replace(/[^\d.,]/g, ''))} onEndEditing={() => void guardar(filas)} placeholder="3,5" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Ej: Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" keyboardType="decimal-pad" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v.replace(/[^\d.,]/g, ''))} onEndEditing={() => void guardar(filas)} placeholder="Ej: 3,5" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Quitar medida" onPress={() => quitar(f.clave)} hitSlop={4} style={({ pressed }) => [e.quitar, { opacity: pressed ? 0.5 : 1 }]}>
             <Icono nombre="cerrar" tamano={18} color={t.suave} />
           </Pressable>
@@ -340,6 +375,13 @@ function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_note
 }
 
 const e = StyleSheet.create({
+  filaMultimedia: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: espacio.m, borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.m },
+  flexMultimedia: { flex: 1 },
+  hojaMultimedia: { flex: 1 },
+  barraMultimedia: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
+  ladoMultimedia: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
+  derechaMultimedia: { alignItems: 'flex-end' },
+  contenidoMultimedia: { padding: espacio.xl, gap: espacio.xl, paddingBottom: espacio.xxl },
   bloque: { gap: espacio.s },
   rotulo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   fila: { flexDirection: 'row', gap: espacio.m },
