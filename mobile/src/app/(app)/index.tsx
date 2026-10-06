@@ -37,7 +37,7 @@ export default function Inicio() {
           <Texto variante="subtitulo" accessibilityRole="header">Resumen</Texto>
           <Pressable accessibilityRole="button" accessibilityLabel="Nuevo presupuesto" onPress={() => router.push('/nuevo')} hitSlop={8} style={({ pressed }) => [e.nuevo, { backgroundColor: `${t.acento}1A`, opacity: pressed ? 0.6 : 1 }]}>
             <Icono nombre="documentoNuevo" tamano={16} color={t.acento} />
-            <Text style={[e.textoNuevo, { color: t.acento }]}>Nuevo presupuesto</Text>
+            <Text style={[e.textoNuevo, { color: t.acento }]}>Nuevo</Text>
           </Pressable>
         </View>
         {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
