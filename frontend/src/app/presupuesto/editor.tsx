@@ -31,7 +31,8 @@ import Typography from "@mui/material/Typography";
 import { avisar, useAvisar } from "../avisos";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
-import { dinero, miles } from "@/lib/formato";
+import { montoDeDescuento, porcentajeDe } from "@/lib/descuento";
+import { dinero } from "@/lib/formato";
 import { paisDe } from "@/lib/paises";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
@@ -66,6 +67,7 @@ type Inicial = {
 const aNumero = (s: string) => Number(s.trim().replace(",", ".")) || 0;
 const aEntero = (s: string) => Number(s.replace(/[^\d]/g, "")) || 0;
 const MAX_ITEMS = 100; // igual que el servidor
+const PORCENTAJES = Array.from({ length: 101 }, (_, i) => i); // 0 % a 100 %, como la rueda de la app
 const filaVacia = (clave: number, tipo: Fila["tipo"] = "item"): Fila => ({ clave, tipo, descripcion: "", cantidad: "1", unidad: UNIDAD_POR_DEFECTO, precio: "" });
 
 export function Editor({ inicial }: { inicial: Inicial }) {
@@ -93,7 +95,10 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         }))
       : [filaVacia(1)],
   );
-  const [descuento, setDescuento] = useState(inicial.descuento > 0 ? String(inicial.descuento) : "");
+  // El descuento se elige en porcentaje, como en la app; null es un monto fijo guardado antes, que se respeta hasta elegir uno.
+  const [porcentaje, setPorcentaje] = useState<number | null>(() =>
+    porcentajeDe(inicial.descuento, calcularTotales(inicial.items.map((it) => ({ ...it })), 0, false, inicial.impuesto.tasa).subtotal),
+  );
   const [servicio, setServicio] = useState(inicial.descripcion);
   const [conIva, setConIva] = useState(inicial.conIva);
   const [direccion, setDireccion] = useState(inicial.direccion ?? "");
@@ -107,7 +112,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   const [hayNovedad, setHayNovedad] = useState(false);
   // En vivo: cuando alguien cambia el presupuesto desde otro lugar (la app), se recarga solo; si aquí hay cambios sin guardar no se
   // pisa nada y se avisa. Los avisos de nuestro propio guardado se ignoran.
-  const estadoActual = JSON.stringify([filas, descuento, servicio, conIva, direccion, garantia, validez, observaciones]);
+  const estadoActual = JSON.stringify([filas, porcentaje, servicio, conIva, direccion, garantia, validez, observaciones]);
   const vivo = useRef({ actual: estadoActual, base: estadoActual, ignorarHasta: 0 });
   useEffect(() => {
     vivo.current.actual = estadoActual;
@@ -194,12 +199,10 @@ export function Editor({ inicial }: { inicial: Inicial }) {
 
   // Una tarea no necesita precio (puede ir incluida); un ítem sí.
   const sinItems = filas.every((f) => !f.descripcion.trim() || (f.tipo === "item" && !f.precio.trim()));
-  const totales = calcularTotales(
-    filas.map((f) => ({ tipo: f.tipo, descripcion: f.descripcion, cantidad: aNumero(f.cantidad), precioUnitario: aEntero(f.precio) })),
-    aEntero(descuento),
-    conIva,
-    impuesto.tasa,
-  );
+  const lineas = filas.map((f) => ({ tipo: f.tipo, descripcion: f.descripcion, cantidad: aNumero(f.cantidad), precioUnitario: aEntero(f.precio) }));
+  // El monto se recalcula con el subtotal de ahora; la API guarda el monto (la misma regla que la app).
+  const descuento = porcentaje === null ? inicial.descuento : montoDeDescuento(calcularTotales(lineas, 0).subtotal, porcentaje);
+  const totales = calcularTotales(lineas, descuento, conIva, impuesto.tasa);
   const descuentoExcesivo = totales.total < 0;
 
   const intentarTerminar = () => {
@@ -425,21 +428,36 @@ export function Editor({ inicial }: { inicial: Inicial }) {
               <Box component="dt" sx={{ color: "text.secondary" }}>
                 Descuento
               </Box>
-              <Box component="dd" sx={{ m: 0, width: "9rem" }}>
+              <Box component="dd" sx={{ m: 0, width: "11rem" }}>
                 <TextField
-                  id="descuento"
-                  name="descuento"
-                  label="Monto"
+                  select
+                  id="descuento-porcentaje"
+                  label="Porcentaje"
                   size="small"
-                  autoComplete="off"
-                  placeholder="$0"
-                  value={miles(descuento, moneda)}
-                  onChange={(e) => setDescuento(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                  value={porcentaje === null ? "fijo" : String(porcentaje)}
+                  onChange={(e) => setPorcentaje(e.target.value === "fijo" ? null : Number(e.target.value))}
                   error={descuentoExcesivo}
-                  slotProps={{ htmlInput: { inputMode: "numeric", style: { textAlign: "right" }, "aria-invalid": descuentoExcesivo } }}
-                />
+                  slotProps={{ select: { native: true }, htmlInput: { "aria-invalid": descuentoExcesivo } }}
+                >
+                  {porcentaje === null ? <option value="fijo">Fijo {clp(inicial.descuento)}</option> : null}
+                  {PORCENTAJES.map((p) => (
+                    <option key={p} value={p}>
+                      {p === 0 ? "Sin descuento" : `${p} %`}
+                    </option>
+                  ))}
+                </TextField>
+                {/* La API recibe el monto. */}
+                <input type="hidden" name="descuento" value={String(descuento)} />
               </Box>
             </Box>
+            {descuento > 0 ? (
+              <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, color: "text.secondary" }}>
+                <dt>Descuento{porcentaje ? ` (${porcentaje} %)` : ""}</dt>
+                <Box component="dd" sx={{ m: 0 }}>
+                  -{clp(descuento)}
+                </Box>
+              </Box>
+            ) : null}
             <Box component="div" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
               <dt className="sr-only">Impuesto</dt>
               <Box component="dd" sx={{ m: 0, flex: 1 }}>

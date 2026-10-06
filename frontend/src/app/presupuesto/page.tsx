@@ -14,6 +14,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import { redirect } from "next/navigation";
+import { porcentajeDe } from "@/lib/descuento";
 import { dinero, cant } from "@/lib/formato";
 import { paisDe } from "@/lib/paises";
 import { simboloUnidad } from "@/lib/opciones";
@@ -87,6 +88,7 @@ export default async function PresupuestoPage() {
     p.cliente.telefono,
     mensajePresupuesto({ nombre: p.cliente.nombre, numero: p.numero, total: clp(total), descripcion: p.descripcion, enlace: p.publicUrl ?? "" }),
   );
+  const porcentajeDescuento = porcentajeDe(descuento, subtotal); // null: un monto fijo, sin porcentaje que mostrar
   const hayVisita = Boolean(p.levantamiento.notas) || p.levantamiento.medidas.length > 0 || p.levantamiento.fotos.length > 0 || p.levantamiento.audios.length > 0;
 
   return (
@@ -191,7 +193,7 @@ export default async function PresupuestoPage() {
               </Box>
               {descuento > 0 ? (
                 <Box sx={{ display: "flex", justifyContent: "space-between", color: "text.secondary" }}>
-                  <dt>Descuento</dt>
+                  <dt>Descuento{porcentajeDescuento ? ` (${porcentajeDescuento} %)` : ""}</dt>
                   <Box component="dd" sx={{ m: 0 }}>
                     -{clp(descuento)}
                   </Box>
