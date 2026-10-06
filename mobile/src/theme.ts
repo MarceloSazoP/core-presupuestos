@@ -18,6 +18,11 @@ const claro = {
   sobreNaranja: '#0B1B3A',
   serie1: '#0E3578', // gráfico: lo presupuestado (azul de la marca)
   serie2: '#E3A008', // gráfico: lo aceptado (amarillo; en blanco pierde contraste, por eso las barras llevan la leyenda)
+  // Las cuatro tarjetas del resumen: cada una con su tono (fondo suave + número en el tono oscuro; ≥ 7:1).
+  kpi1Fondo: '#E3EBFA', kpi1Tinta: '#0E3578', // azul: esperando respuesta
+  kpi2Fondo: '#FFEFC9', kpi2Tinta: '#7A4B00', // ámbar: por terminar o enviar
+  kpi3Fondo: '#DDF3E4', kpi3Tinta: '#14602B', // verde: aceptado
+  kpi4Fondo: '#EDE5FD', kpi4Tinta: '#5B21B6', // violeta: aceptación
   aviso: '#8A5A00',
   ok: '#1A7F37',
   seguimiento: '#7C3AED', // violeta: el estado «Seguimiento» tiene su propio color
@@ -39,8 +44,12 @@ const oscuro = {
   sobreAcento: '#0B1B3A',
   naranja: '#F9890D',
   sobreNaranja: '#0B1B3A',
-  serie1: '#F9890D', // gráfico: lo presupuestado (naranja de la marca, 6,9:1 sobre la tarjeta)
-  serie2: '#56D364', // gráfico: lo aceptado (verde, 9:1)
+  serie1: '#7C9CFF', // gráfico: lo presupuestado (azul suave, 6,6:1 sobre la tarjeta)
+  serie2: '#F9890D', // gráfico: lo aceptado (naranja de la marca, 6,9:1; complementario del azul)
+  kpi1Fondo: '#17306A', kpi1Tinta: '#9DBBFF',
+  kpi2Fondo: '#3D2812', kpi2Tinta: '#FFB454',
+  kpi3Fondo: '#10382A', kpi3Tinta: '#7BE39B',
+  kpi4Fondo: '#2D2257', kpi4Tinta: '#CDBBFF',
   aviso: '#E3B341',
   ok: '#56D364',
   seguimiento: '#B197FC',

@@ -57,10 +57,10 @@ export function Resumen() {
     <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
       <Seccion titulo="Resumen">
         <View style={e.grilla}>
-          <Dato indice={0} titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} fuerte />
-          <Dato indice={1} titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
-          <Dato indice={2} variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-          <Dato indice={3} variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
+          <Dato indice={0} titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
+          <Dato indice={1} tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
+          <Dato indice={2} tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+          <Dato indice={3} tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
         </View>
       </Seccion>
 
@@ -112,7 +112,7 @@ function Barra({ alto, color, orden }: { alto: number; color: string; orden: num
   return <Animated.View style={[e.barra, { height: alto, backgroundColor: color, transformOrigin: 'bottom' }, estilo]} />;
 }
 
-// Barras de lo presupuestado (azul) y lo aceptado (naranja) por mes, hechas con Views: seis meses no justifican una librería de gráficos.
+// Barras de lo presupuestado y lo aceptado por mes, hechas con Views: seis meses no justifican una librería de gráficos.
 function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   const t = useTema();
   const clp = (n: number) => dinero(n, moneda);
@@ -139,17 +139,18 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   );
 }
 
-function Dato({ indice, titulo, valor, nota, variacion, fuerte }: { indice: number; titulo: string; valor: string; nota: string; variacion?: Variacion | null; fuerte?: boolean }) {
+function Dato({ indice, tono, titulo, valor, nota, variacion }: { indice: number; tono: 'kpi1' | 'kpi2' | 'kpi3' | 'kpi4'; titulo: string; valor: string; nota: string; variacion?: Variacion | null }) {
   const t = useTema();
-  // El número principal del mes va con el color de acción de la marca (azul en claro, naranja en oscuro); el resto, en tarjetas neutras.
+  const tinta = t[`${tono}Tinta`];
+  // Cada tarjeta lleva su tono (fondo suave y el número en el tono fuerte), igual en claro y en oscuro.
   return (
     // Las cuatro tarjetas entran una tras otra (60 ms de diferencia) subiendo un poco.
-    <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: fuerte ? t.acento : t.tarjeta, borderColor: fuerte ? t.acento : t.borde }]}>
-      <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte}>{titulo}</Texto>
-      <Texto variante="titulo" color={fuerte ? 'sobreAcento' : undefined} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Texto>
-      <Texto variante="chico" color={fuerte ? 'sobreAcento' : undefined} suave={!fuerte} numberOfLines={1}>{nota}</Texto>
-      {/* Frente al mes anterior: verde si mejora, rojo si empeora; en la tarjeta azul, del mismo color que el resto para no perder contraste. */}
-      {variacion ? <Texto variante="chico" fuerte numberOfLines={1} color={fuerte ? 'sobreAcento' : variacion.sube === null ? undefined : variacion.sube ? 'ok' : 'error'} suave={!fuerte && variacion.sube === null}>{variacion.texto}</Texto> : null}
+    <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={[e.dato, { backgroundColor: t[`${tono}Fondo`] }]}>
+      <Texto variante="chico" fuerte style={{ color: tinta }}>{titulo}</Texto>
+      <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.numero, { color: tinta }]}>{valor}</Texto>
+      <Texto variante="chico" numberOfLines={1} style={{ color: tinta }}>{nota}</Texto>
+      {/* Frente al mes anterior: las flechas ▲▼ dicen si sube o baja; el color se queda en el tono de la tarjeta para mantener el contraste. */}
+      {variacion ? <Texto variante="chico" fuerte numberOfLines={1} style={{ color: tinta }}>{variacion.texto}</Texto> : null}
     </Animated.View>
   );
 }
@@ -157,7 +158,7 @@ function Dato({ indice, titulo, valor, nota, variacion, fuerte }: { indice: numb
 const e = StyleSheet.create({
   bloque: { gap: espacio.l, paddingBottom: espacio.l },
   grilla: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.m },
-  dato: { flexGrow: 1, flexBasis: '45%', borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: 2 },
+  dato: { flexGrow: 1, flexBasis: '45%', borderRadius: radio.l, borderCurve: 'continuous', padding: espacio.l, gap: 2 },
   numero: { fontVariant: ['tabular-nums'] },
   lista: { padding: 0, gap: 0, overflow: 'hidden' },
   fila: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingVertical: espacio.m, paddingHorizontal: espacio.l },
