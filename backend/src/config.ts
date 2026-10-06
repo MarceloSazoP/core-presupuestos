@@ -32,10 +32,7 @@ const schema = z
     AUTH_PHONE_LIMIT_PER_HOUR: z.coerce.number().int().min(1).optional(),
     OTP_LOG_CODES: bool,
 
-    // Proveedores: correo obligatorio en producción
-    RESEND_API_KEY: z.string().optional(),
-    EMAIL_FROM: z.string().optional(),
-    // Alternativa a Resend: SMTP (p. ej. Gmail con contraseña de aplicación). Pensado para desarrollo y pruebas.
+    // SMTP para correo (p. ej. Gmail con contraseña de aplicación)
     SMTP_HOST: z.string().optional(),
     SMTP_PORT: z.coerce.number().int().default(587),
     SMTP_USER: z.string().optional(),
@@ -49,10 +46,6 @@ const schema = z
     }
     if (c.NODE_ENV !== 'production') return;
     if (c.OTP_LOG_CODES) ctx.addIssue({ code: 'custom', path: ['OTP_LOG_CODES'], message: 'no puede estar activo en producción' });
-    // Correo: Resend o SMTP (alguno debe estar completo).
-    const resend = !!c.RESEND_API_KEY && !!c.EMAIL_FROM;
-    const smtp = !!c.SMTP_HOST && !!c.SMTP_USER && !!c.SMTP_PASSWORD;
-    if (!resend && !smtp) ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'en producción hace falta Resend (RESEND_API_KEY y EMAIL_FROM) o SMTP' });
   });
 
 const parsed = schema.safeParse(process.env);
