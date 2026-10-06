@@ -46,6 +46,7 @@ const ICONOS = {
   ajustes: { ios: 'gearshape', android: 'settings', web: 'settings' },
   alerta: { ios: 'exclamationmark.triangle.fill', android: 'warning', web: 'warning' },
   reloj: { ios: 'clock', android: 'schedule', web: 'schedule' },
+  tendencia: { ios: 'chart.line.uptrend.xyaxis', android: 'trending_up', web: 'trending_up' },
   despliegue: { ios: 'chevron.down', android: 'keyboard_arrow_down', web: 'keyboard_arrow_down' },
 } as const;
 export type NombreIcono = keyof typeof ICONOS;
