@@ -225,8 +225,8 @@ export function Editor({ inicial }: { inicial: Inicial }) {
     );
   }
 
-  // Pantallas muy anchas: [de la visita · hoja · resumen]. Anchas: [de la visita / hoja] a la izquierda y el resumen con el total y
-  // las acciones fijo a la derecha. Más angostas: una columna en ese mismo orden y una barra fija abajo con el total y la acción principal.
+  // Pantallas anchas: [de la visita / hoja] a la izquierda y el resumen con el total y las acciones fijo a la derecha. Más angostas:
+  // una columna en ese mismo orden y una barra fija abajo con el total y la acción principal.
   return (
     <Box
       component="form"
@@ -239,11 +239,11 @@ export function Editor({ inicial }: { inicial: Inicial }) {
         display: "grid",
         gap: 3,
         alignItems: "start",
-        gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 21rem", xl: "20rem minmax(0, 1fr) 21rem" },
+        // La hoja nunca comparte el ancho con «De la visita»: la grilla de ítems necesita todo el espacio.
+        gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1fr) 22rem" },
         gridTemplateAreas: {
           xs: '"cabecera" "visita" "hoja" "resumen" "extra" "barra"',
           lg: '"cabecera cabecera" "visita resumen" "hoja resumen"',
-          xl: '"cabecera cabecera cabecera" "visita hoja resumen"',
         },
       }}
     >

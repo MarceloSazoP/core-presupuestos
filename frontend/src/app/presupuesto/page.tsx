@@ -22,6 +22,7 @@ import { totalLinea } from "@/lib/totales";
 import { enlaceWhatsApp, mensajePresupuesto } from "@/lib/whatsapp";
 import { Editor } from "./editor";
 import { Encabezado } from "./encabezado";
+import { ANCHO_PAGINA } from "./medidas";
 import { ContactoCliente } from "./contacto-cliente";
 import { DeLaVisita, Medidas } from "./de-la-visita";
 import { Multimedia } from "./multimedia";
@@ -38,7 +39,7 @@ const huella = (o: unknown) => {
   return String(h);
 };
 
-const PAGINA = { mx: "auto", width: "100%", maxWidth: "84rem", px: { xs: 2, sm: 3, lg: 5 }, py: 3, display: "flex", flexDirection: "column", gap: 3 } as const;
+const PAGINA = { mx: "auto", width: "100%", maxWidth: ANCHO_PAGINA, px: { xs: 2, sm: 3, lg: 5 }, py: 3, display: "flex", flexDirection: "column", gap: 3 } as const;
 const ROTULO = { typography: "overline", color: "text.secondary", lineHeight: 2 } as const;
 const SOLO_ANCHO = { display: { xs: "none", sm: "table-cell" } } as const;
 

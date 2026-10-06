@@ -11,8 +11,10 @@ import Link from "@mui/material/Link";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { useColorScheme } from "@mui/material/styles";
+import { useState } from "react";
 import { salirAction } from "../actions";
 import { Reloj } from "../reloj";
+import { ANCHO_PAGINA } from "./medidas";
 
 type Profesional = { nombre: string; telefono: string; correo: string };
 
@@ -37,40 +39,47 @@ function BotonTema() {
   );
 }
 
-// Dueño del presupuesto (usuario de la app móvil): logo, nombre y contacto, con la fecha y hora en vivo.
+// Dueño del presupuesto (usuario de la app móvil): logo, nombre y contacto, con la fecha y hora en vivo. La barra es del color de
+// la superficie (no azul) para que cualquier logo se vea como fue diseñado; el logo conserva su proporción (los horizontales se ven
+// completos), va pegado a la izquierda y, en el teléfono, en su propia fila arriba del nombre.
 export function Encabezado({ profesional, logoSrc }: { profesional: Profesional; logoSrc: string | null }) {
   const telefono = profesional.telefono.replace(/[^\d+]/g, "");
+  const [logoRoto, setLogoRoto] = useState(false); // si el logo no carga, van las iniciales en vez de una imagen rota
+  const logo = logoRoto ? null : logoSrc;
   return (
-    <AppBar position="static">
-      <Toolbar sx={{ mx: "auto", width: "100%", maxWidth: "84rem", flexWrap: "wrap", gap: 2, py: 1, px: { xs: 2, sm: 3, lg: 5 } }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: "1 1 auto" }}>
-          {logoSrc ? (
-            // Archivo privado servido por el BFF: el logo va sobre blanco para que se vea igual en cualquier tema.
-            <Avatar src={logoSrc} alt={`Logo de ${profesional.nombre}`} variant="rounded" sx={{ width: 48, height: 48, bgcolor: "common.white", "& img": { objectFit: "contain", p: 0.5 } }} />
-          ) : (
-            <Avatar sx={{ bgcolor: "rgba(255,255,255,0.2)", color: "inherit" }}>{iniciales(profesional.nombre)}</Avatar>
-          )}
-          <Box sx={{ minWidth: 0 }}>
-            <Typography component="p" variant="h6" noWrap>
-              {profesional.nombre}
-            </Typography>
-            <Typography component="p" variant="body2" sx={{ display: "flex", flexWrap: "wrap", columnGap: 2, opacity: 0.9 }}>
-              <Link href={`tel:${telefono}`} color="inherit" underline="hover">
-                {profesional.telefono}
-              </Link>
-              <Link href={`mailto:${profesional.correo}`} color="inherit" underline="hover" sx={{ wordBreak: "break-all" }}>
-                {profesional.correo}
-              </Link>
-            </Typography>
+    <AppBar position="static" color="inherit" elevation={0} sx={{ bgcolor: "background.paper", borderBottom: 1, borderColor: "divider" }}>
+      <Toolbar sx={{ mx: "auto", width: "100%", maxWidth: ANCHO_PAGINA, flexWrap: "wrap", alignItems: "center", columnGap: 3, rowGap: 1.5, py: 1.5, px: { xs: 2, sm: 3, lg: 5 } }}>
+        {logo ? (
+          <Box sx={{ flex: { xs: "1 1 100%", sm: "0 0 auto" }, display: "flex", minWidth: 0 }}>
+            {/* Sobre fondo oscuro el logo va en una placa blanca: casi todos se diseñan para fondo claro. */}
+            <Box sx={(t) => ({ display: "flex", maxWidth: "100%", ...t.applyStyles("dark", { bgcolor: "common.white", borderRadius: 1, px: 1, py: 0.5 }) })}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- archivo privado servido por el BFF; su proporción es la del logo */}
+              <img src={logo} alt={`Logo de ${profesional.nombre}`} onError={() => setLogoRoto(true)} style={{ display: "block", height: 56, width: "auto", maxWidth: "min(18rem, 100%)", objectFit: "contain", objectPosition: "left center" }} />
+            </Box>
           </Box>
+        ) : (
+          <Avatar sx={{ bgcolor: "primary.main", color: "primary.contrastText" }}>{iniciales(profesional.nombre)}</Avatar>
+        )}
+        <Box sx={{ minWidth: 0, flex: "1 1 14rem", pl: { sm: logo ? 3 : 0 }, borderLeft: { sm: logo ? 1 : 0 }, borderColor: { sm: "divider" } }}>
+          <Typography component="p" variant="h6" noWrap>
+            {profesional.nombre}
+          </Typography>
+          <Typography component="p" variant="body2" color="text.secondary" sx={{ display: "flex", flexWrap: "wrap", columnGap: 2 }}>
+            <Link href={`tel:${telefono}`} color="inherit" underline="hover">
+              {profesional.telefono}
+            </Link>
+            <Link href={`mailto:${profesional.correo}`} color="inherit" underline="hover" sx={{ wordBreak: "break-all" }}>
+              {profesional.correo}
+            </Link>
+          </Typography>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.secondary" }}>
           <Box sx={{ mr: 1 }}>
             <Reloj />
           </Box>
           <BotonTema />
           <form action={salirAction}>
-            <Button type="submit" color="inherit" title="Consultar otro presupuesto">
+            <Button type="submit" variant="outlined" title="Consultar otro presupuesto">
               Salir
             </Button>
           </form>
