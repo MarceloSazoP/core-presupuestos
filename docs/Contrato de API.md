@@ -540,6 +540,14 @@ El código es lo que se guarda y se envía; el símbolo es lo que se muestra en 
 
 ---
 
+### 12.2 Lugares: sugerencias de direcciones
+
+Sirven para escribir la dirección del trabajo con sugerencias y ubicarla en el mapa (*Ubicación y mapa*). Requieren sesión `USER`. El backend consulta *Places API (New)* de Google con su propia clave; sin clave configurada responden `503 PLACES_UNAVAILABLE`. Límite: 60 consultas por minuto y por usuario (429 `RATE_LIMITED`).
+
+**`POST /places/autocomplete`** — cuerpo `{ "input": "Av. Providencia 12", "session": "<id de 8 a 64 caracteres [A-Za-z0-9_-]>", "region": "CL" }` (`region` es opcional y vale el país de la cuenta). Responde `{ "suggestions": [{ "id": "…", "text": "Av. Providencia 1208, Providencia, Chile" }] }` con hasta 5 sugerencias; `input` de 3 a 120 caracteres, si no, 422.
+
+**`GET /places/{id}?session=<la misma session>`** — responde `{ "address": "…", "latitude": -33.42, "longitude": -70.61 }` del lugar elegido.
+
 ## 13. Matriz de permisos
 
 | Operación | `USER` | `QUOTE_CODE` | Público |
