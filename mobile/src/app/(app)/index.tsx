@@ -1,9 +1,9 @@
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { INICIO } from '@/lib/montos';
 import { BotonOjo } from '@/components/boton-ojo';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Resumen } from '@/components/resumen';
@@ -18,6 +18,15 @@ export default function Inicio() {
   const insets = useSafeAreaInsets();
   const [actualizar, setActualizar] = useState(0); // al cambiar, el resumen se vuelve a pedir
   const [refrescando, setRefrescando] = useState(false);
+  // Cada vez que se llega a Inicio (deslizando, con el título o al volver) el resumen entra de nuevo con sus animaciones.
+  const [ronda, setRonda] = useState(0);
+  const primera = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (primera.current) primera.current = false; // la primera vez ya anima al abrirse
+      else setRonda((r) => r + 1);
+    }, []),
+  );
   // Deslizar hacia la izquierda en el inicio lleva a la lista de presupuestos (como pasar a la página siguiente). Pide un gesto claramente
   // horizontal para no pelear con el desplazamiento vertical ni con «deslizar para actualizar».
   const alLista = Gesture.Pan()
@@ -61,7 +70,7 @@ export default function Inicio() {
           </Pressable>
         </View>
         {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
-        <Resumen key={actualizar} />
+        <Resumen key={actualizar} ronda={ronda} />
       </ScrollView>
       </GestureDetector>
     </View>

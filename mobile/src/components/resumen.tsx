@@ -27,7 +27,8 @@ function ultimosMeses() {
 
 // Resumen de arriba de la lista: cómo va el mes (cuatro números) y a quién hay que contactar hoy. Sin conexión muestra el último
 // resumen guardado; si nunca hubo uno, no muestra nada (la lista de abajo sigue sirviendo).
-export function Resumen() {
+// `ronda`: cada vez que cambia (al volver a Inicio) el bloque se vuelve a montar y sus animaciones se repiten; los datos no se pierden.
+export function Resumen({ ronda = 0 }: { ronda?: number }) {
   const t = useTema();
   const moneda = usePais().currency; // los indicadores son del usuario: en la moneda de su país
   const montoDe = useDinero(INICIO);
@@ -55,7 +56,7 @@ export function Resumen() {
 
   return (
     // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
-    <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
+    <Animated.View key={ronda} entering={FadeIn.duration(200)} style={e.bloque}>
       <View style={e.grilla}>
           <Dato indice={0} icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
           <Dato indice={1} icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />

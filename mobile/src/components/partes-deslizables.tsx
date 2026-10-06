@@ -13,7 +13,7 @@ import { espacio } from '@/theme';
 // `alBorde`: se llama con -1 o 1 si el deslizado va hacia donde no hay más partes (p. ej. de la primera pestaña hacia atrás: volver a Inicio).
 // `alFuerte`: un deslizado potente (largo o muy rápido) llama a esto en vez de cambiar a la parte vecina (p. ej. volver a Inicio de una).
 const FUERTE = 260; // pt (distancia + empuje) para que un deslizado cuente como «potente»
-const RESORTE = { damping: 14, stiffness: 260, mass: 0.8, reduceMotion: ReduceMotion.System }; // un poco de rebote al asentarse
+const RESORTE = { damping: 28, stiffness: 380, mass: 0.8, reduceMotion: ReduceMotion.System }; // se asienta sin rebote notorio
 
 export function PartesDeslizables({ posicion, total, alIr, alBorde, alFuerte, estilo: estiloExtra, children }: { posicion: number; total: number; alIr: (paso: number) => void; alBorde?: (paso: number) => void; alFuerte?: (paso: number) => void; estilo?: StyleProp<ViewStyle>; children: ReactNode }) {
   const ancho = useWindowDimensions().width;
@@ -29,7 +29,7 @@ export function PartesDeslizables({ posicion, total, alIr, alBorde, alFuerte, es
     const adelante = posicion > previa.current;
     previa.current = posicion;
     x.set(reducido ? 0 : (adelante ? 1 : -1) * salto);
-    x.set(withSpring(0, RESORTE)); // se asienta con un rebote corto, como una burbuja
+    x.set(withSpring(0, RESORTE)); // se asienta sin rebote notorio
   }, [posicion, reducido, salto, x]);
 
   const gesto = Gesture.Pan()
