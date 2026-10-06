@@ -59,6 +59,8 @@ Hay dos tipos de sesión: `USER` (acceso completo a lo propio) y `QUOTE_CODE` (u
 | `POST /auth/verify` | 5 intentos por desafío |
 | `POST /auth/recovery` | 10 por IP/hora |
 | `POST /me/recovery-qr` | 3 por usuario/hora |
+| `POST /me/export` | 3 por usuario/hora |
+| `POST /me/delete-request` | 3 por usuario/hora |
 | `POST /access/code/exchange` | 10 por IP/hora y, por código, 5 fallos seguidos bloquean ese código 15 min (responde 429) |
 | `POST /access/pair` | 120 por IP/hora |
 | `POST /access/pair/poll` | 600 por IP/hora (cada computador consulta cada 2 s mientras muestra el QR) |
@@ -210,6 +212,9 @@ Entra con el QR de recuperación que llegó al correo, sin teléfono ni correo.
 | `PUT /me` | Parcial: `{ "name"?, "country"?, "timezone"?, "contact_phone"?, "contact_email"?, "use_logo"?, "include_signature"? }` (al menos uno). `country` ∈ la lista de `GET /countries` (422 si no); `timezone` es un nombre IANA válido, como `America/Lima` (422 si no). Cambiar el país **no** modifica los presupuestos ya creados (`Internacionalización.md` §3.2). El `phone` y el `email` de la cuenta **no se cambian** en el MVP. |
 | `GET /countries` | Sin sesión. Los países disponibles: `[{ country, name, currency, symbol, thousands, vat_label, vat_rate, calling_code }]`. Es la tabla de `Internacionalización.md` §2; la app la usa para elegir el país y le basta con la guardada si no hay conexión. |
 | `POST /me/recovery-qr` | **202** `{ destination_masked }`. Crea un QR de recuperación nuevo, **invalida el anterior** y lo envía al correo de la cuenta (nunca a otro). 429 si se pidió más de 3 veces en una hora; 502 si el correo no sale. |
+| `POST /me/export` (decisión del 2026-10-06, `Exportar y eliminar la cuenta.md`) | **202** `{ destination_masked }`. Arma un Excel con todos los datos del usuario (cuenta, clientes, presupuestos, ítems, visita y seguimiento; sin fotos, audios ni PDF) y lo envía **al correo de la cuenta**, adjunto. 429 si se pidió más de 3 veces en una hora; 502 si el correo no sale. |
+| `POST /me/delete-request` | **202** `{ destination_masked, expires_in_seconds: 600 }`. Envía un código de 6 dígitos al correo de la cuenta (vale 10 minutos; uno nuevo invalida el anterior). 429 si se pidió más de 3 veces en una hora; 502 si el correo no sale. |
+| `POST /me/delete` | Cuerpo `{ "code": "123456" }`. **204**: elimina la cuenta y **todos** sus datos y archivos, y revoca todas sus sesiones. 422 `CODE_INVALID` si el código no es correcto, venció o no se pidió; al 5.º intento fallido el código se invalida (429 `RATE_LIMITED`). Irreversible. |
 | `PUT /me/logo` | `multipart/form-data`, campo `file` (PNG/JPEG ≤ 2 MB). Reemplaza el anterior. |
 | `GET /me/logo` | Descarga el logo propio (404 si no hay). Es lo que muestra «Configurar». |
 | `DELETE /me/logo` | **204** |

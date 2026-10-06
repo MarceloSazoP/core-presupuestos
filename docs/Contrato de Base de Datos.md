@@ -432,7 +432,27 @@ Se construye en `finalize` y es lo único que leen el PDF y la vista pública.
 | `auth_challenges` | Se purgan a las 24 h. |
 | `sessions` | Se purgan al vencer o ser revocadas. |
 | `audit_events` | 12 meses. |
-| Eliminación de cuenta | Fuera del MVP (§10, decisión 6). |
+| Eliminación de cuenta | Decisión del 2026-10-06 (`Exportar y eliminar la cuenta.md`): borra el usuario y **todo** lo suyo (presupuestos de cualquier estado incluidos) y sus archivos. `audit_events` conserva sus filas sin usuario (`ON DELETE SET NULL`). |
+| `account_deletion_codes` | Se purgan a las 24 h. |
+
+---
+
+### Códigos de eliminación de cuenta (migración 0015)
+
+```sql
+CREATE TABLE account_deletion_codes (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash   text NOT NULL,            -- HMAC-SHA256 del código de 6 dígitos con el pepper, atado a `id`
+  attempts    int  NOT NULL DEFAULT 0,  -- se invalida al 5.º intento fallido
+  expires_at  timestamptz NOT NULL,     -- 10 minutos
+  consumed_at timestamptz,              -- usado o reemplazado por otro pedido
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX account_deletion_codes_user_idx ON account_deletion_codes (user_id, created_at DESC);
+```
+
+Orden de borrado de una cuenta: archivos del disco (claves recogidas antes), `quotes` (cascada a ítems, levantamiento, seguimientos, accesos y archivos), `customers`, y por último `users` (cascada al resto). Se hace en una transacción; los archivos se quitan del disco después de confirmar.
 
 ---
 
