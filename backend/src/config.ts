@@ -56,6 +56,9 @@ const schema = z
     const resend = !!c.RESEND_API_KEY && !!c.EMAIL_FROM;
     const smtp = !!c.SMTP_HOST && !!c.SMTP_USER && !!c.SMTP_PASSWORD;
     if (!resend && !smtp) ctx.addIssue({ code: 'custom', path: ['RESEND_API_KEY'], message: 'en producción hace falta Resend (RESEND_API_KEY y EMAIL_FROM) o SMTP' });
+    // SMS: Twilio (opcional si el correo está configurado).
+    const tieneSms = c.TWILIO_ACCOUNT_SID && c.TWILIO_AUTH_TOKEN && c.TWILIO_FROM;
+    if (!tieneSms && !resend && !smtp) ctx.addIssue({ code: 'custom', path: ['TWILIO_ACCOUNT_SID'], message: 'en producción hace falta SMS (Twilio) o correo (Resend/SMTP)' });
   });
 
 const parsed = schema.safeParse(process.env);
