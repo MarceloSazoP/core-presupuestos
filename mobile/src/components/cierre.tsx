@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { CampoModal } from '@/components/campo-modal';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -186,7 +187,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
             </View>
           ) : null}
           <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
-          <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={setObs} multiline maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
+          <CampoModal etiqueta="Observaciones (opcional)" titulo="Observaciones" agregar="Agregar observaciones" valor={obs} alCambiar={setObs} maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
         </Tarjeta>
       </Seccion>
 

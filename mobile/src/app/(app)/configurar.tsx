@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
@@ -7,7 +8,7 @@ import type { Usuario } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
 import { ElegirPais } from '@/components/elegir-pais';
 import { ImagenPerfil } from '@/components/imagen-perfil';
-import { Boton, Campo, Icono, Presionable, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Icono, Presionable, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { bandera, separarTelefono } from '@/lib/paises';
 import { elegirTema, leerPreferenciaTema, OPCIONES_TEMA, type PreferenciaTema } from '@/lib/preferencia-tema';
@@ -141,9 +142,9 @@ export default function Configurar() {
 
       <Seccion titulo="Tus datos en los presupuestos" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
         <Tarjeta>
-        <Campo etiqueta="Nombre o negocio" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoComplete="name" />
+        <CampoModal etiqueta="Nombre o negocio" titulo="Nombre o negocio" agregar="Agregar nombre" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="name" />
         <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
-        <Campo etiqueta="Correo de contacto" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder={usuario?.email ?? ''} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
+        <CampoModal etiqueta="Correo de contacto" titulo="Correo de contacto" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder={usuario?.email ?? ''} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
         <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />
         </Tarjeta>

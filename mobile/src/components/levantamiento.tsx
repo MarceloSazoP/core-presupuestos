@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
+import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import { requestRecordingPermissionsAsync, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { randomUUID } from 'expo-crypto';
@@ -9,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Linking, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Icono, Nota, Seccion, Tarjeta, TECLADO_ID, Texto, type NombreIcono } from '@/components/ui';
+import { Boton, Icono, Nota, Seccion, Tarjeta, TECLADO_ID, Texto, type NombreIcono } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
 import { guardarArchivo } from '@/sync/archivos';
 import { descartarSubida, encolar } from '@/sync/cola';
@@ -72,7 +73,7 @@ function Trabajo({ q, cambiar }: Props) {
   const guardado = useRef({ servicio: q.service_description, direccion: q.address ?? '' });
   const [error, setError] = useState<string | null>(null);
 
-  async function guardar() {
+  async function guardar(servicio: string, direccion: string) {
     if (servicio === guardado.current.servicio && direccion === guardado.current.direccion) return;
     const cuerpo = { service_description: servicio.trim() || null, address: direccion.trim() || null };
     try {
@@ -87,20 +88,19 @@ function Trabajo({ q, cambiar }: Props) {
 
   return (
     <View style={e.bloque}>
-      <Campo etiqueta="Servicio" value={servicio} onChangeText={setServicio} onBlur={guardar} multiline maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
-      <Campo etiqueta="Dirección del trabajo (opcional)" value={direccion} onChangeText={setDireccion} onBlur={guardar} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
+      <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" valor={servicio} alCambiar={(v) => { setServicio(v); void guardar(v, direccion); }} maxLength={2000} placeholder="Por ejemplo: instalar puerta" ayuda="Es obligatorio para terminar el presupuesto." error={error} />
+      <CampoModal etiqueta="Dirección del trabajo (opcional)" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={(v) => { setDireccion(v); void guardar(servicio, v); }} multiline={false} maxLength={300} autoComplete="street-address" textContentType="fullStreetAddress" />
     </View>
   );
 }
 
 // ── Notas ─────────────────────────────────────────────────────────────────────────────────────
 function Notas({ q, cambiar }: Props) {
-  const t = useTema();
   const [notas, setNotas] = useState(q.survey.notes ?? '');
   const guardado = useRef(q.survey.notes ?? '');
   const [estado, setEstado] = useState<string | null>(null);
 
-  async function guardar() {
+  async function guardar(notas: string) {
     if (notas === guardado.current) return;
     try {
       cambiar((p) => conSurvey(p, { notes: notas.trim() || null }));
@@ -113,7 +113,7 @@ function Notas({ q, cambiar }: Props) {
   }
 
   return (
-    <Campo etiqueta="Notas" value={notas} onChangeText={(v) => { setNotas(v); setEstado(null); }} onBlur={guardar} multiline placeholder="Qué viste, qué pidió el cliente, lo que no puedes olvidar" error={estado && estado !== 'Guardado' ? estado : null} ayuda={estado === 'Guardado' ? 'Guardado' : undefined} style={{ backgroundColor: t.tarjeta }} />
+    <CampoModal etiqueta="Notas" titulo="Notas" agregar="Agregar nota" valor={notas} alCambiar={(v) => { setNotas(v); setEstado(null); void guardar(v); }} placeholder="Qué viste, qué pidió el cliente, lo que no puedes olvidar" error={estado && estado !== 'Guardado' ? estado : null} ayuda={estado === 'Guardado' ? 'Guardado' : undefined} />
   );
 }
 

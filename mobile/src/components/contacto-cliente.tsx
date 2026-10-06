@@ -1,11 +1,12 @@
 import * as Haptics from 'expo-haptics';
+import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { Boton, Campo, Icono, Texto } from '@/components/ui';
+import { Boton, Icono, Texto } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -76,9 +77,9 @@ export function ContactoCliente({ q, cambiar }: { q: Presupuesto; cambiar: (f: (
   }
   return (
     <View style={e.form}>
-      <Campo etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" autoFocus />
+      <CampoModal etiqueta="Nombre del cliente" titulo="Nombre del cliente" agregar="Agregar nombre" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" />
       <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
-      <Campo etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
+      <CampoModal etiqueta="Correo del cliente" titulo="Correo del cliente" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
       {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
       <View style={e.fila}>
         <Boton titulo="Cancelar" variante="secundario" onPress={() => setEditando(false)} style={e.mitad} />

@@ -1,4 +1,5 @@
 import { randomUUID } from 'expo-crypto';
+import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
@@ -8,7 +9,7 @@ import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { BarraListo } from '@/components/barra-listo';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { Boton, Campo, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar, guardarBorrador } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -31,9 +32,6 @@ export default function Nuevo() {
   const [aviso, setAviso] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const refTelefono = useRef<TextInput>(null);
-  const refCorreo = useRef<TextInput>(null);
-  const refDireccion = useRef<TextInput>(null);
-  const refServicio = useRef<TextInput>(null);
 
   // Cancelar: si ya escribió algo se pregunta antes de descartar, porque el gesto de deslizar hacia abajo no avisa.
   const hayDatos = [nombre, telefono, correo, direccion, servicio].some((v) => v.trim());
@@ -97,15 +95,15 @@ export default function Nuevo() {
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ flex: 1 }} contentContainerStyle={e.contenido}>
       <Seccion titulo="Cliente">
         <Tarjeta>
-          <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} error={errores.nombre} autoFocus autoCapitalize="words" autoComplete="off" returnKeyType="next" onSubmitEditing={() => refTelefono.current?.focus()} />
+          <CampoModal etiqueta="Nombre" titulo="Nombre del cliente" agregar="Agregar nombre" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="off" />
           <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
-          <Campo ref={refCorreo} etiqueta="Correo (opcional)" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} returnKeyType="next" onSubmitEditing={() => refDireccion.current?.focus()} ayuda="Con correo, el PDF se envía solo al terminar." />
+          <CampoModal etiqueta="Correo (opcional)" titulo="Correo del cliente" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Con correo, el PDF se envía solo al terminar." />
         </Tarjeta>
       </Seccion>
       <Seccion titulo="El trabajo" descripcion="Opcional: puedes completarlo después.">
         <Tarjeta>
-          <Campo ref={refDireccion} etiqueta="Dirección del trabajo" value={direccion} onChangeText={setDireccion} autoComplete="street-address" textContentType="fullStreetAddress" returnKeyType="next" onSubmitEditing={() => refServicio.current?.focus()} />
-          <Campo ref={refServicio} etiqueta="Servicio" value={servicio} onChangeText={setServicio} multiline placeholder="Por ejemplo: instalar 4 enchufes en el living" />
+          <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" valor={servicio} alCambiar={setServicio} placeholder="Por ejemplo: instalar 4 enchufes en el living" />
+          <CampoModal etiqueta="Dirección del trabajo" titulo="Dirección" agregar="Agregar dirección" valor={direccion} alCambiar={setDireccion} multiline={false} autoComplete="street-address" textContentType="fullStreetAddress" />
         </Tarjeta>
       </Seccion>
       <View style={e.acciones}>

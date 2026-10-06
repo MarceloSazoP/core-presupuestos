@@ -1,10 +1,11 @@
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { CampoModal } from '@/components/campo-modal';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Campo, Icono, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Icono, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, enDias } from '@/lib/fechas';
 import { pedirPermiso, sincronizarRecordatorios } from '@/lib/notificaciones';
@@ -100,7 +101,7 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
           <Boton titulo="Llamar" icono="llamar" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`tel:${q.customer.phone}`)} />
           <Boton titulo="WhatsApp" icono="mensaje" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
         </View>
-        <Campo etiqueta="Nota (opcional)" value={nota} onChangeText={setNota} multiline maxLength={2000} placeholder="Qué te dijo, qué falta" />
+        <CampoModal etiqueta="Nota (opcional)" titulo="Nota" agregar="Agregar nota" valor={nota} alCambiar={setNota} maxLength={2000} placeholder="Qué te dijo, qué falta" />
         <Boton titulo="Guardar nota" variante="secundario" disabled={ocupado || !nota.trim()} onPress={() => void soloNota()} />
         {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
       </Tarjeta>
