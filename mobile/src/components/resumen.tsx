@@ -55,14 +55,12 @@ export function Resumen() {
   return (
     // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
     <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
-      <Seccion titulo="Resumen">
-        <View style={e.grilla}>
+      <View style={e.grilla}>
           <Dato indice={0} icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
           <Dato indice={1} icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
           <Dato indice={2} icono="listo" tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
           <Dato indice={3} icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
         </View>
-      </Seccion>
 
       <Seccion titulo="Últimos 6 meses" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
         <Grafico meses={d.meses} moneda={moneda} />
