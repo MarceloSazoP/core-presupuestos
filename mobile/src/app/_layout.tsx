@@ -27,7 +27,14 @@ function Navegador() {
   useEffect(() => {
     void SplashScreen.hideAsync();
   }, []);
-  if (estado === 'cargando' || !temaListo) return <PantallaCarga />; // el logotipo y «Iniciando…»; el splash nativo ya se ocultó
+  // La pantalla de carga se ve al menos 1,2 s: leer la sesión y el tema tarda unas décimas y, sin ese mínimo, pasaba tan rápido que no se
+  // alcanzaba a ver ni el nombre ni el «Iniciando…».
+  const [minimo, setMinimo] = useState(false);
+  useEffect(() => {
+    const h = setTimeout(() => setMinimo(true), 1200);
+    return () => clearTimeout(h);
+  }, []);
+  if (estado === 'cargando' || !temaListo || !minimo) return <PantallaCarga />; // el logotipo y «Iniciando…»; el splash nativo ya se ocultó
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
