@@ -63,9 +63,17 @@ export function ContactoCliente({ q, cambiar }: { q: Presupuesto; cambiar: (f: (
     return (
       <View style={e.fila}>
         <View style={e.datos}>
-          <Texto variante="titulo">{q.customer.name}</Texto>
-          <Texto suave>{q.customer.phone}</Texto>
-          <Texto variante="chico" suave>{q.customer.email ?? 'Sin correo'}</Texto>
+          <Texto variante="subtitulo" fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{q.customer.name}</Texto>
+          <View style={e.contacto}>
+            <View style={e.dato}>
+              <Icono nombre="llamar" tamano={15} color={t.acento} />
+              <Texto variante="chico" suave numberOfLines={1}>{q.customer.phone}</Texto>
+            </View>
+            <View style={[e.dato, e.correo]}>
+              <Icono nombre="correo" tamano={15} color={t.acento} />
+              <Texto variante="chico" suave numberOfLines={1} style={e.flexTexto}>{q.customer.email ?? 'Sin correo'}</Texto>
+            </View>
+          </View>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel="Corregir los datos del cliente" onPress={empezar} hitSlop={8} style={e.lapiz}>
           <View style={[e.circulo, { backgroundColor: `${t.acento}1A` }]}>
@@ -90,6 +98,10 @@ export function ContactoCliente({ q, cambiar }: { q: Presupuesto; cambiar: (f: (
 }
 
 const e = StyleSheet.create({
+  contacto: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
+  dato: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
+  correo: { flexShrink: 1 },
+  flexTexto: { flexShrink: 1 },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   datos: { flex: 1, gap: espacio.xs },
   form: { gap: espacio.m },
