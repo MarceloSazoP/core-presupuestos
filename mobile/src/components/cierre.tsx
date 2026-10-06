@@ -190,7 +190,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Garantía</Texto>
-            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => { setGarantia(on ? 'D30' : 'NONE'); avisar.info(on ? 'Garantía activada' : 'Garantía desactivada', on ? 'Elige cuánto dura.' : 'El presupuesto sale sin garantía.'); }} trackColor={{ true: t.acento }} />
+            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => setGarantia(on ? 'D30' : 'NONE')} trackColor={{ true: t.acento }} />
           </View>
           {garantia !== 'NONE' ? (
             <View style={e.grupo}>
