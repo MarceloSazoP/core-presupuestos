@@ -55,7 +55,7 @@ export default function Avisos() {
                   {a.cuerpo ? <Texto variante="chico" suave>{a.cuerpo}</Texto> : null}
                   <Texto variante="chico" suave>{cuando(a.fecha)}</Texto>
                 </View>
-                {a.quoteId ? <Icono nombre="despliegue" tamano={12} color={t.suave} /> : null}
+                {a.quoteId ? <Icono nombre="siguiente" tamano={16} color={t.suave} /> /* «>»: el aviso lleva al presupuesto */ : null}
               </Presionable>
             ))}
           </Tarjeta>

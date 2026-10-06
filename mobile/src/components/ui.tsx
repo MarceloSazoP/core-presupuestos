@@ -63,6 +63,7 @@ const ICONOS = {
   flecha: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' },
   papelera: { ios: 'trash', android: 'delete', web: 'delete' },
   buscar: { ios: 'magnifyingglass', android: 'search', web: 'search' },
+  siguiente: { ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },
