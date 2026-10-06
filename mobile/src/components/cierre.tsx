@@ -109,31 +109,31 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
     <>
       {/* El total siempre a la vista, arriba, y es el real. Sin impuesto dice solo «Total»; con impuesto (IVA, o el del país) se desglosa:
           subtotal, descuento si hay, impuesto y total. */}
-      <Tarjeta style={{ backgroundColor: t.kpi1Fondo, borderColor: t.borde }}>
+      <Tarjeta style={{ backgroundColor: t.dolarFondo, borderColor: t.borde }}>
         <View accessible accessibilityLabel={detalle ? `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''} Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
           {detalle ? (
             <>
               <View style={e.filaDesglose}>
-                <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>Subtotal</Texto>
-                <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(subtotal)}</Texto>
+                <Texto variante="chico" fuerte style={{ color: t.dolarTinta }}>Subtotal</Texto>
+                <Texto fuerte style={[e.monto, { color: t.dolarTinta }]}>{clp(subtotal)}</Texto>
               </View>
               {desc > 0 ? (
                 <View style={e.filaDesglose}>
-                  <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</Texto>
-                  <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>−{clp(desc)}</Texto>
+                  <Texto variante="chico" fuerte style={{ color: t.dolarTinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</Texto>
+                  <Texto fuerte style={[e.monto, { color: t.dolarTinta }]}>−{clp(desc)}</Texto>
                 </View>
               ) : null}
               {conIva ? (
                 <View style={e.filaDesglose}>
-                  <Texto variante="chico" fuerte style={{ color: t.kpi1Tinta }}>{impuesto} {tasa}%</Texto>
-                  <Texto fuerte style={[e.monto, { color: t.kpi1Tinta }]}>{clp(iva)}</Texto>
+                  <Texto variante="chico" fuerte style={{ color: t.dolarTinta }}>{impuesto} {tasa}%</Texto>
+                  <Texto fuerte style={[e.monto, { color: t.dolarTinta }]}>{clp(iva)}</Texto>
                 </View>
               ) : null}
             </>
           ) : null}
-          <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: `${t.kpi1Tinta}59` }]}>
-            <Texto fuerte style={{ color: t.kpi1Tinta }}>Total</Texto>
-            <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto, { color: t.kpi1Tinta }]}>{clp(total)}</Texto>
+          <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: `${t.dolarTinta}59` }]}>
+            <Texto fuerte style={{ color: t.dolarTinta }}>Total</Texto>
+            <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto, { color: t.dolarTinta }]}>{clp(total)}</Texto>
           </View>
         </View>
       </Tarjeta>
