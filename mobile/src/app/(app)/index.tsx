@@ -36,6 +36,7 @@ export default function Inicio() {
         <View style={e.titulo}>
           <Texto variante="subtitulo" accessibilityRole="header">Resumen</Texto>
           <Pressable accessibilityRole="button" accessibilityLabel="Nuevo presupuesto" onPress={() => router.push('/nuevo')} hitSlop={8} style={({ pressed }) => [e.nuevo, { backgroundColor: `${t.acento}1A`, opacity: pressed ? 0.6 : 1 }]}>
+            <Text style={[e.textoNuevo, { color: t.acento }]}>+</Text>
             <Icono nombre="documentoNuevo" tamano={16} color={t.acento} />
             <Text style={[e.textoNuevo, { color: t.acento }]}>Nuevo</Text>
           </Pressable>
