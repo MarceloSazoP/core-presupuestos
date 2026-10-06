@@ -1,4 +1,6 @@
 import * as Haptics from 'expo-haptics';
+import { IconoDinero } from '@/components/icono-dinero';
+import { LISTA, useDinero } from '@/lib/montos';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -10,7 +12,6 @@ import { Icono, Texto, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { elegirEstado } from '@/lib/elegir-estado';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
-import { dinero } from '@/lib/formato';
 import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
 
 // Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
@@ -51,6 +52,7 @@ export function FilaPresupuesto({
   onCambiarEstado?: (q: ResumenPresupuesto, estado: EstadoElegible) => void;
 }) {
   const t = useTema();
+  const montoDe = useDinero(LISTA);
   const reducido = useReducedMotion();
   const [presionado, setPresionado] = useState(false);
   const swipe = useRef<SwipeableMethods>(null);
@@ -106,7 +108,10 @@ export function FilaPresupuesto({
       <Animated.View style={[e.fila, TRANSICION_PRESION, { backgroundColor: t.tarjeta, borderColor: t.borde, transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
         <View style={e.arriba}>
           <Texto fuerte numberOfLines={1} style={e.flex}>{titulo}</Texto>
-          <Texto fuerte style={e.monto}>{q.total > 0 ? dinero(q.total, q.currency) : '—'}</Texto>
+          <View style={e.totalFila}>
+            <IconoDinero tamano={22} />
+            <Texto fuerte style={e.monto}>{q.total > 0 ? montoDe(q.total, q.currency) : '—'}</Texto>
+          </View>
         </View>
         <Texto variante="chico" suave numberOfLines={1}>{q.service_description || 'Sin descripción todavía'}</Texto>
         <View style={e.abajo}>
@@ -168,6 +173,7 @@ const e = StyleSheet.create({
   estadoTexto: { fontSize: letra.chico, fontWeight: '600' },
   punto: { width: 8, height: 8, borderRadius: 4 },
   monto: { fontVariant: ['tabular-nums'] },
+  totalFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
   // El código corto se dicta letra por letra: va en monoespaciada, en gris tenue.
   id: { flexShrink: 1, fontFamily: Platform.select(MONO), fontSize: letra.chico - 2, letterSpacing: 0.5, opacity: 0.8 },
   contacto: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },

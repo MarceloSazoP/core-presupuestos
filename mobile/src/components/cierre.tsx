@@ -1,4 +1,7 @@
 import * as Haptics from 'expo-haptics';
+import { IconoDinero } from '@/components/icono-dinero';
+import { BotonOjo } from '@/components/boton-ojo';
+import { delPresupuesto, useDinero } from '@/lib/montos';
 import { BarraFlotante } from '@/components/barra-flotante';
 import { ElegirDescuento } from '@/components/elegir-descuento';
 import { montoDeDescuento, porcentajeDe } from '@/lib/descuento';
@@ -8,12 +11,11 @@ import { CampoModal } from '@/components/campo-modal';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Alert, Linking, Pressable, Share, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
-import { Boton, Campo, Icono, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
-import { dinero } from '@/lib/formato';
+import { Boton, Campo, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -37,7 +39,6 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   );
   const [pct, setPct] = useState<number | null>(() => porcentajeDe(q.discount, q.subtotal)); // null: un monto fijo de antes
   const [conIva, setConIva] = useState(q.include_vat);
-  const [oculto, setOculto] = useState(false); // el ojo, como en una contraseña: oculta los montos con puntos (para mostrar el presupuesto sin enseñar los precios)
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
   const [garantia, setGarantia] = useState<string>(q.warranty.kind === 'CUSTOM' ? 'NONE' : q.warranty.kind);
   const [obs, setObs] = useState(q.observations ?? '');
@@ -54,7 +55,8 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
     setAbierta(null);
   };
   const moneda = q.currency ?? 'CLP';
-  const clp = (n: number) => (oculto ? '••••••' : dinero(n, moneda)); // los montos de este presupuesto, en su moneda (o puntos si están ocultos)
+  const montoDe = useDinero(delPresupuesto(q.id));
+  const clp = (n: number) => montoDe(n, moneda); // los montos de este presupuesto, en su moneda (o puntos si están ocultos)
   const impuesto = q.vat_label ?? 'IVA';
   const tasa = q.vat_rate ?? 19;
   const desc = pct === null ? q.discount : montoDeDescuento(subtotal, pct); // el servidor guarda el monto; aquí se elige en porcentaje
@@ -136,23 +138,9 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           ) : null}
           <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: t.borde }]}>
             <View style={e.etiquetaTotal}>
-              <View style={[e.iconoTotal, { backgroundColor: t.totalFondo }]}>
-                <Icono nombre="dinero" tamano={20} color={t.totalTinta} />
-              </View>
+              <IconoDinero tamano={36} />
               <Texto fuerte style={{ color: t.totalTinta }}>Total</Texto>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: oculto }}
-                accessibilityLabel={oculto ? 'Montos ocultos. Tocar para mostrarlos' : 'Ocultar los montos'}
-                hitSlop={10}
-                onPress={() => {
-                  void Haptics.selectionAsync();
-                  setOculto((o) => !o);
-                }}
-                style={({ pressed }) => [e.ojo, { backgroundColor: oculto ? `${t.totalTinta}26` : 'transparent', opacity: pressed ? 0.6 : 1 }]}
-              >
-                <Icono nombre={oculto ? 'ojoCerrado' : 'ojo'} tamano={20} color={t.totalTinta} />
-              </Pressable>
+              <BotonOjo clave={delPresupuesto(q.id)} color={t.totalTinta} chico />
             </View>
             <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
           </View>
@@ -311,9 +299,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 
 const RESERVA_BARRA = espacio.xxl * 2; // igual al paddingBottom del contenido de la pantalla del presupuesto
 const e = StyleSheet.create({
-  ojo: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  iconoTotal: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   bloqueTotal: { gap: espacio.s },
   filaDesglose: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   totalMonto: { flexShrink: 1, textAlign: 'right' },

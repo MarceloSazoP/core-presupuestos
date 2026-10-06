@@ -1,4 +1,7 @@
 import * as Haptics from 'expo-haptics';
+import { IconoDinero } from '@/components/icono-dinero';
+import { BotonOjo } from '@/components/boton-ojo';
+import { delPresupuesto, useDinero } from '@/lib/montos';
 import { ScrollConBarra } from '@/components/barra-flotante';
 import { avisar } from '@/lib/toast';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
@@ -17,7 +20,6 @@ import { PartesDeslizables } from '@/components/partes-deslizables';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { Boton, Icono, Pastilla, Tarjeta, Texto } from '@/components/ui';
 import { PestanasParte } from '@/components/pestanas-parte';
-import { dinero } from '@/lib/formato';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
 import { guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
@@ -30,6 +32,7 @@ const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
 export default function Detalle() {
   const t = useTema();
   const { id, nuevo } = useLocalSearchParams<{ id: string; nuevo?: string }>();
+  const montoDe = useDinero(delPresupuesto(id));
   const [q, setQ] = useState<Presupuesto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editandoCliente, setEditandoCliente] = useState(false);
@@ -112,9 +115,11 @@ export default function Detalle() {
           gestureEnabled: false, // el deslizar es para cambiar de parte: el gesto nativo de «volver» lo pisaba y dejaba la pantalla por error (se vuelve con el botón de la barra)
           headerTitle: () => <TituloCliente q={q} alEditar={() => setEditandoCliente(true)} />,
           headerRight: () => (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={8} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
               <Icono nombre="qr" tamano={22} color={t.acento} />
             </Pressable>
+            </View>
           ),
         }}
       />
@@ -163,21 +168,25 @@ export default function Detalle() {
                       {i.kind === 'TASK' ? (
                         <Texto variante="chico" suave>Tarea</Texto>
                       ) : (
-                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {simboloUnidad(i.unit)} × {dinero(i.unit_price, q.currency)}</Texto>
+                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {simboloUnidad(i.unit)} × {montoDe(i.unit_price, q.currency)}</Texto>
                       )}
                     </View>
-                    <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : dinero(i.line_total, q.currency)}</Texto>
+                    <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : montoDe(i.line_total, q.currency)}</Texto>
                   </View>
                 ))}
                 {q.include_vat ? (
                   <View style={e.filaTotal}>
                     <Texto suave>{q.vat_label ?? 'IVA'} ({q.vat_rate ?? 19}%)</Texto>
-                    <Texto suave style={e.monto}>{dinero(q.vat, q.currency)}</Texto>
+                    <Texto suave style={e.monto}>{montoDe(q.vat, q.currency)}</Texto>
                   </View>
                 ) : null}
                 <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
-                  <Texto fuerte>Total</Texto>
-                  <Texto variante="titulo" style={e.monto}>{dinero(q.total, q.currency)}</Texto>
+                  <View style={e.etiquetaTotal}>
+                    <IconoDinero tamano={32} />
+                    <Texto fuerte>Total</Texto>
+                    <BotonOjo clave={delPresupuesto(id)} chico />
+                  </View>
+                  <Texto variante="titulo" style={e.monto}>{montoDe(q.total, q.currency)}</Texto>
                 </View>
               </Tarjeta>
             ) : null}
@@ -201,6 +210,7 @@ export default function Detalle() {
 
 const RESERVA = espacio.xxl * 2; // lo que queda debajo del contenido; la barra flotante lo necesita para saber dónde termina
 const e = StyleSheet.create({
+  etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
   contenido: { padding: espacio.l, paddingBottom: RESERVA, gap: espacio.l },
   bloque: { gap: espacio.s },

@@ -1,4 +1,6 @@
 import { router, Stack } from 'expo-router';
+import { LISTA } from '@/lib/montos';
+import { BotonOjo } from '@/components/boton-ojo';
 import { useEffect } from 'react';
 import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
@@ -51,7 +53,7 @@ export default function AppLayout() {
       />
       {/* título normal: las pestañas quedan fijas debajo */}
       <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Avisos" icono={{ ios: 'bell.fill', android: 'notifications', web: 'notifications' }} /> }} />
-      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Presupuestos" icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} /> }} />
+      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackTitle: 'Inicio', headerRight: () => <BotonOjo clave={LISTA} />, headerTitle: () => <TituloConIcono texto="Presupuestos" icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} /> }} />
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />

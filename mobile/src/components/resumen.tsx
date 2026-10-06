@@ -1,11 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
+import { INICIO, useDinero } from '@/lib/montos';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
 import { Icono, Presionable, Seccion, Tarjeta, Texto, type NombreIcono } from '@/components/ui';
-import { dinero } from '@/lib/formato';
 import { usePais } from '@/lib/pais-actual';
 import { porcentaje, puntos, variacion, type Variacion } from '@/lib/variacion';
 import { useRefrescar } from '@/lib/refrescar';
@@ -30,7 +30,8 @@ function ultimosMeses() {
 export function Resumen() {
   const t = useTema();
   const moneda = usePais().currency; // los indicadores son del usuario: en la moneda de su país
-  const clp = (n: number) => dinero(n, moneda);
+  const montoDe = useDinero(INICIO);
+  const clp = (n: number) => montoDe(n, moneda);
   const [d, setD] = useState<Datos | null>(null);
   const cargar = useCallback(async () => {
     try {
@@ -78,13 +79,13 @@ export function Resumen() {
               <Presionable
                 key={q.id}
                 accessibilityRole="button"
-                accessibilityLabel={`${q.customer.name}, enviado hace ${q.days_since_sent} días, ${dinero(q.total, q.currency)}. Abrir`}
+                accessibilityLabel={`${q.customer.name}, enviado hace ${q.days_since_sent} días, ${montoDe(q.total, q.currency)}. Abrir`}
                 onPress={() => router.push({ pathname: '/presupuesto/[id]', params: { id: q.id } })}
                 estilo={[e.fila, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
               >
                 <Texto fuerte numberOfLines={2} style={e.flex}>{q.customer.name}</Texto>
                 <Texto suave style={e.colEnviado}>{q.days_since_sent === 0 ? 'hoy' : `hace ${q.days_since_sent} d`}</Texto>
-                <Texto numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.numero]}>{dinero(q.total, q.currency)}</Texto>
+                <Texto numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.numero]}>{montoDe(q.total, q.currency)}</Texto>
               </Presionable>
             ))}
           </Tarjeta>
@@ -113,7 +114,8 @@ function Barra({ alto, color, orden }: { alto: number; color: string; orden: num
 // Barras de lo presupuestado y lo aceptado por mes, hechas con Views: seis meses no justifican una librería de gráficos.
 function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   const t = useTema();
-  const clp = (n: number) => dinero(n, moneda);
+  const montoDe = useDinero(INICIO);
+  const clp = (n: number) => montoDe(n, moneda);
   const max = Math.max(1, ...meses.flatMap((m) => [m.quoted_amount, m.accepted_amount]));
   const ALTO = 64;
   return (
