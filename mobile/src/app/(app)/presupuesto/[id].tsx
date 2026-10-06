@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { cancelarRecordatorio } from '@/lib/notificaciones';
 import { IconoDinero } from '@/components/icono-dinero';
 import { BotonOjo } from '@/components/boton-ojo';
 import { delPresupuesto, useDinero } from '@/lib/montos';
@@ -8,7 +9,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
@@ -22,7 +23,7 @@ import { Boton, Icono, Pastilla, Tarjeta, Texto } from '@/components/ui';
 import { PestanasParte } from '@/components/pestanas-parte';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
-import { guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
+import { eliminarPresupuesto, guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
@@ -90,6 +91,22 @@ export default function Detalle() {
   }
 
   const cerrado = q.doc_status === 'FINALIZED';
+  const eliminarEste = () =>
+    Alert.alert(`¿Eliminar el presupuesto de ${q.customer.name}?`, 'Se borran también sus fotos, notas de voz y notas. No se puede deshacer.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => {
+          void eliminarPresupuesto(id);
+          void cancelarRecordatorio(id);
+          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          avisar.exito('Presupuesto eliminado');
+          if (router.canGoBack()) router.back();
+          else router.replace('/presupuestos');
+        },
+      },
+    ]);
 
   // Qué pestañas tiene: uno pendiente se trabaja en dos partes; uno cerrado se envía, se le hace seguimiento y se revisa.
   const partes = cerrado
@@ -128,9 +145,17 @@ export default function Detalle() {
 
       {/* Cabecera: quién es el cliente y en qué va. Lo demás vive en las pestañas de abajo. */}
       <View style={e.bloque}>
-        <View style={e.pastillas}>
-          <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
-          {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
+        <View style={e.filaPastillas}>
+          <View style={e.pastillas}>
+            <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
+            {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
+          </View>
+          {/* Un presupuesto pendiente se puede eliminar desde aquí (los terminados no, Contrato API §6). Siempre con confirmación. */}
+          {!cerrado ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Eliminar este presupuesto" hitSlop={8} onPress={eliminarEste} style={({ pressed }) => [e.papelera, { backgroundColor: `${t.error}1A`, opacity: pressed ? 0.6 : 1 }]}>
+              <Icono nombre="papelera" tamano={18} color={t.error} />
+            </Pressable>
+          ) : null}
         </View>
         {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
       </View>
@@ -214,7 +239,9 @@ const e = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
   contenido: { padding: espacio.l, paddingBottom: RESERVA, gap: espacio.l },
   bloque: { gap: espacio.s },
-  pastillas: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
+  filaPastillas: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  pastillas: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
+  papelera: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   flex: { flex: 1 },
   parte: { gap: espacio.xl },
   oculta: { display: 'none' },

@@ -61,6 +61,7 @@ const ICONOS = {
   ojoCerrado: { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' },
   flechaIzq: { ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' },
   flecha: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' },
+  papelera: { ios: 'trash', android: 'delete', web: 'delete' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },
