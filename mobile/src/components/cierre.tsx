@@ -1,21 +1,20 @@
 import * as Haptics from 'expo-haptics';
+import { GARANTIAS, ModalCondiciones } from '@/components/modal-condiciones';
 import { IconoDinero } from '@/components/icono-dinero';
 import { BotonOjo } from '@/components/boton-ojo';
 import { delPresupuesto, useDinero } from '@/lib/montos';
 import { BarraFlotante } from '@/components/barra-flotante';
-import { ElegirDescuento } from '@/components/elegir-descuento';
 import { montoDeDescuento, porcentajeDe } from '@/lib/descuento';
 import { avisar } from '@/lib/toast';
 import { simboloUnidad } from '@/lib/unidades';
-import { CampoModal } from '@/components/campo-modal';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
-import { Boton, Campo, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
+import { Boton, Icono, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -23,7 +22,6 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
 // el número y el PDF los calcula el servidor; aquí solo se captura y se muestra.
 // Las duraciones: «sin garantía» es el interruptor apagado (kind NONE), no una opción más.
-const GARANTIAS = [{ kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' }, { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' }, { kind: 'LIFETIME', texto: 'De por vida' }] as const;
 const MAX_ITEMS = 100;
 
 export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: () => Promise<void>; alTerminar?: () => void }) {
@@ -39,6 +37,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   );
   const [pct, setPct] = useState<number | null>(() => porcentajeDe(q.discount, q.subtotal)); // null: un monto fijo de antes
   const [conIva, setConIva] = useState(q.include_vat);
+  const [condiciones, setCondiciones] = useState(false); // la ventana de condiciones
   const [dias, setDias] = useState(String(q.validity_days ?? 15));
   const [garantia, setGarantia] = useState<string>(q.warranty.kind === 'CUSTOM' ? 'NONE' : q.warranty.kind);
   const [obs, setObs] = useState(q.observations ?? '');
@@ -61,6 +60,12 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   const tasa = q.vat_rate ?? 19;
   const desc = pct === null ? q.discount : montoDeDescuento(subtotal, pct); // el servidor guarda el monto; aquí se elige en porcentaje
   const { iva, total } = totalesDe(subtotal, desc, conIva, tasa);
+  const resumenCondiciones = [
+    desc > 0 ? (pct ? `Descuento ${pct} %` : 'Descuento fijo') : null,
+    garantia === 'NONE' ? 'Sin garantía' : `Garantía ${GARANTIAS.find((g) => g.kind === garantia)?.texto ?? ''}`,
+    `Validez ${dias || '—'} días`,
+    obs.trim() ? 'Con observaciones' : null,
+  ].filter(Boolean).join(' · ');
   const detalle = conIva || desc > 0; // con impuesto o descuento, el cuadro desglosa; si no, dice solo «Total»
 
   async function guardar() {
@@ -145,6 +150,11 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
             <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
           </View>
         </View>
+        {/* El impuesto va aquí, justo bajo el total, porque es lo que lo cambia. */}
+        <View style={[e.filaIva, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde, paddingTop: espacio.m }]}>
+          <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
+          <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} trackColor={{ true: t.acento }} />
+        </View>
       </Tarjeta>
 
       <Seccion titulo="Ítems y tareas" icono="lista" descripcion="Lo que cobras. Sale en el PDF.">
@@ -186,29 +196,13 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       </Seccion>
 
       {/* Todo lo que se acuerda con el cliente, en una sola tarjeta: descuento, impuesto, garantía, validez y observaciones. */}
-      <Seccion titulo="Condiciones" icono="documento">
-        <Tarjeta>
-          <View style={e.grupo}>
-            <Texto variante="chico" fuerte>Descuento (opcional)</Texto>
-            <ElegirDescuento valor={pct} respaldo={`Descuento fijo ${clp(q.discount)}`} alElegir={setPct} />
-          </View>
-          <View style={e.filaIva}>
-            <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
-            <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} trackColor={{ true: t.acento }} />
-          </View>
-          {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
-          <View style={e.filaIva}>
-            <Texto style={e.textoIva}>Garantía</Texto>
-            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => setGarantia(on ? 'D30' : 'NONE')} trackColor={{ true: t.acento }} />
-          </View>
-          {garantia !== 'NONE' ? (
-            <View style={e.grupo}>
-              <Texto variante="chico" fuerte>Duración</Texto>
-              <Chips etiqueta="Duración de la garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={setGarantia} />
-            </View>
-          ) : null}
-          <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => setDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
-          <CampoModal etiqueta="Observaciones (opcional)" titulo="Observaciones" agregar="Agregar observaciones" icono="documento" valor={obs} alCambiar={setObs} maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
+      {/* Las condiciones (descuento, garantía, validez y observaciones) viven en su propia ventana; aquí solo su resumen. */}
+      <Seccion titulo="Condiciones" icono="documento" descripcion="Descuento, garantía, validez y observaciones.">
+        <Tarjeta style={e.tarjetaCondiciones}>
+          <Presionable accessibilityRole="button" accessibilityLabel={`Condiciones: ${resumenCondiciones}. Editar`} onPress={() => setCondiciones(true)} estilo={e.filaCondiciones}>
+            <Texto style={e.flexTexto}>{resumenCondiciones}</Texto>
+            <Icono nombre="siguiente" tamano={14} color={t.suave} />
+          </Presionable>
         </Tarjeta>
       </Seccion>
 
@@ -222,6 +216,10 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           <Boton titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} style={e.mayor} />
         </View>
       </BarraFlotante>
+
+      {condiciones ? (
+        <ModalCondiciones pct={pct} alDescuento={setPct} descuentoFijo={`Descuento fijo ${clp(q.discount)}`} garantia={garantia} alGarantia={setGarantia} dias={dias} alDias={setDias} obs={obs} alObs={setObs} alCerrar={() => setCondiciones(false)} />
+      ) : null}
 
       {abierta ? (
         <ModalItem
@@ -299,6 +297,9 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 
 const RESERVA_BARRA = espacio.xxl * 2; // igual al paddingBottom del contenido de la pantalla del presupuesto
 const e = StyleSheet.create({
+  tarjetaCondiciones: { padding: 0 },
+  filaCondiciones: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l, paddingVertical: espacio.m },
+  flexTexto: { flex: 1 },
   etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   bloqueTotal: { gap: espacio.s },
   filaDesglose: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
