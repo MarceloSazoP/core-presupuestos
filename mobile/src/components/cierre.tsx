@@ -11,7 +11,7 @@ import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Chips, entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
-import { Boton, Campo, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Campo, Icono, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
 import { dinero } from '@/lib/formato';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
@@ -107,33 +107,39 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
 
   return (
     <>
-      {/* El total siempre a la vista, arriba, y es el real. Sin impuesto dice solo «Total»; con impuesto (IVA, o el del país) se desglosa:
-          subtotal, descuento si hay, impuesto y total. */}
-      <Tarjeta style={{ backgroundColor: t.totalFondo, borderColor: t.borde }}>
+      {/* El total siempre a la vista, arriba, y es el real. Como las tarjetas del inicio: fondo neutro, un ícono de dinero con su color y las
+          palabras en ese color; las cifras en el color del texto (blanco en oscuro). Sin impuesto ni descuento dice solo «Total»; si no se
+          desglosa: subtotal, descuento (con su %), impuesto y total. */}
+      <Tarjeta style={{ backgroundColor: t.tarjeta, borderColor: t.borde }}>
         <View accessible accessibilityLabel={detalle ? `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''} Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
           {detalle ? (
             <>
               <View style={e.filaDesglose}>
                 <Texto variante="chico" fuerte style={{ color: t.totalTinta }}>Subtotal</Texto>
-                <Texto fuerte style={[e.monto, { color: t.totalTinta }]}>{clp(subtotal)}</Texto>
+                <Texto fuerte style={e.monto}>{clp(subtotal)}</Texto>
               </View>
               {desc > 0 ? (
                 <View style={e.filaDesglose}>
                   <Texto variante="chico" fuerte style={{ color: t.totalTinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</Texto>
-                  <Texto fuerte style={[e.monto, { color: t.totalTinta }]}>−{clp(desc)}</Texto>
+                  <Texto fuerte style={e.monto}>−{clp(desc)}</Texto>
                 </View>
               ) : null}
               {conIva ? (
                 <View style={e.filaDesglose}>
                   <Texto variante="chico" fuerte style={{ color: t.totalTinta }}>{impuesto} {tasa}%</Texto>
-                  <Texto fuerte style={[e.monto, { color: t.totalTinta }]}>{clp(iva)}</Texto>
+                  <Texto fuerte style={e.monto}>{clp(iva)}</Texto>
                 </View>
               ) : null}
             </>
           ) : null}
-          <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: `${t.totalTinta}59` }]}>
-            <Texto fuerte style={{ color: t.totalTinta }}>Total</Texto>
-            <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto, { color: t.totalTinta }]}>{clp(total)}</Texto>
+          <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: t.borde }]}>
+            <View style={e.etiquetaTotal}>
+              <View style={[e.iconoTotal, { backgroundColor: t.totalFondo }]}>
+                <Icono nombre="dinero" tamano={20} color={t.totalTinta} />
+              </View>
+              <Texto fuerte style={{ color: t.totalTinta }}>Total</Texto>
+            </View>
+            <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
           </View>
         </View>
       </Tarjeta>
@@ -286,6 +292,8 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 }
 
 const e = StyleSheet.create({
+  etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
+  iconoTotal: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   bloqueTotal: { gap: espacio.s },
   filaDesglose: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   totalMonto: { flexShrink: 1, textAlign: 'right' },

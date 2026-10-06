@@ -23,7 +23,7 @@ const claro = {
   kpi2Fondo: '#FFEFC9', kpi2Tinta: '#7A4B00', // ámbar: por terminar o enviar
   kpi3Fondo: '#DDF3E4', kpi3Tinta: '#14602B', // verde: aceptado
   kpi4Fondo: '#EDE5FD', kpi4Tinta: '#5B21B6', // violeta: aceptación
-  totalFondo: '#F5A04A', totalTinta: '#2B1500', // el naranja del billete de $20.000 chileno: el cuadro del total (tinta sobre fondo ≈ 8:1)
+  totalFondo: '#FFE3BF', totalTinta: '#8A4500', // naranja del billete de $20.000 chileno: ícono y palabras del cuadro del total (tinta sobre blanco ≈ 7:1)
   aviso: '#8A5A00',
   ok: '#1A7F37',
   seguimiento: '#7C3AED', // violeta: el estado «Seguimiento» tiene su propio color
@@ -51,7 +51,7 @@ const oscuro = {
   kpi2Fondo: '#3D2812', kpi2Tinta: '#FFB454',
   kpi3Fondo: '#10382A', kpi3Tinta: '#7BE39B',
   kpi4Fondo: '#2D2257', kpi4Tinta: '#CDBBFF',
-  totalFondo: '#1E5A30', totalTinta: '#D4F5DC', // en oscuro, verde dólar profundo
+  totalFondo: '#10382A', totalTinta: '#7BE39B', // en oscuro, verde dólar: ícono y palabras del cuadro del total
   aviso: '#E3B341',
   ok: '#56D364',
   seguimiento: '#B197FC',

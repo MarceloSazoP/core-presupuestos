@@ -50,6 +50,7 @@ const ICONOS = {
   caja: { ios: 'shippingbox.fill', android: 'inventory_2', web: 'inventory_2' },
   tarea: { ios: 'checklist', android: 'checklist', web: 'checklist' },
   cliente: { ios: 'person.fill', android: 'person', web: 'person' },
+  dinero: { ios: 'banknote', android: 'payments', web: 'payments' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },
