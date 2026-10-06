@@ -109,10 +109,14 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
         const snapshot = makeSnapshot(q, items.rows, u, customer.rows[0]!.name, { number, previousNumber, at: t[0]!.ts, validUntil: t[0]!.valid_until, issuedOn: t[0]!.issued_on, timezone: zona });
 
         const token = randomBytes(24).toString('base64url'); // 192 bits
+        const qrBuffer = q.include_qr ? await QRCode.toBuffer(publicUrl(token), { margin: 1, width: 300 }).catch((e: unknown) => {
+          console.error('QR error:', e);
+          throw new AppError(500, 'QR_GENERATION_FAILED', 'No pudimos generar el QR', undefined, { error: String(e) });
+        }) : undefined;
         const pdf = await buildPdf(snapshot, {
           logo: u.use_logo ? await readImage(u.logo_file_id) : undefined,
           signature: u.include_signature ? await readImage(u.signature_file_id) : undefined,
-          qr: q.include_qr ? await QRCode.toBuffer(publicUrl(token), { margin: 1, width: 300 }) : undefined,
+          qr: qrBuffer,
         }).catch((e: unknown) => {
           // El tipo se detecta por la firma de bytes, pero el contenido puede estar corrupto: se pide volver a subirlo.
           if (/Invalid image/i.test(String(e))) throw new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'logo_o_firma', message: 'El logo o la firma no es una imagen válida: súbela de nuevo' }]);
