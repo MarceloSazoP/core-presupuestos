@@ -102,6 +102,18 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
 
   return (
     <>
+      {/* El total siempre a la vista, arriba, y es el real: con el impuesto incluido. Debajo se desglosa (neto + IVA, o el impuesto del país). */}
+      <Tarjeta style={{ backgroundColor: t.kpi1Fondo, borderColor: t.borde }}>
+        <View accessible accessibilityLabel={`Total ${clp(total)}${conIva ? `, con ${impuesto} incluido` : ''}`} style={e.bloqueTotal}>
+        <View style={e.totalArriba}>
+          <Texto fuerte style={{ color: t.kpi1Tinta }}>Total</Texto>
+          <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
+        </View>
+        {conIva ? <Texto variante="chico" style={{ color: t.kpi1Tinta }}>{`Neto ${clp(total - iva)} + ${impuesto} (${tasa} %) ${clp(iva)}`}</Texto> : null}
+        {entero(descuento) > 0 ? <Texto variante="chico" style={{ color: t.kpi1Tinta }}>{`Subtotal ${clp(subtotal)} · Descuento −${clp(entero(descuento))}`}</Texto> : null}
+        </View>
+      </Tarjeta>
+
       <Seccion titulo="Ítems y tareas" descripcion="Lo que cobras. Sale en el PDF.">
         {filas.length ? (
           <Tarjeta style={e.lista}>
@@ -140,42 +152,14 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
         </View>
       </Seccion>
 
-      {/* Primero el dinero: descuento, IVA y los totales, con el total grande. */}
-      <Seccion titulo="Resumen">
+      {/* Todo lo que se acuerda con el cliente, en una sola tarjeta: descuento, impuesto, garantía, validez y observaciones. */}
+      <Seccion titulo="Condiciones">
         <Tarjeta>
           <Campo etiqueta="Descuento (opcional)" value={montoEscrito(descuento, moneda)} onChangeText={(v) => setDescuento(soloDigitos(v))} keyboardType="number-pad" placeholder="$ 0" />
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
             <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={setConIva} trackColor={{ true: t.acento }} />
           </View>
-          <View style={[e.totales, { borderTopColor: t.borde }]}>
-            <View style={e.filaTotal}>
-              <Texto suave>Subtotal</Texto>
-              <Texto suave style={e.monto}>{clp(subtotal)}</Texto>
-            </View>
-            {entero(descuento) > 0 ? (
-              <View style={e.filaTotal}>
-                <Texto suave>Descuento</Texto>
-                <Texto suave style={e.monto}>−{clp(entero(descuento))}</Texto>
-              </View>
-            ) : null}
-            {conIva ? (
-              <View style={e.filaTotal}>
-                <Texto suave>{impuesto} ({tasa}%)</Texto>
-                <Texto suave style={e.monto}>{clp(iva)}</Texto>
-              </View>
-            ) : null}
-            <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
-              <Texto fuerte>Total</Texto>
-              <Texto variante="titulo" style={e.monto}>{clp(total)}</Texto>
-            </View>
-          </View>
-        </Tarjeta>
-      </Seccion>
-
-      {/* Después, lo que se acuerda con el cliente: en su propia tarjeta. */}
-      <Seccion titulo="Condiciones">
-        <Tarjeta>
           {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
           <View style={e.filaIva}>
             <Texto style={e.textoIva}>Garantía</Texto>
@@ -275,6 +259,9 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 }
 
 const e = StyleSheet.create({
+  bloqueTotal: { gap: espacio.xs },
+  totalArriba: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
+  totalMonto: { flexShrink: 1, textAlign: 'right' },
   fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   flex: { flex: 1 },
   encabezado: { minHeight: 36, paddingVertical: espacio.s, borderBottomWidth: StyleSheet.hairlineWidth },

@@ -29,6 +29,7 @@ export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () =>
         <View style={e.dato}>
           <Icono nombre="cliente" tamano={15} color={t.acento} />
           <Texto fuerte numberOfLines={1} style={e.flexTexto}>{q.customer.name}</Texto>
+          <Icono nombre="lapiz" tamano={14} color={t.acento} />
         </View>
         <View style={e.contacto}>
           <View style={e.dato}>
