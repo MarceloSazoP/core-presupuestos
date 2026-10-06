@@ -154,7 +154,7 @@ function Medidas({ q, cambiar }: Props) {
       {filas.map((f) => (
         <View key={f.clave} style={e.filaMedida}>
           <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Qué mides" value={f.label} onChangeText={(v) => editarFila(f.clave, 'label', v)} onEndEditing={() => void guardar(filas)} placeholder="Largo" placeholderTextColor={t.suave} style={[e.entrada, e.etiquetaMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
-          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v)} onEndEditing={() => void guardar(filas)} placeholder="3,5 m" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
+          <TextInput inputAccessoryViewID={TECLADO_ID} accessibilityLabel="Cuánto mide" keyboardType="decimal-pad" value={f.value} onChangeText={(v) => editarFila(f.clave, 'value', v.replace(/[^\d.,]/g, ''))} onEndEditing={() => void guardar(filas)} placeholder="3,5" placeholderTextColor={t.suave} style={[e.entrada, e.valorMedida, { color: t.texto, backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Quitar medida" onPress={() => quitar(f.clave)} hitSlop={4} style={({ pressed }) => [e.quitar, { opacity: pressed ? 0.5 : 1 }]}>
             <Icono nombre="cerrar" tamano={18} color={t.suave} />
           </Pressable>
