@@ -1,7 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { StyleSheet, useWindowDimensions } from 'react-native';
+import { StyleSheet, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import { marcarDeslizado } from '@/lib/deslizado';
 import { espacio } from '@/theme';
 
 // Las partes de un presupuesto (Visita ↔ Presupuesto…) se cambian deslizando hacia los lados, con un movimiento corto para no marear:
@@ -9,7 +10,8 @@ import { espacio } from '@/theme';
 // - Al soltar, un empujón rápido o 70 pt cambian de parte al instante, y la parte nueva se asienta desde un costado con un resorte
 //   corto (nada sale de la pantalla ni vuelve a aparecer del otro lado).
 // - Al tocar las pestañas de arriba entra igual. «Reducir movimiento»: cambia sin deslizar.
-export function PartesDeslizables({ posicion, total, alIr, children }: { posicion: number; total: number; alIr: (paso: number) => void; children: ReactNode }) {
+// `alBorde`: se llama con -1 o 1 si el deslizado va hacia donde no hay más partes (p. ej. de la primera pestaña hacia atrás: volver a Inicio).
+export function PartesDeslizables({ posicion, total, alIr, alBorde, estilo: estiloExtra, children }: { posicion: number; total: number; alIr: (paso: number) => void; alBorde?: (paso: number) => void; estilo?: StyleProp<ViewStyle>; children: ReactNode }) {
   const ancho = useWindowDimensions().width;
   const reducido = useReducedMotion();
   const x = useSharedValue(0);
@@ -30,6 +32,7 @@ export function PartesDeslizables({ posicion, total, alIr, children }: { posicio
     .runOnJS(true)
     .activeOffsetX([-24, 24])
     .failOffsetY([-16, 16])
+    .onStart(() => marcarDeslizado())
     .onUpdate((ev) => {
       const hayDestino = (ev.translationX < 0 && posicion < total - 1) || (ev.translationX > 0 && posicion > 0);
       const mover = hayDestino ? ev.translationX * 0.5 : ev.translationX * 0.12;
@@ -39,8 +42,10 @@ export function PartesDeslizables({ posicion, total, alIr, children }: { posicio
       const proyectado = ev.translationX + ev.velocityX * 0.15;
       const paso = proyectado < -70 ? 1 : proyectado > 70 ? -1 : 0;
       const hayDestino = paso !== 0 && posicion + paso >= 0 && posicion + paso < total;
+      marcarDeslizado();
       if (!hayDestino) {
         x.set(withSpring(0, { damping: 24, stiffness: 260, reduceMotion: ReduceMotion.System }));
+        if (paso !== 0) alBorde?.(paso);
         return;
       }
       alIr(paso); // cambia al instante; el efecto de arriba asienta la parte nueva desde el costado
@@ -52,7 +57,7 @@ export function PartesDeslizables({ posicion, total, alIr, children }: { posicio
 
   return (
     <GestureDetector gesture={gesto}>
-      <Animated.View style={[e.partes, estilo]}>{children}</Animated.View>
+      <Animated.View style={[e.partes, estiloExtra, estilo]}>{children}</Animated.View>
     </GestureDetector>
   );
 }

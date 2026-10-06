@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
+import { PartesDeslizables } from '@/components/partes-deslizables';
 import { avisar } from '@/lib/toast';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -83,9 +84,26 @@ export default function ListaPresupuestos() {
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
   useRefrescar(() => void cargar()); // y cuando cambia algo en la web
 
+  // Deslizar a los lados, sobre la lista o sobre cualquier tarjeta, pasa a la pestaña de al lado (Pendientes ↔ Enviados ↔ …). Desde la
+  // primera, hacia la derecha, vuelve a Inicio.
+  const posicion = PESTANAS.findIndex((p) => p.id === pestana);
+  const irAPestana = (paso: number) => {
+    const destino = PESTANAS[posicion + paso];
+    if (!destino) return;
+    void Haptics.selectionAsync();
+    setPestana(destino.id);
+  };
+  const aInicio = (paso: number) => {
+    if (paso > 0) return; // hacia la izquierda desde la última pestaña: no hay más
+    void Haptics.selectionAsync();
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: t.fondo }}>
       <Pestanas activa={pestana} cuentas={cuentas} alElegir={elegirPestana} />
+      <PartesDeslizables posicion={posicion} total={PESTANAS.length} alIr={irAPestana} alBorde={aInicio} estilo={{ flex: 1 }}>
       <FlashList
         key={pestana} // al cambiar de pestaña la lista parte desde arriba
         // FlashList 2 conserva por defecto lo que ya se veía cuando llegan elementos arriba: los presupuestos nuevos quedaban
@@ -107,6 +125,7 @@ export default function ListaPresupuestos() {
           <View style={e.aviso}>
             <Sincronizacion />
             {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
+            {pestana === 'pendientes' && visibles.length > 0 ? <Texto variante="chico" suave>Para eliminar uno, mantén apretada su tarjeta.</Texto> : null}
           </View>
         }
         ListEmptyComponent={
@@ -131,6 +150,7 @@ export default function ListaPresupuestos() {
           )
         }
       />
+      </PartesDeslizables>
       {/* Acción principal en la zona del pulgar (tercio inferior) */}
       <View pointerEvents="box-none" style={[e.cta, { paddingBottom: insets.bottom + espacio.m }]}>
         <Boton titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
