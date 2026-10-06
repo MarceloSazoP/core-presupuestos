@@ -21,7 +21,7 @@ Vercel ejecuta el backend como **funciones sin estado**: cada petición puede ca
 | Avisos de cambio en vivo (`GET /quotes/{id}/events`, SSE + `LISTEN`) | Una conexión `LISTEN` por proceso | **Apagados** (`LIVE_EVENTS=false`): el endpoint responde 204 y el cliente deja de reconectar. La app y la web siguen funcionando; se actualizan al volver a la pantalla y por sondeo. |
 | Límites de ingreso (por IP y por teléfono) | En memoria | Siguen por teléfono y usuario contra la base (`audit_events`, `auth_challenges`). El límite **por IP** es en memoria **por instancia**: frena menos. Se endurece con un almacén en la base si hace falta. |
 | Tamaño de petición | Sin tope práctico | Una función de Vercel admite **4,5 MB** por petición: las fotos ya se reducen en la app y las notas de voz caben; el tope de subida del contrato (§8) no puede superarlo. |
-| Tiempo máximo | Sin tope | `maxDuration` configurado en `vercel.json`. Generar el PDF y enviar el correo caben holgados. |
+| Tiempo máximo | Sin tope | el tope por defecto de Vercel (suficiente). Generar el PDF y enviar el correo caben holgados. |
 
 ## 2. Supabase
 
@@ -41,7 +41,7 @@ Vercel ejecuta el backend como **funciones sin estado**: cada petición puede ca
 ## 4. Pasos
 
 1. Crear el proyecto de Supabase, el bucket y aplicar las migraciones (hasta la 0016).
-2. Proyecto de Vercel de la API: *Root Directory* `backend`, Node 24, variables de §3, región São Paulo (`gru1`).
+2. Proyecto de Vercel de la API: *Root Directory* `backend`, Node 24, variables de §3, región São Paulo (`gru1`, fijada en `vercel.json`; Vercel detecta Express por `src/index.ts`).
 3. Proyecto de Vercel de la web: *Root Directory* `frontend`, `API_BASE_URL`.
 4. Dominios: uno para la web y otro para la API (HTTPS).
 5. Probar el ciclo completo: ingresar, crear, terminar, enviar y abrir el enlace del cliente; subir una foto y un audio.

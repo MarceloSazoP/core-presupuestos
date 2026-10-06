@@ -1,7 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "regions": ["gru1"],
-  "functions": { "src/index.ts": { "maxDuration": 30 } },
-  "rewrites": [{ "source": "/(.*)", "destination": "/src/index.ts" }]
+  "regions": ["gru1"]
 }
