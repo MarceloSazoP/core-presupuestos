@@ -54,19 +54,19 @@ export default function Landing() {
     <main className="marca">
       <div className="bg-amarillo text-tinta">
         <nav className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
-          <p className="text-lg font-bold tracking-tight">CORE Presupuestos</p>
+          <p className="text-lg font-extrabold tracking-tight">CORE Presupuestos</p>
         </nav>
 
         <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12">
           <div className="flex flex-col gap-6">
-            <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.02] tracking-[-0.025em]">
+            <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.04] tracking-[-0.025em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:max-w-[34rem]">
               Del terreno al presupuesto, sin olvidar nada.
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed">
+            <p className="max-w-xl text-lg leading-relaxed text-tinta/85 lg:max-w-[min(100%,30rem)] xl:max-w-[32rem]">
               Anota lo que ves en la visita (notas, fotos, medidas y voz) y entrega un presupuesto profesional en minutos.
               Hecho para electricistas, gasfíteres, instaladores y técnicos independientes.
             </p>
-            <p className="text-sm font-medium">Próximamente en Android y iPhone.</p>
+            <p className="w-fit rounded-full border border-tinta/25 bg-white/40 px-3.5 py-1 text-sm font-semibold">Próximamente en Android y iPhone</p>
           </div>
 
           <div className="relative flex flex-col gap-10 lg:block lg:pb-3.5 xl:static">
@@ -93,14 +93,14 @@ export default function Landing() {
         <ol className="mt-10 divide-y divide-white/15 border-y border-white/15">
           {PASOS.map((paso, i) => (
             <li key={paso.titulo} className="grid gap-4 py-8 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,24rem)] md:items-start md:gap-8">
-              <p aria-hidden="true" className="text-5xl font-bold leading-none tabular-nums text-amarillo">
+              <p aria-hidden="true" className="text-5xl font-extrabold leading-none tabular-nums text-amarillo">
                 {i + 1}
               </p>
               <div className="flex max-w-xl flex-col gap-2">
-                <h3 className="text-xl font-semibold">{paso.titulo}</h3>
+                <h3 className="text-xl font-semibold tracking-tight">{paso.titulo}</h3>
                 <p className="text-white/80">{paso.detalle}</p>
               </div>
-              <ul className="flex flex-col gap-1.5 rounded-lg border border-white/20 bg-white/5 p-4 text-sm">
+              <ul className="flex flex-col gap-1.5 rounded-xl border border-white/15 bg-white/[0.06] p-5 text-sm text-white/90">
                 {paso.muestra.map((m) => (
                   <li key={m} className="tabular-nums">
                     {m}
@@ -130,7 +130,7 @@ export default function Landing() {
       </section>
 
       <section className="px-4 pb-16 sm:px-6 lg:px-12 lg:pb-24">
-        <div className="grid gap-6 rounded-xl border-2 border-tinta p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:p-10">
+        <div className="grid gap-6 rounded-2xl border-2 border-tinta bg-amarillo/25 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:p-10">
           <div className="flex max-w-2xl flex-col gap-2">
             <h2 className="text-2xl font-bold tracking-[-0.01em] sm:text-3xl">¿Tu profesional te envió un código?</h2>
             <p className="text-muted">Ingrésalo para ver tu presupuesto, descargar el PDF o recibirlo por correo.</p>
