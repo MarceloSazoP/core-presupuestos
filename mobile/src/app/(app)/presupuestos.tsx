@@ -1,8 +1,9 @@
 import { FlashList } from '@shopify/flash-list';
+import { avisar } from '@/lib/toast';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
@@ -69,7 +70,7 @@ export default function ListaPresupuestos() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       void sincronizarRecordatorios();
     } catch (err) {
-      Alert.alert('No se pudo cambiar el estado', mensajeDe(err));
+      avisar.error('No se pudo cambiar el estado', mensajeDe(err));
     }
   }, []);
 

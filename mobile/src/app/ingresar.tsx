@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
+import { avisar } from '@/lib/toast';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
@@ -84,6 +85,7 @@ export default function Ingresar() {
       setPaso('codigo');
     } catch (e) {
       setAviso(mensajeDe(e));
+      avisar.error('No se pudo continuar', mensajeDe(e));
     } finally {
       setCargando(false);
     }
@@ -99,10 +101,11 @@ export default function Ingresar() {
       if (recordar) await recordarAcceso({ prefijo, telefono, correo: correo.trim().toLowerCase(), nombre: nombre.trim() });
       else await olvidarAcceso();
       await iniciar(r.token, r.user); // al cambiar la sesión, el navegador pasa solo a la app
-      if (r.is_new_user) Alert.alert('Revisa tu correo', `Te enviamos a ${r.user.email} un QR de recuperación. Guárdalo: sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número.`);
+      if (r.is_new_user) avisar.info('Revisa tu correo', `Te enviamos a ${r.user.email} un QR de recuperación. Guárdalo: sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número.`);
     } catch (e) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setAviso(mensajeDe(e));
+      avisar.error('No se pudo continuar', mensajeDe(e));
       setCodigo('');
     } finally {
       setCargando(false);

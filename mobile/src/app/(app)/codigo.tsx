@@ -1,4 +1,5 @@
 import * as Clipboard from 'expo-clipboard';
+import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -26,6 +27,7 @@ export default function Codigo() {
     await Clipboard.setStringAsync(codigo);
     void Haptics.selectionAsync();
     setCopiado(true);
+    avisar.exito('Código copiado');
     setTimeout(() => setCopiado(false), 2000);
   }
 
@@ -38,7 +40,7 @@ export default function Codigo() {
       setCodigo(r.code);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
-      Alert.alert('No se pudo generar el código', mensajeDe(err));
+      avisar.error('No se pudo generar el código', mensajeDe(err));
     } finally {
       setGenerando(false);
     }

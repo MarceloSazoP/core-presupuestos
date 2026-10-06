@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { avisar } from '@/lib/toast';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
@@ -53,6 +54,7 @@ export function ContactoCliente({ q, cambiar }: { q: Presupuesto; cambiar: (f: (
       setEditando(false);
     } catch (err) {
       setAviso(mensajeDe(err));
+      avisar.error('No se pudo guardar', mensajeDe(err));
     }
   }
 

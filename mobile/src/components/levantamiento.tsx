@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
+import { avisar } from '@/lib/toast';
 import { requestRecordingPermissionsAsync, RecordingPresets, setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { randomUUID } from 'expo-crypto';
 import { Image } from 'expo-image';
@@ -170,7 +171,7 @@ function Fotos({ q, cambiar }: Props) {
 
   async function agregar(origen: 'camara' | 'galeria') {
     Keyboard.dismiss(); // con el teclado abierto, el selector deja el espacio de abajo mal calculado
-    if (quedan <= 0) return Alert.alert('Máximo de fotos', `Cada presupuesto admite hasta ${MAX_FOTOS} fotos.`);
+    if (quedan <= 0) return avisar.aviso('Máximo de fotos', `Cada presupuesto admite hasta ${MAX_FOTOS} fotos.`);
     if (origen === 'camara') {
       const p = await ImagePicker.requestCameraPermissionsAsync();
       if (!p.granted) return sinPermiso('usar la cámara');
@@ -188,7 +189,7 @@ function Fotos({ q, cambiar }: Props) {
         await encolar({ quote_id: q.id, method: 'POST', path: `/quotes/${q.id}/photos`, archivo: { uri, name: 'foto.jpg', type: 'image/jpeg' }, fields: { id } });
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch (err) {
-        Alert.alert('No se pudo guardar la foto', mensajeDe(err));
+        avisar.error('No se pudo guardar la foto', mensajeDe(err));
       } finally {
         setPreparando((n) => n - 1);
       }
@@ -203,7 +204,7 @@ function Fotos({ q, cambiar }: Props) {
   const quitar = (id: string) =>
     Alert.alert('¿Quitar esta foto?', 'Se elimina del presupuesto.', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Quitar', style: 'destructive', onPress: () => void quitarFoto(id).catch((err) => Alert.alert('No se pudo quitar', mensajeDe(err))) },
+      { text: 'Quitar', style: 'destructive', onPress: () => void quitarFoto(id).catch((err) => avisar.error('No se pudo quitar', mensajeDe(err))) },
     ]);
 
   return (
@@ -250,7 +251,7 @@ function Voz({ q, cambiar }: Props) {
   const notas = q.survey.voice_notes;
 
   async function empezar() {
-    if (notas.length >= MAX_VOCES) return Alert.alert('Máximo de notas', `Cada presupuesto admite hasta ${MAX_VOCES} notas de voz.`);
+    if (notas.length >= MAX_VOCES) return avisar.aviso('Máximo de notas', `Cada presupuesto admite hasta ${MAX_VOCES} notas de voz.`);
     const p = await requestRecordingPermissionsAsync();
     if (!p.granted) return sinPermiso('usar el micrófono');
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
@@ -275,7 +276,7 @@ function Voz({ q, cambiar }: Props) {
       await encolar({ quote_id: q.id, method: 'POST', path: `/quotes/${q.id}/voice-notes`, archivo: { uri: local, name: 'nota.m4a', type: 'audio/mp4' }, fields: { id, duration_seconds: String(duracion) } });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
-      Alert.alert('No se pudo guardar la nota de voz', mensajeDe(err));
+      avisar.error('No se pudo guardar la nota de voz', mensajeDe(err));
     } finally {
       setGuardando(false);
     }
@@ -315,7 +316,7 @@ function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_note
   const quitar = () =>
     Alert.alert('¿Quitar esta nota de voz?', 'Se elimina del presupuesto.', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Quitar', style: 'destructive', onPress: () => void alBorrar().catch((err) => Alert.alert('No se pudo quitar', mensajeDe(err))) },
+      { text: 'Quitar', style: 'destructive', onPress: () => void alBorrar().catch((err) => avisar.error('No se pudo quitar', mensajeDe(err))) },
     ]);
 
   return (

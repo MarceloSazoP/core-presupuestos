@@ -1,4 +1,5 @@
 import { randomUUID } from 'expo-crypto';
+import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -30,7 +31,7 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
     } catch (err) {
       // Otra sesión ya la había rehecho: se va a esa versión.
       if (err instanceof ApiError && err.code === 'ALREADY_REVISED' && err.details[0]) return abrir(err.details[0].message);
-      Alert.alert('No se pudo crear la nueva versión', mensajeDe(err));
+      avisar.error('No se pudo crear la nueva versión', mensajeDe(err));
     } finally {
       setTrabajando(false);
     }

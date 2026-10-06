@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { avisar } from '@/lib/toast';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
@@ -37,7 +38,7 @@ export default function Configurar() {
       void actualizar(await api<Usuario>('/me', { method: 'PUT', body: { country } }));
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
-      Alert.alert('No se pudo cambiar el país', mensajeDe(err));
+      avisar.error('No se pudo cambiar el país', mensajeDe(err));
     }
   }
   useEffect(() => void leerPreferenciaTema().then(setTema), []);
@@ -73,8 +74,10 @@ export default function Configurar() {
       await actualizar(u);
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setAviso({ texto: 'Guardado. Los presupuestos que termines desde ahora llevan estos datos.', error: false });
+      avisar.exito('Guardado', 'Los presupuestos que termines desde ahora llevan estos datos.');
     } catch (err) {
       setAviso({ texto: mensajeDe(err), error: true });
+      avisar.error('No se pudo guardar', mensajeDe(err));
     } finally {
       setGuardando(false);
     }
@@ -86,9 +89,9 @@ export default function Configurar() {
     try {
       const r = await api<{ destination_masked: string }>('/me/recovery-qr', { method: 'POST' });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Te lo enviamos', `Llegará a ${r.destination_masked}. El QR anterior ya no sirve.`);
+      avisar.exito('Te lo enviamos', `Llegará a ${r.destination_masked}. El QR anterior ya no sirve.`);
     } catch (err) {
-      Alert.alert('No se pudo enviar el QR', mensajeDe(err));
+      avisar.error('No se pudo enviar el QR', mensajeDe(err));
     } finally {
       setEnviandoQr(false);
     }

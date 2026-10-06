@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { avisar } from '@/lib/toast';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
@@ -44,7 +45,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
     try {
       await actualizar(await api<Usuario>('/me', { method: 'PUT', body: { [campo]: valor } }));
     } catch (err) {
-      Alert.alert('No se pudo cambiar', mensajeDe(err));
+      avisar.error('No se pudo cambiar', mensajeDe(err));
     } finally {
       setCambiando(false);
     }
@@ -62,7 +63,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
       await actualizar(await subir<Usuario>(`/me/${ruta}`, { uri, name: `${ruta}.png`, type: 'image/png' }, {}, 'PUT'));
       encender('Actualizado');
     } catch (err) {
-      Alert.alert(`No se pudo guardar ${nombre}`, mensajeDe(err));
+      avisar.error(`No se pudo guardar ${nombre}`, mensajeDe(err));
     } finally {
       setOcupado(false);
     }
@@ -81,7 +82,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
               if (usuario) void actualizar(ruta === 'logo' ? { ...usuario, has_logo: false, logo_id: null } : { ...usuario, has_signature: false, signature_id: null, include_signature: false });
               encender('Quitado');
             })
-            .catch((err) => Alert.alert(`No se pudo quitar ${nombre}`, mensajeDe(err)))
+            .catch((err) => avisar.error(`No se pudo quitar ${nombre}`, mensajeDe(err)))
             .finally(() => setOcupado(false));
         },
       },

@@ -1,4 +1,5 @@
 import { randomUUID } from 'expo-crypto';
+import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -74,6 +75,7 @@ export default function Nuevo() {
       router.replace({ pathname: '/presupuesto/[id]', params: { id, nuevo: '1' } });
     } catch (err) {
       setAviso(mensajeDe(err));
+      avisar.error('No se pudo guardar', mensajeDe(err));
     } finally {
       setCargando(false);
     }

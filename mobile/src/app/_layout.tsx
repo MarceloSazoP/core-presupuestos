@@ -3,6 +3,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { AvisosFlotantes } from '@/components/avisos-flotantes';
 import { BarraTeclado } from '@/components/ui';
 import { aplicarTema, leerPreferenciaTema } from '@/lib/preferencia-tema';
 import { useTema } from '@/theme';
@@ -51,6 +52,7 @@ export default function Raiz() {
         <SesionProvider>
           <Navegador />
           <BarraTeclado />
+          <AvisosFlotantes />
         </SesionProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
