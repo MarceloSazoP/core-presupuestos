@@ -211,7 +211,7 @@ export function Pastilla({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' 
 export function Segmentos<T extends string>({ opciones, valor, alElegir, etiqueta }: { opciones: readonly { id: T; texto: string }[]; valor: T; alElegir: (v: T) => void; etiqueta: string }) {
   const t = useTema();
   return (
-    <View accessibilityRole="tablist" accessibilityLabel={etiqueta} style={[e.pista, { backgroundColor: t.oscuro ? t.campo : '#E8EAEF' }]}>
+    <View accessibilityRole="tablist" accessibilityLabel={etiqueta} style={[e.pista, { backgroundColor: t.oscuro ? t.campo : '#E6E6E6' }]}>
       {opciones.map((o) => {
         const elegido = o.id === valor;
         return (

@@ -3,11 +3,11 @@
 export type EstadoElegible = 'SENT' | 'FOLLOW_UP' | 'ACCEPTED' | 'REJECTED';
 
 // `tono`: el color con que se muestra el estado (etiqueta de la fila y botón al deslizar), del tema de la app.
-export type Tono = 'ok' | 'seguimiento' | 'acento' | 'error';
+export type Tono = 'ok' | 'seguimiento' | 'info' | 'error';
 export const ESTADOS: readonly { id: EstadoElegible; texto: string; tono: Tono }[] = [
   { id: 'SENT', texto: 'Enviado', tono: 'ok' },
   { id: 'FOLLOW_UP', texto: 'Seguimiento', tono: 'seguimiento' },
-  { id: 'ACCEPTED', texto: 'Aceptado', tono: 'acento' },
+  { id: 'ACCEPTED', texto: 'Aceptado', tono: 'info' },
   { id: 'REJECTED', texto: 'Rechazado', tono: 'error' },
 ];
 

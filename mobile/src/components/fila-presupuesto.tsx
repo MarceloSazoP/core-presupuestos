@@ -15,7 +15,7 @@ import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
 import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
 
 // Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
-function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'acento' | 'seguimiento' | 'error' } {
+function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'info' | 'seguimiento' | 'error' } {
   if (q.doc_status !== 'FINALIZED') return { texto: 'Pendiente', tono: 'aviso' };
   const comercial = ESTADOS.find((s) => s.id === q.commercial_status);
   return comercial ? { texto: comercial.texto, tono: comercial.tono } : { texto: 'Cerrado', tono: 'suave' }; // cerrado y aún sin enviar

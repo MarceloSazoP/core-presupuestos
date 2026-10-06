@@ -1,22 +1,24 @@
 import { useColorScheme } from 'react-native';
 
-// Identidad de CORE Presupuestos, sacada del logo: azul marino (la C y las barras) como color de la acción y naranja (la flecha)
-// como acento para lo que se quiere destacar. Los grises llevan un tinte azul, como el logo. En oscuro la acción pasa a naranja y
-// las superficies son azul noche (el azul marino sobre oscuro no se lee). Pares verificados: texto, suave y acento ≥ 4,5:1 sobre
-// tarjeta, página y campo; borde de campo ≥ 3:1 contra el campo (WCAG 1.4.11); texto sobre naranja 7:1.
+// Identidad de CORE Presupuestos, sacada del logo. La acción (botones, pestaña elegida, enlaces) es el naranja de la flecha: quemado en
+// claro, para que se lea sobre blanco, y el naranja de la marca en oscuro. El azul de la marca ya no tiñe las superficies: el claro es
+// gris neutro y el azul queda para los datos (`info`, el gráfico, «esperando respuesta»). Colores definidos en OKLCH y pasados a hex.
+// Pares verificados: texto, suave, acento e info ≥ 4,5:1 sobre tarjeta, página y campo; borde de campo ≥ 3:1 contra el campo
+// (WCAG 1.4.11); texto blanco sobre el acento claro 5,7:1; texto sobre naranja 7:1.
 const claro = {
-  fondo: '#F3F5FA',
+  fondo: '#F6F6F6', // gris neutro (oklch 97 % sin tinte): antes todo el claro estaba teñido de azul
   tarjeta: '#FFFFFF',
-  campo: '#F3F5FA', // relleno de los campos: un hueco gris sobre la tarjeta blanca
-  borde: '#DDE3EE', // divisiones y tarjetas
-  bordeCampo: '#7C879E', // 3,3:1 contra el campo
-  texto: '#0B1B3A',
-  suave: '#4F5B74',
-  acento: '#0E3578', // azul marino de la marca: botones, pestaña elegida, enlaces
+  campo: '#F6F6F6', // relleno de los campos: un hueco gris sobre la tarjeta blanca
+  borde: '#DFDFDF', // divisiones y tarjetas
+  bordeCampo: '#878685', // 3,4:1 contra el campo
+  texto: '#1A1816', // casi negro, 16:1 sobre la página
+  suave: '#5D5A57', // 6,3:1 sobre la página
+  acento: '#B83D00', // naranja quemado de la marca (oklch 53 % 0,175 45°): botones, pestaña elegida, enlaces; 5,7:1 sobre blanco y 4,9:1 sobre su propio tinte al 10 %
   sobreAcento: '#FFFFFF',
   naranja: '#F9890D', // naranja de la marca: solo para destacar (no para texto sobre blanco)
-  sobreNaranja: '#0B1B3A',
-  serie1: '#0E3578', // gráfico: lo presupuestado (azul de la marca)
+  sobreNaranja: '#1A1816',
+  info: '#285CC2', // azul de dato: «Aceptado», información (6,2:1 sobre blanco)
+  serie1: '#0E3578', // gráfico: lo presupuestado (azul; es dato, no identidad)
   serie2: '#E3A008', // gráfico: lo aceptado (amarillo; en blanco pierde contraste, por eso las barras llevan la leyenda)
   // Las cuatro tarjetas del resumen: cada una con su tono (fondo suave + número en el tono oscuro; ≥ 7:1).
   kpi1Fondo: '#E3EBFA', kpi1Tinta: '#0E3578', // azul: esperando respuesta
@@ -45,6 +47,7 @@ const oscuro = {
   sobreAcento: '#0B1B3A',
   naranja: '#F9890D',
   sobreNaranja: '#0B1B3A',
+  info: '#8FB4FF', // azul de dato en oscuro
   serie1: '#7C9CFF', // gráfico: lo presupuestado (azul suave, 6,6:1 sobre la tarjeta)
   serie2: '#F9890D', // gráfico: lo aceptado (naranja de la marca, 6,9:1; complementario del azul)
   kpi1Fondo: '#17306A', kpi1Tinta: '#9DBBFF',
