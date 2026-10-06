@@ -42,7 +42,7 @@ export default function AppLayout() {
             <View style={{ flexDirection: 'row' }}>
               <CampanaAvisos />
             <Pressable accessibilityRole="button" accessibilityLabel="Ver todos los presupuestos" onPress={() => router.push('/presupuestos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-              <SymbolView name={{ ios: 'list.bullet', android: 'list', web: 'list' }} size={22} tintColor={t.acento} fallback={<View />} />
+              <SymbolView name={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} size={22} tintColor={t.acento} fallback={<View />} />
             </Pressable>
             </View>
           ),
