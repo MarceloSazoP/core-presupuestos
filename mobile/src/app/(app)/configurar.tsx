@@ -1,4 +1,6 @@
 import * as Haptics from 'expo-haptics';
+import { PestanasParte } from '@/components/pestanas-parte';
+import Constants from 'expo-constants';
 import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import { useEffect, useState } from 'react';
@@ -8,7 +10,7 @@ import type { Usuario } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
 import { ElegirPais } from '@/components/elegir-pais';
 import { ImagenPerfil } from '@/components/imagen-perfil';
-import { Boton, Icono, Presionable, Segmentos, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Boton, Icono, Presionable, Seccion, Tarjeta, Texto, type NombreIcono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { bandera, separarTelefono } from '@/lib/paises';
 import { elegirTema, leerPreferenciaTema, OPCIONES_TEMA, type PreferenciaTema } from '@/lib/preferencia-tema';
@@ -106,21 +108,22 @@ export default function Configurar() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <Segmentos
-        opciones={[{ id: 'datos' as const, texto: 'Mis datos' }, { id: 'imagenes' as const, texto: 'Logo y firma' }]}
+      <PestanasParte
+        partes={[{ id: 'datos', texto: 'Mis datos', icono: 'cliente' }, { id: 'imagenes', texto: 'Logo y firma', icono: 'galeria' }]}
         valor={parte}
-        alElegir={setParte}
+        alElegir={(id) => setParte(id as 'datos' | 'imagenes')}
         etiqueta="Secciones de configuración"
       />
 
       {parte === 'datos' ? (
         <>
       <Seccion titulo="Apariencia" descripcion="Automático sigue el modo claro u oscuro de tu iPhone.">
-        <Segmentos
-          opciones={OPCIONES_TEMA}
+        <PestanasParte
+          partes={OPCIONES_TEMA.map((o) => ({ id: o.id, texto: o.texto, icono: ICONO_TEMA[o.id] }))}
           valor={tema}
           etiqueta="Apariencia de la app"
-          alElegir={(p) => {
+          alElegir={(id) => {
+            const p = id as PreferenciaTema;
             setTema(p);
             void elegirTema(p);
           }}
@@ -146,14 +149,14 @@ export default function Configurar() {
         <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         <CampoModal etiqueta="Correo de contacto" titulo="Correo de contacto" agregar="Agregar correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder="email@email.com" ayuda="Si lo dejas vacío se usa el de tu cuenta." />
         {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
-        <Boton titulo="Guardar datos" onPress={guardar} cargando={guardando} />
+        <Boton titulo="Guardar datos" icono="guardar" onPress={guardar} cargando={guardando} />
         </Tarjeta>
       </Seccion>
 
       <Seccion titulo="Tu cuenta" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
-        <Boton titulo="Enviar QR de recuperación a mi correo" variante="secundario" onPress={() => void enviarQr()} cargando={enviandoQr} />
+        <Boton titulo="Enviar QR de recuperación a mi correo" icono="qr" variante="secundario" onPress={() => void enviarQr()} cargando={enviandoQr} />
         <Texto variante="chico" suave>Sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número. Pedir uno nuevo deja sin efecto el anterior.</Texto>
-        <Boton titulo="Cerrar sesión" variante="secundario" onPress={confirmarSalida} />
+        <Boton titulo="Cerrar sesión" icono="salir" variante="secundario" onPress={confirmarSalida} />
       </Seccion>
         </>
       ) : (
@@ -168,11 +171,35 @@ export default function Configurar() {
 
         </>
       )}
+
+      {/* Acerca de: la versión de la app y quién la creó. Se ve en las dos secciones. */}
+      <Seccion titulo="Acerca de" icono="info">
+        <Tarjeta>
+          <View style={e.filaInfo}>
+            <Texto suave>Versión</Texto>
+            <Texto fuerte style={e.versionNumero}>{Constants.expoConfig?.version ?? '—'}</Texto>
+          </View>
+          <View style={[e.filaInfo, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde, paddingTop: espacio.m }]}>
+            <Texto suave>Creada por</Texto>
+            <Texto fuerte style={e.derechaTexto}>CORE Tecnología Empresarial</Texto>
+          </View>
+          <View style={[e.filaInfo, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde, paddingTop: espacio.m }]}>
+            <Texto suave>Año</Texto>
+            <Texto fuerte style={e.versionNumero}>{AÑO_DE_CREACION}</Texto>
+          </View>
+        </Tarjeta>
+      </Seccion>
     </ScrollView>
   );
 }
 
+const AÑO_DE_CREACION = 2026;
+const ICONO_TEMA: Record<PreferenciaTema, NombreIcono> = { sistema: 'sistema', claro: 'sol', oscuro: 'luna' };
+
 const e = StyleSheet.create({
+  filaInfo: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
+  versionNumero: { fontVariant: ['tabular-nums'] },
+  derechaTexto: { flexShrink: 1, textAlign: 'right' },
   tarjetaPais: { padding: 0 },
   filaPais: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l },
   flexPais: { flex: 1 },

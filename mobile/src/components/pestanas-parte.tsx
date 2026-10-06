@@ -5,12 +5,12 @@ import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } 
 import { Icono, Texto, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
-// Las partes de un presupuesto (Visita · Presupuesto · Enviar · Seguimiento · Detalle) como pestañas con ícono. Una pista con borde fino
+// Las partes de un presupuesto (Visita · Presupuesto · Enviar · Seguimiento · Detalle) y también las secciones de Configurar, como pestañas con ícono. Una pista con borde fino
 // sobre la tarjeta y, debajo de la pestaña elegida, una pastilla suave del color de acento que se desliza con un resorte (en vez de
 // saltar). La elegida lleva ícono y texto en el color de acento; las demás, en el gris suave. Al tocar suena un toque leve.
 export type Parte = { id: string; texto: string; icono: NombreIcono };
 
-export function PestanasParte({ partes, valor, alElegir }: { partes: readonly Parte[]; valor: string; alElegir: (id: string) => void }) {
+export function PestanasParte({ partes, valor, alElegir, etiqueta = 'Partes del presupuesto' }: { partes: readonly Parte[]; valor: string; alElegir: (id: string) => void; etiqueta?: string }) {
   const t = useTema();
   const [ancho, setAncho] = useState(0);
   const indice = Math.max(0, partes.findIndex((p) => p.id === valor));
@@ -22,7 +22,7 @@ export function PestanasParte({ partes, valor, alElegir }: { partes: readonly Pa
   const pastilla = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
 
   return (
-    <View accessibilityRole="tablist" accessibilityLabel="Partes del presupuesto" onLayout={(ev) => setAncho(ev.nativeEvent.layout.width)} style={[e.pista, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+    <View accessibilityRole="tablist" accessibilityLabel={etiqueta} onLayout={(ev) => setAncho(ev.nativeEvent.layout.width)} style={[e.pista, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
       {celda > 0 ? <Animated.View pointerEvents="none" style={[e.pastilla, { width: celda, backgroundColor: `${t.acento}1F` }, pastilla]} /> : null}
       {partes.map((p) => {
         const elegida = p.id === valor;
