@@ -56,6 +56,7 @@ const ICONOS = {
   ubicacion: { ios: 'mappin.and.ellipse', android: 'place', web: 'place' },
   lista: { ios: 'list.bullet', android: 'list', web: 'list' },
   trabajo: { ios: 'briefcase.fill', android: 'work', web: 'work' },
+  guardar: { ios: 'square.and.arrow.down', android: 'save', web: 'save' },
   exito: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   error: { ios: 'xmark.octagon.fill', android: 'error', web: 'error' },
   info: { ios: 'info.circle.fill', android: 'info', web: 'info' },

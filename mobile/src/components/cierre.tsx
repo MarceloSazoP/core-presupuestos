@@ -1,4 +1,5 @@
 import * as Haptics from 'expo-haptics';
+import { BarraFlotante } from '@/components/barra-flotante';
 import { ElegirDescuento } from '@/components/elegir-descuento';
 import { montoDeDescuento, porcentajeDe } from '@/lib/descuento';
 import { avisar } from '@/lib/toast';
@@ -209,13 +210,16 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
         </Tarjeta>
       </Seccion>
 
-      {/* Las acciones van fuera de las tarjetas, separadas, en la zona del pulgar. */}
-      <View style={e.acciones}>
+      <Texto variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</Texto>
+
+      {/* Las acciones flotan al pie mientras queda formulario por ver y, al llegar al final, se quedan en su sitio sin tapar nada. */}
+      <BarraFlotante reserva={RESERVA_BARRA}>
         {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-        <Boton titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} />
-        <Boton titulo="Guardar y volver" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} />
-        <Texto variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</Texto>
-      </View>
+        <View style={e.fila}>
+          <Boton titulo="Guardar" icono="guardar" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} style={e.mitad} accessibilityLabel="Guardar y volver" />
+          <Boton titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} style={e.mayor} />
+        </View>
+      </BarraFlotante>
 
       {abierta ? (
         <ModalItem
@@ -291,6 +295,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
   );
 }
 
+const RESERVA_BARRA = espacio.xxl * 2; // igual al paddingBottom del contenido de la pantalla del presupuesto
 const e = StyleSheet.create({
   etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   iconoTotal: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
@@ -312,7 +317,7 @@ const e = StyleSheet.create({
   filaTotal: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
   totales: { gap: espacio.s, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m },
   total: { borderTopWidth: 1, paddingTop: espacio.m, marginTop: espacio.xs },
-  acciones: { gap: espacio.m, paddingTop: espacio.s },
+  mayor: { flex: 1.6 },
   monto: { fontVariant: ['tabular-nums'] },
   centrado: { textAlign: 'center' },
 });

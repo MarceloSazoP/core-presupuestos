@@ -1,10 +1,11 @@
 import * as Haptics from 'expo-haptics';
+import { ScrollConBarra } from '@/components/barra-flotante';
 import { avisar } from '@/lib/toast';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
@@ -104,7 +105,7 @@ export default function Detalle() {
   };
 
   return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
+    <ScrollConBarra contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <Stack.Screen
         options={{
           title: q.customer.name,
@@ -194,13 +195,14 @@ export default function Detalle() {
         </>
       )}
       </PartesDeslizables>
-    </ScrollView>
+    </ScrollConBarra>
   );
 }
 
+const RESERVA = espacio.xxl * 2; // lo que queda debajo del contenido; la barra flotante lo necesita para saber dónde termina
 const e = StyleSheet.create({
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
-  contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.l },
+  contenido: { padding: espacio.l, paddingBottom: RESERVA, gap: espacio.l },
   bloque: { gap: espacio.s },
   pastillas: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
   flex: { flex: 1 },
