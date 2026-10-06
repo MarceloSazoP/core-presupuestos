@@ -57,7 +57,7 @@ export default function Landing() {
           <p className="text-lg font-extrabold tracking-tight">CORE Presupuestos</p>
         </nav>
 
-        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_49.5rem] 2xl:grid-cols-[minmax(0,1fr)_60rem] 2xl:gap-24">
+        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_58%] xl:gap-x-[4%]">
           <div className="flex flex-col gap-6">
             <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-bold leading-[1.04] tracking-[-0.025em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:text-[clamp(2.5rem,3.6vw,4.5rem)] xl:max-w-[34rem] 2xl:max-w-[44rem]">
               Del terreno al presupuesto, sin olvidar nada.
@@ -70,11 +70,11 @@ export default function Landing() {
           </div>
 
           {/* Con pantalla ancha, la ficha flotante va a la izquierda de la hoja y la cubre solo en su margen (1,25 rem): nunca tapa texto de la hoja. */}
-          <div className="flex flex-col gap-10 lg:pb-3.5 xl:flex-row xl:items-start xl:gap-0">
+          <div className="flex flex-col gap-10 lg:pb-3.5 xl:flex-row xl:items-start xl:gap-[3%]">
             <section
               id="consulta"
               aria-labelledby="consultar"
-              className="ficha scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:relative xl:z-10 xl:mx-0 xl:mt-8 xl:-mr-2 xl:w-[21.5rem] xl:max-w-none xl:shrink-0 2xl:w-[26rem] 2xl:p-6"
+              className="ficha scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:mx-0 xl:mt-[3%] xl:w-[46%] xl:min-w-[19rem] xl:max-w-[28rem] xl:shrink-0 2xl:p-6"
             >
               <ConsultaForm />
               <p aria-hidden="true" className="my-4 flex items-center gap-3 text-sm font-medium text-muted">
@@ -82,7 +82,7 @@ export default function Landing() {
               </p>
               <VinculoQr />
             </section>
-            <div className="xl:min-w-0 xl:flex-1">
+            <div className="xl:min-w-0 xl:flex-1 [container-type:inline-size]">
               <HojaDemo />
             </div>
           </div>
