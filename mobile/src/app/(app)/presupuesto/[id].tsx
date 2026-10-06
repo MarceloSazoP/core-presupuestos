@@ -1,6 +1,5 @@
 import * as Haptics from 'expo-haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
@@ -12,6 +11,7 @@ import { ContactoCliente } from '@/components/contacto-cliente';
 import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
+import { PartesDeslizables } from '@/components/partes-deslizables';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { TituloConIcono } from '@/components/titulo-con-icono';
 import { Boton, Icono, Pastilla, Segmentos, Tarjeta, Texto } from '@/components/ui';
@@ -91,8 +91,7 @@ export default function Detalle() {
   const actualId = partes.some((x) => x.id === parte) ? parte! : partes[0]!.id;
   // Las partes de un presupuesto pendiente se quedan montadas aunque no se vean: lo que se está escribiendo no se pierde al cambiar.
   const oculta = (id: string) => (actualId === id ? null : e.oculta);
-  // Deslizar hacia la izquierda pasa a la parte siguiente y hacia la derecha a la anterior (basta un empujón rápido). Pide un gesto
-  // claramente horizontal para no pelear con el desplazamiento vertical de la pantalla.
+  // Deslizar a los lados cambia de parte (el movimiento vive en PartesDeslizables).
   const posicion = partes.findIndex((x) => x.id === actualId);
   const ir = (paso: number) => {
     const destino = partes[posicion + paso];
@@ -100,15 +99,6 @@ export default function Detalle() {
     void Haptics.selectionAsync();
     setParte(destino.id);
   };
-  const deslizar = Gesture.Pan()
-    .runOnJS(true)
-    .activeOffsetX([-24, 24])
-    .failOffsetY([-16, 16])
-    .onEnd((ev) => {
-      const x = ev.translationX + ev.velocityX * 0.15;
-      if (x < -70) ir(1);
-      else if (x > 70) ir(-1);
-    });
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
@@ -147,8 +137,7 @@ export default function Detalle() {
 
       <Segmentos opciones={partes} valor={actualId} alElegir={setParte} etiqueta="Partes del presupuesto" />
 
-      <GestureDetector gesture={deslizar}>
-      <View style={e.partes}>
+      <PartesDeslizables posicion={posicion} total={partes.length} alIr={ir}>
       {cerrado ? (
         <>
           <View style={[e.parte, oculta('enviar')]}>
@@ -210,14 +199,12 @@ export default function Detalle() {
           </View>
         </>
       )}
-      </View>
-      </GestureDetector>
+      </PartesDeslizables>
     </ScrollView>
   );
 }
 
 const e = StyleSheet.create({
-  partes: { gap: espacio.l },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
   contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.l },
   bloque: { gap: espacio.s },
