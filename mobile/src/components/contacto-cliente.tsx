@@ -18,16 +18,29 @@ import { espacio, useTema } from '@/theme';
 // después. Se ven en el título de la pantalla (TituloCliente) y se corrigen en una hoja (EditarCliente). Funciona sin conexión: se
 // guarda en el teléfono y viaja por la cola.
 
-// Título de la barra: el nombre y, debajo, teléfono y correo. Tocarlo abre la hoja para corregirlos. Con Material 3: el sello en un
-// círculo tonal, el nombre en «título medio», el contacto en «cuerpo chico» y la onda al tocar.
+// Título de la barra: el nombre y, debajo, en qué va el presupuesto (pendiente, o su número si ya se terminó, y la versión), el teléfono y
+// el correo. Tocarlo abre la hoja para corregir los datos del cliente. Con Material 3: el sello en un círculo tonal del color del estado,
+// el nombre en «título medio», el resto en letra chica y la onda al tocar. El estado va aquí (y no en una fila propia) para que el
+// formulario empiece más arriba.
 export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () => void }) {
   const t = useTema();
+  const cerrado = q.doc_status === 'FINALIZED';
+  const colorEstado = cerrado ? t.ok : t.aviso;
+  const version = (q.version ?? 1) > 1 ? q.version : null;
+  const estado = `${cerrado ? (q.number ?? 'Cerrado') : 'Pendiente'}${version ? ` · v${version}` : ''}`;
   return (
-    <TouchableRipple accessibilityRole="button" accessibilityLabel={`${q.customer.name}, ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Corregir los datos del cliente`} onPress={alEditar} hitSlop={6} borderless style={e.toque}>
+    <TouchableRipple
+      accessibilityRole="button"
+      accessibilityLabel={`${q.customer.name}. ${cerrado ? `Cerrado${q.number ? `, ${q.number}` : ''}` : 'Pendiente'}${version ? `, versión ${version}` : ''}. ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Corregir los datos del cliente`}
+      onPress={alEditar}
+      hitSlop={6}
+      borderless
+      style={e.toque}
+    >
       <View style={e.titulo}>
-      {/* El presupuesto (documento) a la izquierda; a su lado, el cliente con su ícono, y debajo teléfono y correo. */}
-        <View style={[e.sello, { backgroundColor: `${t.acento}1F` }]}>
-          <Icono nombre="documento" tamano={18} color={t.acento} />
+        {/* El presupuesto a la izquierda, en el color de su estado; a su lado, el cliente y, debajo, el estado y el contacto. */}
+        <View style={[e.sello, { backgroundColor: `${colorEstado}26` }]}>
+          <Icono nombre={cerrado ? 'listo' : 'documento'} tamano={18} color={colorEstado} />
         </View>
         <View style={e.datos}>
           <View style={e.dato}>
@@ -36,6 +49,10 @@ export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () =>
             <Icono nombre="lapiz" tamano={14} color={t.acento} />
           </View>
           <View style={e.contacto}>
+            <View style={e.dato}>
+              <View style={[e.punto, { backgroundColor: colorEstado }]} />
+              <Text variant="labelMedium" numberOfLines={1} style={{ color: colorEstado }}>{estado}</Text>
+            </View>
             <View style={e.dato}>
               <Icono nombre="llamar" tamano={13} color={t.acento} />
               <Text variant="bodySmall" numberOfLines={1} style={{ color: t.suave }}>{q.customer.phone}</Text>
@@ -98,7 +115,8 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
 }
 
 const e = StyleSheet.create({
-  toque: { borderRadius: 12, maxWidth: 270 },
+  toque: { borderRadius: 12, maxWidth: 250 },
+  punto: { width: 7, height: 7, borderRadius: 4 },
   titulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingVertical: 2, paddingRight: espacio.xs },
   sello: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   datos: { flexShrink: 1, gap: 1 },

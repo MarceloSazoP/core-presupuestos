@@ -6,8 +6,9 @@ import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } 
 import { Icono, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
-// Las partes de un presupuesto (Visita · Presupuesto · Enviar · Seguimiento · Detalle) como pestañas fijas de Material 3: el ícono sobre
-// el nombre, onda al tocar y, bajo la elegida, la línea indicadora en el color de acento, que se desliza con un resorte (en vez de saltar).
+// Las partes de un presupuesto (Visita · Presupuesto · Enviar · Seguimiento · Detalle) como pestañas fijas de Material 3: el ícono al lado
+// del nombre (la variante en línea, de 48 de alto, para que el formulario empiece más arriba), onda al tocar y, bajo la elegida, la línea
+// indicadora en el color de acento, que se desliza con un resorte (en vez de saltar).
 // La elegida lleva ícono y texto en el acento; las demás, en el gris suave. Al tocar suena un toque leve.
 export type Parte = { id: string; texto: string; icono: NombreIcono };
 
@@ -41,8 +42,8 @@ export function PestanasParte({ partes, valor, alElegir, etiqueta = 'Partes del 
             style={e.pestana}
           >
             <View style={e.contenido}>
-              <Icono nombre={p.icono} tamano={22} color={color} />
-              <Text variant="titleSmall" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color }}>{p.texto}</Text>
+              <Icono nombre={p.icono} tamano={20} color={color} />
+              <Text variant="titleSmall" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[e.texto, { color }]}>{p.texto}</Text>
             </View>
           </TouchableRipple>
         );
@@ -56,7 +57,8 @@ export function PestanasParte({ partes, valor, alElegir, etiqueta = 'Partes del 
 const ALTO_INDICADOR = 3;
 const e = StyleSheet.create({
   barra: { flexDirection: 'row', borderBottomWidth: StyleSheet.hairlineWidth },
-  pestana: { flex: 1, minHeight: MIN_TOQUE + 16, justifyContent: 'center', paddingHorizontal: espacio.xs },
-  contenido: { alignItems: 'center', gap: 4 },
+  pestana: { flex: 1, minHeight: MIN_TOQUE, justifyContent: 'center', paddingHorizontal: espacio.xs },
+  contenido: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  texto: { flexShrink: 1 },
   indicador: { position: 'absolute', bottom: 0, left: espacio.xl, height: ALTO_INDICADOR, borderTopLeftRadius: ALTO_INDICADOR, borderTopRightRadius: ALTO_INDICADOR },
 });

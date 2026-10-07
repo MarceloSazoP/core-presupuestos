@@ -10,7 +10,7 @@ import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, IconButton } from 'react-native-paper';
+import { ActivityIndicator } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
@@ -21,7 +21,7 @@ import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { PartesDeslizables } from '@/components/partes-deslizables';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { BotonM, PastillaM, TarjetaM, TextoM } from '@/components/material';
+import { BotonM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { PestanasParte } from '@/components/pestanas-parte';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
@@ -135,11 +135,18 @@ export default function Detalle() {
           title: q.customer.name,
           gestureEnabled: false, // el deslizar es para cambiar de parte: el gesto nativo de «volver» lo pisaba y dejaba la pantalla por error (se vuelve con el botón de la barra)
           headerTitle: () => <TituloCliente q={q} alEditar={() => setEditandoCliente(true)} />,
+          // A la derecha, el QR para abrirlo en la web y, si está pendiente, eliminarlo (los terminados no se eliminan, Contrato API §6;
+          // siempre con confirmación). La papelera vive aquí y no en el contenido, para que el formulario empiece más arriba.
           headerRight: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={8} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
-              <Icono nombre="qr" tamano={22} color={t.acento} />
-            </Pressable>
+            <View style={e.accionesCabecera}>
+              {!cerrado ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Eliminar este presupuesto" hitSlop={6} onPress={eliminarEste} style={e.cabeceraBoton}>
+                  <Icono nombre="papelera" tamano={21} color={t.error} />
+                </Pressable>
+              ) : null}
+              <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={6} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
+                <Icono nombre="qr" tamano={22} color={t.acento} />
+              </Pressable>
             </View>
           ),
         }}
@@ -147,28 +154,8 @@ export default function Detalle() {
       <Sincronizacion />
       {editandoCliente ? <EditarCliente q={q} cambiar={cambiar} alCerrar={() => setEditandoCliente(false)} /> : null}
 
-      {/* Cabecera: quién es el cliente y en qué va. Lo demás vive en las pestañas de abajo. */}
-      <View style={e.bloque}>
-        <View style={e.filaPastillas}>
-          <View style={e.pastillas}>
-            <PastillaM texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
-            {(q.version ?? 1) > 1 ? <PastillaM texto={`Versión ${q.version}`} tono="acento" /> : null}
-          </View>
-          {/* Un presupuesto pendiente se puede eliminar desde aquí (los terminados no, Contrato API §6). Siempre con confirmación. */}
-          {!cerrado ? (
-            <IconButton
-              mode="contained-tonal"
-              icon={({ size }) => <Icono nombre="papelera" tamano={size} color={t.error} />}
-              containerColor={`${t.error}1A`}
-              accessibilityLabel="Eliminar este presupuesto"
-              hitSlop={8}
-              onPress={eliminarEste}
-              style={e.papelera}
-            />
-          ) : null}
-        </View>
-        {q.previous_number ? <TextoM variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</TextoM> : null}
-      </View>
+      {/* En qué va (pendiente o su número, y la versión) está en el título de la barra; aquí solo, si es una versión nueva, a cuál reemplaza. */}
+      {q.previous_number ? <TextoM variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</TextoM> : null}
 
       <PestanasParte partes={partes} valor={actualId} alElegir={setParte} />
 
@@ -249,13 +236,10 @@ const e = StyleSheet.create({
   etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: espacio.xl },
   contenido: { padding: espacio.l, paddingBottom: RESERVA, gap: espacio.l },
-  bloque: { gap: espacio.s },
-  filaPastillas: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
-  pastillas: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
-  papelera: { width: 40, height: 40, borderRadius: 20, margin: 0 },
   flex: { flex: 1 },
   parte: { gap: espacio.xl },
   oculta: { display: 'none' },
+  accionesCabecera: { flexDirection: 'row', alignItems: 'center' },
   cabeceraBoton: { minWidth: MIN_TOQUE - 8, minHeight: MIN_TOQUE - 8, alignItems: 'center', justifyContent: 'center' },
   exito: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l },
   item: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: espacio.m, paddingBottom: espacio.m, borderBottomWidth: StyleSheet.hairlineWidth },
