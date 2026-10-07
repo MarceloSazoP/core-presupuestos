@@ -4,9 +4,10 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Alert, Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
-import { Boton, Texto } from '@/components/ui';
+import { useDialogo } from '@/components/dialogo';
+import { BotonM, SeccionM, TarjetaM, TextoM } from '@/components/material';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MONO, radio, useTema } from '@/theme';
@@ -19,6 +20,7 @@ export default function Codigo() {
   const [codigo, setCodigo] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [generando, setGenerando] = useState(false);
+  const { dialogo, decidir } = useDialogo();
 
   useEffect(() => void leerCodigo(id).then(setCodigo), [id]);
 
@@ -49,7 +51,7 @@ export default function Codigo() {
   // Un código nuevo deja sin efecto el anterior: se pide confirmación solo si ya hay uno.
   const pedirGenerar = () =>
     codigo
-      ? Alert.alert('¿Generar un código nuevo?', 'El código actual dejará de funcionar y se cerrarán las sesiones abiertas con él.', [
+      ? decidir('¿Generar un código nuevo?', 'El código actual dejará de funcionar y se cerrarán las sesiones abiertas con él.', [
           { text: 'Cancelar', style: 'cancel' },
           { text: 'Generar', style: 'destructive', onPress: () => void generar() },
         ])
@@ -58,54 +60,52 @@ export default function Codigo() {
   return (
     <ScrollView style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido} contentInsetAdjustmentBehavior="automatic">
       <View style={e.cabecera}>
-        <Texto variante="subtitulo" accessibilityRole="header">Abrir en la web</Texto>
-        <Texto variante="chico" suave numberOfLines={1}>{titulo}</Texto>
+        <TextoM variante="subtitulo" accessibilityRole="header">Abrir en la web</TextoM>
+        <TextoM variante="chico" suave numberOfLines={1}>{titulo}</TextoM>
       </View>
 
       {codigo ? (
-        <>
-          <View style={[e.ticket, { backgroundColor: t.tarjeta, borderColor: t.bordeCampo }]}>
-            <Texto variante="chico" suave fuerte>Código</Texto>
-            <Texto selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</Texto>
+        <TarjetaM>
+          {/* El código en un talón punteado dentro de la tarjeta: es lo que se dicta o se escribe en la web. */}
+          <View style={[e.ticket, { borderColor: t.bordeCampo }]}>
+            <TextoM variante="chico" suave fuerte>Código</TextoM>
+            <TextoM selectable adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.6} accessibilityLabel={`Código ${codigo.split('').join(' ')}`} style={e.codigo}>{codigo}</TextoM>
           </View>
           <View style={e.fila}>
             <Animated.View key={copiado ? 'copiado' : 'copiar'} entering={FadeIn.duration(120)} style={e.mitad}>
-              <Boton titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={() => void copiar()} />
+              <BotonM titulo={copiado ? 'Copiado' : 'Copiar'} icono={copiado ? 'listo' : 'copiar'} variante="secundario" onPress={() => void copiar()} />
             </Animated.View>
-            <Boton titulo="Compartir" icono="compartir" variante="secundario" onPress={() => void Share.share({ message: `Código de tu presupuesto en CORE Presupuestos: ${codigo}` })} style={e.mitad} />
+            <BotonM titulo="Compartir" icono="compartir" variante="secundario" onPress={() => void Share.share({ message: `Código de tu presupuesto en CORE Presupuestos: ${codigo}` })} style={e.mitad} />
           </View>
-          <Texto variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web. No se lo des a tu cliente: a él se le envía el enlace del PDF.</Texto>
-        </>
+          <TextoM variante="chico" suave>Escríbelo en la caja «Consultar presupuesto» de la web. No se lo des a tu cliente: a él se le envía el enlace del PDF.</TextoM>
+        </TarjetaM>
       ) : codeId ? (
-        <View style={[e.aviso, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-          <Texto>El código solo se muestra una vez y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</Texto>
-          <Boton titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
-        </View>
+        <TarjetaM>
+          <TextoM>El código solo se muestra una vez y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</TextoM>
+          <BotonM titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
+        </TarjetaM>
       ) : (
-        <View style={[e.aviso, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-          <Texto suave>Este presupuesto se creó sin conexión. Su código aparece aquí en cuanto se sincronice con el servidor.</Texto>
-        </View>
+        <TarjetaM>
+          <TextoM suave>Este presupuesto se creó sin conexión. Su código aparece aquí en cuanto se sincronice con el servidor.</TextoM>
+        </TarjetaM>
       )}
 
-      <View style={[e.separador, { borderTopColor: t.borde }]}>
-        <Texto variante="subtitulo">Sin escribir el código</Texto>
-        <Texto variante="chico" suave>Abre este presupuesto en el computador escaneando el QR de la portada de la web.</Texto>
-        <Boton titulo="Leer el QR de la web" icono="qr" onPress={() => router.replace({ pathname: '/escanear', params: { id, titulo } })} />
-      </View>
+      <SeccionM titulo="Sin escribir el código" icono="qr" descripcion="Abre este presupuesto en el computador escaneando el QR de la portada de la web.">
+        <BotonM titulo="Leer el QR de la web" icono="qr" onPress={() => router.replace({ pathname: '/escanear', params: { id, titulo } })} />
+      </SeccionM>
 
-      {codigo ? <Boton titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} /> : null}
+      {codigo ? <BotonM titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} /> : null}
+      {dialogo}
     </ScrollView>
   );
 }
 
 const e = StyleSheet.create({
-  contenido: { padding: espacio.xl, gap: espacio.l },
+  contenido: { padding: espacio.xl, gap: espacio.xl },
   cabecera: { gap: 2, paddingTop: espacio.s },
   ticket: { borderWidth: 1, borderStyle: 'dashed', borderRadius: radio.m, borderCurve: 'continuous', paddingVertical: espacio.l, paddingHorizontal: espacio.m, alignItems: 'center', gap: espacio.xs },
   // El alto de línea va con la letra: con 24 pt y el alto de 22 del cuerpo se recortaba la parte de arriba.
   codigo: { fontFamily: Platform.select(MONO), fontSize: 26, lineHeight: 34, fontWeight: '600', letterSpacing: 1.5 },
   fila: { flexDirection: 'row', gap: espacio.m },
   mitad: { flex: 1 },
-  aviso: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l, gap: espacio.m },
-  separador: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.l, gap: espacio.s },
 });

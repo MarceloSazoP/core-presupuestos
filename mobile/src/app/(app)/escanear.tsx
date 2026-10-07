@@ -2,9 +2,10 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View } from 'react-native';
 import { ApiError, api, mensajeDe } from '@/api/client';
-import { Boton, Texto } from '@/components/ui';
+import { useDialogo } from '@/components/dialogo';
+import { BotonM, TextoM } from '@/components/material';
 import { codigoDeVinculo } from '@/lib/vinculo';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, useTema } from '@/theme';
@@ -15,6 +16,7 @@ export default function Escanear() {
   const t = useTema();
   const { id, titulo } = useLocalSearchParams<{ id: string; titulo: string }>();
   const [permiso, pedirPermiso] = useCameraPermissions();
+  const { dialogo, decidir } = useDialogo();
   const [estado, setEstado] = useState<'buscando' | 'vinculando' | 'listo'>('buscando');
   const ocupado = useRef(false); // la cámara dispara varias lecturas del mismo QR
 
@@ -27,8 +29,8 @@ export default function Escanear() {
       ocupado.current = false;
       setEstado('buscando');
     };
-    if (!codigo) return Alert.alert('Ese QR no es de CorePresupuesto', 'Escanea el QR de la portada de la web de CorePresupuesto.', [{ text: 'Entendido', onPress: seguir }]);
-    Alert.alert('¿Abrir en el computador?', `${titulo} se abrirá en el computador que muestra ese QR.`, [
+    if (!codigo) return decidir('Ese QR no es de CorePresupuesto', 'Escanea el QR de la portada de la web de CorePresupuesto.', [{ text: 'Entendido', onPress: seguir }]);
+    decidir('¿Abrir en el computador?', `${titulo} se abrirá en el computador que muestra ese QR.`, [
       { text: 'Cancelar', style: 'cancel', onPress: seguir },
       {
         text: 'Abrir',
@@ -42,7 +44,7 @@ export default function Escanear() {
             setTimeout(() => router.back(), 1600);
           } catch (err) {
             const vencido = err instanceof ApiError && err.status === 404;
-            Alert.alert(vencido ? 'Ese QR venció' : 'No se pudo abrir', vencido ? 'Actualiza la pantalla del computador y escanea el QR nuevo.' : mensajeDe(err), [{ text: 'Entendido', onPress: seguir }]);
+            decidir(vencido ? 'Ese QR venció' : 'No se pudo abrir', vencido ? 'Actualiza la pantalla del computador y escanea el QR nuevo.' : mensajeDe(err), [{ text: 'Entendido', onPress: seguir }]);
           }
         },
       },
@@ -53,10 +55,10 @@ export default function Escanear() {
   if (!permiso.granted) {
     return (
       <View style={[e.centro, { backgroundColor: t.fondo }]}>
-        <Texto variante="subtitulo" style={e.texto}>Necesitamos la cámara</Texto>
-        <Texto suave style={e.texto}>Solo para leer el QR de la pantalla del computador. No se guarda ninguna imagen.</Texto>
-        {permiso.canAskAgain ? <Boton titulo="Permitir la cámara" onPress={() => void pedirPermiso()} /> : <Boton titulo="Abrir ajustes" onPress={() => void Linking.openSettings()} />}
-        <Boton titulo="Mejor escribo el código" variante="texto" onPress={() => router.back()} />
+        <TextoM variante="subtitulo" style={e.texto}>Necesitamos la cámara</TextoM>
+        <TextoM suave style={e.texto}>Solo para leer el QR de la pantalla del computador. No se guarda ninguna imagen.</TextoM>
+        {permiso.canAskAgain ? <BotonM titulo="Permitir la cámara" onPress={() => void pedirPermiso()} /> : <BotonM titulo="Abrir ajustes" onPress={() => void Linking.openSettings()} />}
+        <BotonM titulo="Mejor escribo el código" variante="texto" onPress={() => router.back()} />
       </View>
     );
   }
@@ -68,14 +70,15 @@ export default function Escanear() {
         <View style={[e.marco, estado === 'listo' && { borderColor: '#2DA44E' }]} />
       </View>
       <View style={[e.pie, { backgroundColor: t.fondo }]}>
-        <Texto variante="subtitulo" style={e.texto} accessibilityLiveRegion="polite">
+        <TextoM variante="subtitulo" style={e.texto} accessibilityLiveRegion="polite">
           {estado === 'buscando' ? 'Apunta al QR de tu computador' : estado === 'vinculando' ? 'Abriendo…' : 'Listo. Revisa tu computador.'}
-        </Texto>
-        <Texto suave variante="chico" style={e.texto}>
+        </TextoM>
+        <TextoM suave variante="chico" style={e.texto}>
           {estado === 'listo' ? 'El presupuesto ya se está abriendo en la web.' : 'Es el QR que aparece junto a la caja «Consultar presupuesto», en la portada de la web.'}
-        </Texto>
-        {estado === 'listo' ? null : <Boton titulo="Cancelar" variante="secundario" onPress={() => router.back()} />}
+        </TextoM>
+        {estado === 'listo' ? null : <BotonM titulo="Cancelar" variante="secundario" onPress={() => router.back()} />}
       </View>
+      {dialogo}
     </View>
   );
 }
