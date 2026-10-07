@@ -183,9 +183,9 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
 const Separador = () => <View style={e.separador} />;
 
 const e = StyleSheet.create({
-  separador: { height: espacio.m }, // entre una tarjeta y otra
+  separador: { height: espacio.s }, // entre una tarjeta y otra
   // Lo de arriba de la lista, con el mismo espacio que entre las tarjetas.
-  cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.m },
+  cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.s },
   resumen: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingLeft: espacio.xs },
   resumenTextos: { flex: 1, gap: 2 },
   fuerte: { fontWeight: '600' },
