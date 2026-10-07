@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { BackHandler, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -9,10 +10,10 @@ import { PaginaInicio } from '@/components/pagina-inicio';
 import { PaginaPresupuestos } from '@/components/pagina-presupuestos';
 import { SelectorSeccion } from '@/components/selector-seccion';
 import { Icono } from '@/components/ui';
-import { espacio, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // La pantalla principal: Inicio y Presupuestos son dos páginas de la misma pantalla, lado a lado, bajo una sola barra fija (el selector
-// [Inicio | Presupuestos] y el ☰) y con un solo botón redondo de «Nuevo presupuesto» abajo a la derecha. Al pasar de una a otra solo se
+// [Inicio | Presupuestos] al centro, la marca de CORE Presupuestos a la izquierda y el ☰ a la derecha) y con un solo botón redondo de «Nuevo presupuesto» abajo a la derecha. Al pasar de una a otra solo se
 // desliza el contenido; la barra y el botón no se mueven, y el resaltado del selector viaja con la misma posición que las páginas. Diseño
 // elegido en el lienzo «Barra fija y Nuevo presupuesto». Igual en iPhone y Android.
 //
@@ -62,6 +63,7 @@ export default function Principal() {
       <Stack.Screen
         options={{
           headerTitleAlign: 'center',
+          headerLeft: () => <Marca />,
           headerTitle: () => <SelectorSeccion progreso={progreso} pagina={pagina} alElegir={(p) => ir(p)} />,
           headerRight: () => <MenuInicio />,
         }}
@@ -89,7 +91,20 @@ export default function Principal() {
   );
 }
 
+// La marca de CORE Presupuestos a la izquierda de la barra (la versión clara u oscura según el tema), en un espacio del mismo ancho que el
+// ☰ de la derecha: con los dos lados iguales, el selector queda justo al centro en iPhone y en Android.
+function Marca() {
+  const t = useTema();
+  return (
+    <View accessible accessibilityRole="image" accessibilityLabel="CORE Presupuestos" style={e.marca}>
+      <Image source={t.oscuro ? require('../../../assets/images/marca-carga-dark.png') : require('../../../assets/images/marca-carga.png')} style={e.logo} contentFit="contain" />
+    </View>
+  );
+}
+
 const e = StyleSheet.create({
+  marca: { width: MIN_TOQUE, height: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' },
+  logo: { width: 32, height: 29 }, // la marca mide 576 × 520
   pantalla: { flex: 1, overflow: 'hidden' },
   paginas: { flex: 1, flexDirection: 'row' },
   flotante: { position: 'absolute', right: espacio.l, width: BOTON, height: BOTON, borderRadius: BOTON / 2 },
