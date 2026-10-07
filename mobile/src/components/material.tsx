@@ -25,10 +25,12 @@ export function SeccionM({ titulo, icono, descripcion, children }: { titulo: str
 }
 
 // Tarjeta elevada con el radio de la app. `sinRelleno`: para listas de filas que llegan hasta el borde.
+// El contenido va en una sola View: `Card` de Paper le agrega `index` y `total` a cada hijo directo, y un Fragment (como los que arma
+// `GrupoAjustes`) no acepta esas propiedades («Invalid prop `index` supplied to React.Fragment»).
 export function TarjetaM({ children, sinRelleno, elevacion = 1, style }: { children: ReactNode; sinRelleno?: boolean; elevacion?: 1 | 2; style?: StyleProp<ViewStyle> }) {
   return (
-    <Card mode="elevated" elevation={elevacion} style={[e.tarjeta, style]} contentStyle={sinRelleno ? e.lista : e.relleno}>
-      {children}
+    <Card mode="elevated" elevation={elevacion} style={[e.tarjeta, style]} contentStyle={e.lista}>
+      <View style={sinRelleno ? null : e.relleno}>{children}</View>
     </Card>
   );
 }
