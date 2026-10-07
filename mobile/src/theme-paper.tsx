@@ -31,16 +31,17 @@ export function temaPaper(t: Tema): MD3Theme {
       outlineVariant: t.borde,
       error: t.error,
       elevation: t.oscuro
-        ? { level0: 'transparent', level1: mezcla(t.tarjeta, t.texto, 0.05), level2: mezcla(t.tarjeta, t.texto, 0.08), level3: mezcla(t.tarjeta, t.texto, 0.11), level4: mezcla(t.tarjeta, t.texto, 0.12), level5: mezcla(t.tarjeta, t.texto, 0.14) }
+        ? { level0: 'transparent', level1: mezcla(t.tarjeta, t.texto, 0.08), level2: mezcla(t.tarjeta, t.texto, 0.11), level3: mezcla(t.tarjeta, t.texto, 0.13), level4: mezcla(t.tarjeta, t.texto, 0.14), level5: mezcla(t.tarjeta, t.texto, 0.16) }
         : { level0: 'transparent', level1: t.tarjeta, level2: t.tarjeta, level3: t.tarjeta, level4: t.tarjeta, level5: t.tarjeta },
     },
   };
 }
 
-// En oscuro las superficies elevadas llevan además un borde fino, apenas más claro que ellas, que dibuja el canto de la tarjeta sobre el
-// fondo. En claro no hace falta: se ve la sombra.
+// En oscuro las superficies elevadas llevan además un borde fino, más claro que ellas, que dibuja el canto de la tarjeta, y una sombra
+// más honda que la de Material (la de Paper, pensada para fondo claro, no se ve sobre el fondo oscuro). `boxShadow` lo dibuja React
+// Native en iOS y en Android 9 o superior; en uno anterior quedan el tono y el borde. En claro no hace falta: se ve la sombra de Paper.
 export function bordeElevado(t: Tema): ViewStyle | null {
-  return t.oscuro ? { borderWidth: 1, borderColor: 'rgba(238, 242, 250, 0.10)' } : null;
+  return t.oscuro ? { borderWidth: 1, borderColor: 'rgba(238, 242, 250, 0.16)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55)' } : null;
 }
 
 // Mezcla dos colores #RRGGBB: `p` es cuánto del segundo (0 a 1).
