@@ -121,7 +121,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       {/* El total siempre a la vista, arriba, y es el real. Como las tarjetas del inicio: fondo neutro, un ícono de dinero con su color y las
           palabras en ese color; las cifras en el color del texto (blanco en oscuro). Sin impuesto ni descuento dice solo «Total»; si no se
           desglosa: subtotal, descuento (con su %), impuesto y total. */}
-      <TarjetaM style={{ backgroundColor: t.tarjeta, borderColor: t.borde }}>
+      <TarjetaM>
         <View accessible accessibilityLabel={detalle ? `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''} Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
           {detalle ? (
             <>

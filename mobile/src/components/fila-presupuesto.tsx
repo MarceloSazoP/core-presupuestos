@@ -14,6 +14,7 @@ import { diaCorto } from '@/lib/fechas';
 import { elegirEstado } from '@/lib/elegir-estado';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
 import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
+import { bordeElevado } from '@/theme-paper';
 
 // Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
 function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'info' | 'seguimiento' | 'error' } {
@@ -121,7 +122,7 @@ export function FilaPresupuesto({
       {/* La tarjeta se encoge apenas al tocarla (transición CSS de Reanimated: 120 ms, sin estado por cuadro). Es una superficie elevada de
           Material: la sombra va en la capa de afuera y la de adentro recorta la barra roja de eliminar en las esquinas redondeadas. */}
       <Animated.View style={[TRANSICION_PRESION, { transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
-        <Surface elevation={1} style={[e.superficie, { backgroundColor: t.tarjeta }]}>
+        <Surface elevation={1} style={[e.superficie, bordeElevado(t)]}>
           <View style={e.fila}>
             {puedeEliminar ? (
               <>

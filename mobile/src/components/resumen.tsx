@@ -13,6 +13,7 @@ import { porcentaje, puntos, variacion, type Variacion } from '@/lib/variacion';
 import { useRefrescar } from '@/lib/refrescar';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, radio, useTema } from '@/theme';
+import { bordeElevado } from '@/theme-paper';
 
 type Datos = { kpis: Indicadores; tablero: Tablero; meses: Indicadores[] }; // meses: de más antiguo a este mes
 
@@ -72,7 +73,7 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
 
       <SeccionM titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
         {hoy.length ? (
-          <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.lista}>
+          <Card mode="elevated" elevation={2} style={[e.tarjeta, bordeElevado(t)]} contentStyle={e.lista}>
             <DataTable>
               <DataTable.Header style={{ borderBottomColor: t.borde }}>
                 <DataTable.Title style={e.flex}>Cliente</DataTable.Title>
@@ -101,7 +102,7 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
             </DataTable>
           </Card>
         ) : (
-          <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.relleno}>
+          <Card mode="elevated" elevation={2} style={[e.tarjeta, bordeElevado(t)]} contentStyle={e.relleno}>
             <Text variant="bodyMedium" style={{ color: t.suave }}>Nadie por contactar hoy. Los presupuestos enviados con fecha de contacto aparecen aquí cuando les toca.</Text>
           </Card>
         )}
@@ -130,7 +131,7 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   const max = Math.max(1, ...meses.flatMap((m) => [m.quoted_amount, m.accepted_amount]));
   const ALTO = 64;
   return (
-    <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.relleno}>
+    <Card mode="elevated" elevation={2} style={[e.tarjeta, bordeElevado(t)]} contentStyle={e.relleno}>
       <View style={e.barras} accessibilityLabel={`Presupuestado y aceptado por mes. ${meses.map((m) => `${NOMBRES[Number(m.month.slice(5)) - 1]}: ${clp(m.quoted_amount)} presupuestado, ${clp(m.accepted_amount)} aceptado`).join('. ')}`}>
         {meses.map((m, i) => (
           <View key={m.month} style={e.mes}>

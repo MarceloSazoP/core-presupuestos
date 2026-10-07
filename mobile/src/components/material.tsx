@@ -3,6 +3,7 @@ import { StyleSheet, View, type StyleProp, type TextProps, type ViewStyle } from
 import { Button, Card, Text } from 'react-native-paper';
 import { Icono, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema, type Color } from '@/theme';
+import { bordeElevado } from '@/theme-paper';
 
 // Piezas de Material 3 (React Native Paper) con los colores y medidas de la app, para las pantallas que ya pasaron a Material (Inicio,
 // Configurar, la lista y el presupuesto). Aceptan las mismas propiedades que `Texto`, `Seccion`, `Tarjeta`, `Boton`, `Pastilla` y `Nota`
@@ -72,12 +73,14 @@ export function NotaM({ titulo, icono, children }: { titulo: string; icono?: Nom
   );
 }
 
-// Tarjeta elevada con el radio de la app. `sinRelleno`: para listas de filas que llegan hasta el borde.
+// Tarjeta elevada con el radio de la app. `sinRelleno`: para listas de filas que llegan hasta el borde. En oscuro, su tono y su borde
+// fino la separan del fondo (ver `bordeElevado`).
 // El contenido va en una sola View: `Card` de Paper le agrega `index` y `total` a cada hijo directo, y un Fragment (como los que arma
 // `GrupoAjustes`) no acepta esas propiedades («Invalid prop `index` supplied to React.Fragment»).
 export function TarjetaM({ children, sinRelleno, elevacion = 1, style }: { children: ReactNode; sinRelleno?: boolean; elevacion?: 1 | 2; style?: StyleProp<ViewStyle> }) {
+  const t = useTema();
   return (
-    <Card mode="elevated" elevation={elevacion} style={[e.tarjeta, style]} contentStyle={e.lista}>
+    <Card mode="elevated" elevation={elevacion} style={[e.tarjeta, bordeElevado(t), style]} contentStyle={e.lista}>
       <View style={sinRelleno ? null : e.relleno}>{children}</View>
     </Card>
   );
