@@ -25,9 +25,8 @@ import { espacio, MIN_TOQUE, useTema } from '@/theme';
 // Etapa 1 del wizard (CLAUDE.md §10): cliente, ubicación y descripción inicial. Funciona sin conexión: el presupuesto
 // nace en el teléfono con su propio id y se envía por la cola. El servidor entrega el código al recibirlo (sync/cola.ts).
 //
-// Diseño elegido en el lienzo «Barra fija y Nuevo presupuesto»: arriba la ✕ y el título; debajo, en qué paso va (1 · Cliente, 2 · Visita,
-// 3 · Presupuesto); los campos se escriben ahí mismo; y abajo, en un panel, «Crear presupuesto →» (sigue con la visita) y «Guardar para
-// después». Igual en iPhone y Android.
+// Arriba solo la ✕ y el título; los campos se escriben ahí mismo; y abajo, en un panel, «Crear presupuesto →» (abre el presupuesto para
+// seguir con la visita y los ítems) y «Guardar para después». Igual en iPhone y Android.
 const MAX_PALABRAS = 69; // el servicio es una línea para el PDF, no la descripción completa
 
 export default function Nuevo() {
@@ -113,7 +112,6 @@ export default function Nuevo() {
         <Text variant="titleMedium" accessibilityRole="header" numberOfLines={1} style={e.titulo}>Nuevo presupuesto</Text>
         <View style={e.lado} />
       </View>
-      <Pasos />
       <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={e.flex} contentContainerStyle={e.contenido}>
         <SeccionM titulo="Cliente" icono="cliente">
           <TarjetaM>
@@ -147,22 +145,6 @@ export default function Nuevo() {
   );
 }
 
-// En qué paso va: este es el 1 de los 3 del presupuesto (CLAUDE.md §10). Al crearlo se sigue con la visita y después con los ítems.
-const PASOS = ['Cliente', 'Visita', 'Presupuesto'] as const;
-function Pasos() {
-  const t = useTema();
-  return (
-    <View accessible accessibilityLabel="Paso 1 de 3: el cliente. Después siguen la visita y el presupuesto." style={e.pasos}>
-      {PASOS.map((p, i) => (
-        <View key={p} style={e.paso}>
-          <View style={[e.rayita, { backgroundColor: i === 0 ? t.acento : t.borde }]} />
-          <Text variant="labelMedium" style={i === 0 ? [e.pasoActual, { color: t.acento }] : { color: t.suave }}>{`${i + 1} · ${p}`}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 // Copia local mientras el servidor no lo conoce: sin código (code_id vacío) ni número.
 const borradorNuevo = (id: string, customer: { name: string; phone: string; email: string | null; address: string | null }, servicio: string, direccion: string | null, pais: Pais, punto: { latitude: number | null; longitude: number | null }): Presupuesto => ({
   id, code_id: '', number: null, doc_status: 'DRAFT', commercial_status: 'NONE',
@@ -177,10 +159,6 @@ const e = StyleSheet.create({
   barra: { minHeight: MIN_TOQUE + espacio.xs, flexDirection: 'row', alignItems: 'center', paddingHorizontal: espacio.xs },
   lado: { width: MIN_TOQUE, height: MIN_TOQUE, margin: 0 },
   titulo: { flex: 1, textAlign: 'center', fontWeight: '600' },
-  pasos: { flexDirection: 'row', gap: 6, paddingHorizontal: espacio.l + espacio.xs, paddingTop: espacio.xs, paddingBottom: espacio.m },
-  paso: { flex: 1, gap: 6 },
-  rayita: { height: 4, borderRadius: 2 },
-  pasoActual: { fontWeight: '600' },
-  contenido: { paddingHorizontal: espacio.l, paddingBottom: espacio.xl, gap: espacio.xl },
+  contenido: { paddingHorizontal: espacio.l, paddingTop: espacio.s, paddingBottom: espacio.xl, gap: espacio.xl },
   panel: { gap: espacio.xs, paddingTop: espacio.m, paddingHorizontal: espacio.l },
 });
