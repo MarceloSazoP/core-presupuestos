@@ -117,11 +117,11 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
         // por encima de la pantalla, escondidos detrás de las pestañas. Aquí lo nuevo debe verse primero.
         maintainVisibleContentPosition={{ disabled: true }}
         data={visibles}
-        extraData={visibles.length} // la última fila cambia (sus esquinas) al eliminar otra
         keyExtractor={(q) => q.id}
-        // Las filas forman una sola tarjeta: cada una sabe si es la primera o la última. Su margen a los lados lo pone la fila (es donde cae su sombra).
-        renderItem={({ item, index }) => <FilaPresupuesto q={item} primero={index === 0} ultimo={index === visibles.length - 1} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
-        contentContainerStyle={{ paddingTop: espacio.l, paddingBottom: abajo + espacio.s }}
+        // Cada presupuesto es su tarjeta, con espacio entre una y otra. Su margen a los lados lo pone la fila.
+        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
+        ItemSeparatorComponent={Separador}
+        contentContainerStyle={{ paddingTop: espacio.l, paddingBottom: abajo + espacio.l }}
         refreshing={refrescando}
         onRefresh={async () => {
           setRefrescando(true);
@@ -180,9 +180,12 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
   );
 }
 
+const Separador = () => <View style={e.separador} />;
+
 const e = StyleSheet.create({
-  // Lo de arriba de la lista. Abajo deja espacio.xs: la primera fila trae otros espacio.s para su sombra.
-  cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.xs },
+  separador: { height: espacio.m }, // entre una tarjeta y otra
+  // Lo de arriba de la lista, con el mismo espacio que entre las tarjetas.
+  cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.m },
   resumen: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingLeft: espacio.xs },
   resumenTextos: { flex: 1, gap: 2 },
   fuerte: { fontWeight: '600' },

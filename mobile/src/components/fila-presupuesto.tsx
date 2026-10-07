@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { Pressable as Toque } from 'react-native-gesture-handler';
-import { Divider, Text, useTheme } from 'react-native-paper';
+import { Text, useTheme } from 'react-native-paper';
 import Animated, { cancelAnimation, Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import type { ResumenPresupuesto } from '@/api/types';
@@ -36,8 +36,8 @@ function cuandoDe(q: ResumenPresupuesto, t: Tema): { texto: string; color: strin
   return hace ? { texto: `editado ${hace}`, color: t.suave, fuerte: false } : null;
 }
 
-// Cada fila es un tramo de una sola tarjeta (lista de Material): la primera trae las esquinas de arriba, la última las de abajo y, entre
-// una y otra, una línea fina. Tres renglones: cliente y monto; el trabajo, en gris; y el estado, el número y el cuándo.
+// Cada presupuesto es su propia tarjeta elevada de Material, con espacio entre una y otra (lo pone la lista). Tres renglones: cliente y
+// monto; el trabajo, en gris; y el estado, el número y el cuándo.
 // `sinCliente`: en la ficha del cliente su nombre sobra y se muestra el número del presupuesto.
 // Eliminar = mantener apretada la fila: tras un instante (para no mostrarlo en un toque normal) una barra roja con «Eliminar» se va
 // llenando de izquierda a derecha; al llenarse aparece la pregunta de confirmación. Soltar antes la cancela.
@@ -49,19 +49,14 @@ const TRANSICION_CAPA = { transitionProperty: 'opacity', transitionDuration: 120
 // - `onEliminar`: un presupuesto pendiente se elimina manteniendo apretada su fila hasta que se llene la barra roja (los terminados no,
 //   Contrato API §6). Siempre con confirmación.
 // - `onCambiarEstado`: en uno ya enviado el estado es un botón que abre «Pasar a» con los demás estados (nunca el actual).
-// - `primero` y `ultimo`: el lugar de la fila en la tarjeta (sus esquinas y la línea de arriba).
 export function FilaPresupuesto({
   q,
   sinCliente = false,
-  primero = true,
-  ultimo = true,
   onEliminar,
   onCambiarEstado,
 }: {
   q: ResumenPresupuesto;
   sinCliente?: boolean;
-  primero?: boolean;
-  ultimo?: boolean;
   onEliminar?: (q: ResumenPresupuesto) => void;
   onCambiarEstado?: (q: ResumenPresupuesto, estado: EstadoElegible) => void;
 }) {
@@ -190,38 +185,26 @@ export function FilaPresupuesto({
       </View>
     </Toque>
   );
-  // Tres capas: la de afuera deja lugar a la sombra y la recorta arriba y abajo donde la fila sigue con otra (así no cae sobre la vecina);
-  // la del medio es la superficie elevada (tono, esquinas, sombra y, en oscuro, el borde); la de adentro recorta la barra roja y la capa del
-  // toque en las esquinas redondeadas.
+  // Dos capas: la de afuera es la superficie elevada (tono, esquinas, sombra y, en oscuro, el borde); la de adentro recorta la barra roja y
+  // la capa del toque en las esquinas redondeadas. El margen a los lados lo pone la fila.
   return (
-    <View style={[e.recorte, primero && e.recorteArriba, ultimo && e.recorteAbajo]}>
-      <View style={[{ backgroundColor: colors.elevation.level1 }, primero && e.esquinasArriba, ultimo && e.esquinasAbajo, oscuro ? e.sombraOscura : e.sombraClara, oscuro && e.bordeOscuro, oscuro && primero && e.bordeArriba, oscuro && ultimo && e.bordeAbajo]}>
-        <View style={[e.interior, primero && e.esquinasArriba, ultimo && e.esquinasAbajo]}>
-          {primero ? null : <Divider style={e.linea} />}
-          {fila}
-        </View>
+    <View style={e.margen}>
+      <View style={[e.tarjeta, { backgroundColor: colors.elevation.level1 }, oscuro ? e.sombraOscura : e.sombraClara, oscuro && e.bordeOscuro]}>
+        <View style={e.interior}>{fila}</View>
       </View>
       {dialogo}
     </View>
   );
 }
 
-const HOLGURA = { lado: espacio.l, arriba: espacio.s, abajo: espacio.l }; // lo que ocupa la sombra fuera de la tarjeta
-
 const e = StyleSheet.create({
-  recorte: { overflow: 'hidden', paddingHorizontal: HOLGURA.lado },
-  recorteArriba: { paddingTop: HOLGURA.arriba },
-  recorteAbajo: { paddingBottom: HOLGURA.abajo },
-  esquinasArriba: { borderTopLeftRadius: radio.l, borderTopRightRadius: radio.l, borderCurve: 'continuous' },
-  esquinasAbajo: { borderBottomLeftRadius: radio.l, borderBottomRightRadius: radio.l, borderCurve: 'continuous' },
+  margen: { paddingHorizontal: espacio.l },
+  tarjeta: { borderRadius: radio.l, borderCurve: 'continuous' },
   // La sombra de una tarjeta de Material: suave en claro; en oscuro, más honda y con el borde claro de `bordeElevado` (theme-paper).
   sombraClara: { boxShadow: '0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10)' },
   sombraOscura: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55)' },
-  bordeOscuro: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(238, 242, 250, 0.16)' },
-  bordeArriba: { borderTopWidth: 1 },
-  bordeAbajo: { borderBottomWidth: 1 },
-  interior: { overflow: 'hidden' },
-  linea: { marginLeft: espacio.l },
+  bordeOscuro: { borderWidth: 1, borderColor: 'rgba(238, 242, 250, 0.16)' },
+  interior: { overflow: 'hidden', borderRadius: radio.l, borderCurve: 'continuous' },
   fila: { paddingVertical: 14, paddingHorizontal: espacio.l, gap: 3, minHeight: MIN_TOQUE },
   capa: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
   relleno: { transformOrigin: 'left' },
