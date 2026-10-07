@@ -1,20 +1,21 @@
 import * as Haptics from 'expo-haptics';
 import { router, useFocusEffect } from 'expo-router';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { INICIO } from '@/lib/montos';
-import { BotonOjo } from '@/components/boton-ojo';
+import { alternarMontos, INICIO, useMontosOcultos } from '@/lib/montos';
 import { useCallback, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { IconButton } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Resumen } from '@/components/resumen';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { TituloBloque } from '@/components/ui';
-import { espacio, useTema } from '@/theme';
+import { Icono, TituloBloque } from '@/components/ui';
+import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Inicio (primera pantalla): cómo va el mes, a quién contactar hoy y, junto al título «Resumen», «Nuevo presupuesto». La lista con sus pestañas por estado
 // se abre desde el ícono de la barra de arriba (presupuestos.tsx).
 export default function Inicio() {
   const t = useTema();
+  const ocultos = useMontosOcultos(INICIO);
   const insets = useSafeAreaInsets();
   const [actualizar, setActualizar] = useState(0); // al cambiar, el resumen se vuelve a pedir
   const [refrescando, setRefrescando] = useState(false);
@@ -61,7 +62,21 @@ export default function Inicio() {
         {/* «Resumen» y, a la derecha, el ojo que oculta los montos del inicio. */}
         <View style={e.titulo}>
           <TituloBloque titulo="Resumen" icono="tendencia" />
-          <BotonOjo clave={INICIO} />
+          {/* El ojo como botón de Material (onda al tocar); misma lógica, tamaño y ícono que `BotonOjo`, que siguen usando las otras pantallas. */}
+          <IconButton
+            icon={({ color }) => <Icono nombre={ocultos ? 'ojoCerrado' : 'ojo'} tamano={20} color={color} />}
+            iconColor={t.acento}
+            containerColor={ocultos ? `${t.acento}26` : 'transparent'}
+            selected={ocultos}
+            accessibilityState={{ selected: ocultos }}
+            accessibilityLabel={ocultos ? 'Montos ocultos. Tocar para mostrarlos' : 'Ocultar los montos'}
+            hitSlop={8}
+            onPress={() => {
+              void Haptics.selectionAsync();
+              alternarMontos(INICIO);
+            }}
+            style={e.ojo}
+          />
         </View>
         {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
         <Resumen key={actualizar} ronda={ronda} />
@@ -76,4 +91,5 @@ const e = StyleSheet.create({
   nuevo: { minHeight: 34, flexDirection: 'row', alignItems: 'center', gap: espacio.xs, borderRadius: 17, paddingHorizontal: espacio.m },
   textoNuevo: { fontSize: 14, fontWeight: '600' },
   titulo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  ojo: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, margin: 0 },
 });

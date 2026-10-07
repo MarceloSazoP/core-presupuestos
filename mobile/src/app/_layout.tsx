@@ -1,13 +1,15 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { PantallaCarga } from '@/components/pantalla-carga';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AvisosFlotantes } from '@/components/avisos-flotantes';
 import { BarraTeclado } from '@/components/ui';
 import { aplicarTema, leerPreferenciaTema } from '@/lib/preferencia-tema';
 import { useTema } from '@/theme';
+import { ajustesPaper, temaPaper } from '@/theme-paper';
 import { SesionProvider, useSesion } from '@/session';
 
 SplashScreen.preventAutoHideAsync();
@@ -55,14 +57,18 @@ export default function Raiz() {
   const base = esquema === 'dark' ? DarkTheme : DefaultTheme;
   // Los colores de la navegación nativa (cabecera, fondo de pantalla, acento) son los de la app.
   const tema = { ...base, colors: { ...base.colors, background: t.fondo, card: t.fondo, primary: t.acento, text: t.texto, border: t.borde } };
+  const paper = useMemo(() => temaPaper(t), [t]);
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider value={tema}>
-        <SesionProvider>
-          <Navegador />
-          <BarraTeclado />
-          <AvisosFlotantes />
-        </SesionProvider>
+        {/* Material (React Native Paper) con los colores de la app; por ahora lo usa solo Inicio. */}
+        <PaperProvider theme={paper} settings={ajustesPaper}>
+          <SesionProvider>
+            <Navegador />
+            <BarraTeclado />
+            <AvisosFlotantes />
+          </SesionProvider>
+        </PaperProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );
