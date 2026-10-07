@@ -213,7 +213,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
   if (estado.terminado) {
     const { numero, total, correo, whatsappUrl, enlace } = estado.terminado;
     return (
-      <Stack spacing={3} sx={{ width: "100%", maxWidth: "48rem" }}>
+      <Stack spacing={3} sx={{ width: "100%", maxWidth: "48rem", mx: "auto" }}>
         <Alert variant="filled" severity="success">
           <AlertTitle component="h2" variant="h6" sx={{ mb: 0 }}>
             Presupuesto {numero} terminado
@@ -221,7 +221,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
           Para {inicial.cliente.nombre} · Total {total}
         </Alert>
         <PanelEnvio nombre={inicial.cliente.nombre} whatsappUrl={whatsappUrl} enlace={enlace} correo={inicial.cliente.correo} resultadoCorreo={correo} />
-        <Button href="/presupuesto" sx={{ alignSelf: "flex-start" }}>
+        <Button href="/presupuesto" sx={{ alignSelf: "center" }}>
           Ver presupuesto
         </Button>
       </Stack>
