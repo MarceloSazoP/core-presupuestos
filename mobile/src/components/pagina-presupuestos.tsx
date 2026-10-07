@@ -24,7 +24,7 @@ import { espacio, useTema } from '@/theme';
 
 // La página de Presupuestos (index.tsx la pone junto a la de Inicio, bajo la misma barra): las pestañas por estado y la lista.
 // - `alInicio`: deslizar hacia la derecha desde la primera pestaña vuelve a Inicio (la página anterior).
-// - `abajo`: lo que tapa el panel de «Nuevo presupuesto»; la lista termina sobre él.
+// - `abajo`: lo que tapa el botón de «Nuevo presupuesto»; la lista termina sobre él.
 export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; abajo: number }) {
   const t = useTema();
   const montoDe = useDinero(LISTA);
@@ -162,7 +162,7 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
                 <Icono nombre="documento" tamano={26} color={t.acento} />
               </View>
               <Text variant="titleMedium" style={[e.centrado, e.fuerte]}>Aún no tienes presupuestos</Text>
-              <Text variant="bodyMedium" style={[e.centrado, e.explicacion, { color: t.suave }]}>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Text>
+              <Text variant="bodyMedium" style={[e.centrado, e.explicacion, { color: t.suave }]}>Cuando estés en una visita, toca el botón + de abajo: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Text>
             </View>
           ) : (
             <View style={e.vacio}>
