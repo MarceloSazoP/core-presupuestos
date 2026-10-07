@@ -5,14 +5,16 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Surface, Text } from 'react-native-paper';
+import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
+import { formaPanel } from '@/components/barra-flotante';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
 import { BotonM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import type { EstadoElegible } from '@/lib/estados';
+import { LISTA, useDinero } from '@/lib/montos';
 import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { Pestanas } from '@/components/pestanas';
 import { Sincronizacion } from '@/components/sincronizacion';
@@ -20,11 +22,16 @@ import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
 import { useRefrescar } from '@/lib/refrescar';
 import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
-import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
+import { espacio, useTema } from '@/theme';
+
+// El panel de abajo: el botón de Material (52) con espacio.m arriba y abajo, más la franja del indicador de inicio o de los botones de Android.
+const ALTO_BOTON = 52;
 
 export default function ListaPresupuestos() {
   const t = useTema();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const montoDe = useDinero(LISTA);
   const [lista, setLista] = useState<ResumenPresupuesto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refrescando, setRefrescando] = useState(false);
@@ -81,6 +88,10 @@ export default function ListaPresupuestos() {
   const elegirPestana = setPestana;
   const cuentas = contar(lista ?? []);
   const visibles = (lista ?? []).filter((q) => pestanaDe(q) === pestana);
+  // Lo que suman los de la pestaña, por moneda (si hubiera de más de un país, cada suma con la suya): «$2.206.422 en total».
+  const sumas = new Map<string, number>();
+  for (const q of visibles) if (q.total > 0) sumas.set(q.currency ?? 'CLP', (sumas.get(q.currency ?? 'CLP') ?? 0) + q.total);
+  const enTotal = [...sumas].map(([moneda, n]) => montoDe(n, moneda)).join(' + ');
 
   useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
@@ -89,6 +100,7 @@ export default function ListaPresupuestos() {
   // Deslizar a los lados, sobre la lista o sobre cualquier tarjeta, pasa a la pestaña de al lado (Pendientes ↔ Enviados ↔ …). Desde la
   // primera, hacia la derecha, vuelve a Inicio.
   const posicion = PESTANAS.findIndex((p) => p.id === pestana);
+  const datos = PESTANAS[posicion]!;
   const irAPestana = (paso: number) => {
     const destino = PESTANAS[posicion + paso];
     if (!destino) return;
@@ -112,11 +124,12 @@ export default function ListaPresupuestos() {
         // por encima de la pantalla, escondidos detrás de las pestañas. Aquí lo nuevo debe verse primero.
         maintainVisibleContentPosition={{ disabled: true }}
         data={visibles}
+        extraData={visibles.length} // la última fila cambia (sus esquinas) al eliminar otra
         keyExtractor={(q) => q.id}
-        renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
+        // Las filas forman una sola tarjeta: cada una sabe si es la primera o la última. Su margen a los lados lo pone la fila (es donde cae su sombra).
+        renderItem={({ item, index }) => <FilaPresupuesto q={item} primero={index === 0} ultimo={index === visibles.length - 1} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: espacio.l, paddingBottom: insets.bottom + MIN_TOQUE + espacio.xxl }}
-        ItemSeparatorComponent={Separador}
+        contentContainerStyle={{ paddingTop: espacio.l, paddingBottom: insets.bottom + ALTO_BOTON + espacio.m * 2 + espacio.s }}
         refreshing={refrescando}
         onRefresh={async () => {
           setRefrescando(true);
@@ -124,17 +137,24 @@ export default function ListaPresupuestos() {
           setRefrescando(false);
         }}
         ListHeaderComponent={
-          <View style={e.aviso}>
+          <View style={e.cabecera}>
             <Sincronizacion />
             {error ? <Text variant="bodySmall" style={{ color: t.error }} accessibilityRole="alert">{error}</Text> : null}
-            {/* La glosa de la pestaña (qué contiene y si se pueden eliminar, y cómo) en una superficie tonal de Material. */}
-            <Surface elevation={0} style={[e.glosa, { backgroundColor: `${t.acento}14` }]}>
-              <Icono nombre="info" tamano={20} color={t.acento} />
-              <View style={e.glosaTextos}>
-                <Text variant="bodyMedium">{PESTANAS[posicion]!.glosa}</Text>
-                <Text variant="bodySmall" style={{ color: t.suave }}>{PESTANAS[posicion]!.eliminar}</Text>
+            {/* Una línea con cuántos hay y cuánto suman; en Pendientes, cómo se elimina uno. */}
+            {visibles.length > 0 ? (
+              <View style={e.resumen}>
+                <Text variant="bodyMedium" style={{ color: t.suave }}>
+                  <Text style={[e.fuerte, { color: t.texto }]}>{datos.resumen(visibles.length)}</Text>
+                  {enTotal ? (
+                    <>
+                      {' · '}
+                      <Text style={e.cifra}>{enTotal}</Text> en total
+                    </>
+                  ) : null}
+                </Text>
+                {datos.ayuda ? <Text variant="bodySmall" style={{ color: t.suave }}>{datos.ayuda}</Text> : null}
               </View>
-            </Surface>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -142,43 +162,43 @@ export default function ListaPresupuestos() {
             <ActivityIndicator style={e.cargando} color={t.acento} />
           ) : lista.length === 0 ? (
             <View style={e.vacio}>
-              <View style={[e.vacioIcono, { backgroundColor: `${t.acento}1A` }]}>
-                <Icono nombre="documento" tamano={30} color={t.acento} />
+              <View style={[e.vacioIcono, { backgroundColor: `${t.acento}${t.oscuro ? '29' : '1A'}` }]}>
+                <Icono nombre="documento" tamano={26} color={t.acento} />
               </View>
-              <Text variant="titleLarge" style={e.centrado}>Aún no tienes presupuestos</Text>
-              <Text variant="bodyMedium" style={[e.centrado, { color: t.suave }]}>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Text>
+              <Text variant="titleMedium" style={[e.centrado, e.fuerte]}>Aún no tienes presupuestos</Text>
+              <Text variant="bodyMedium" style={[e.centrado, e.explicacion, { color: t.suave }]}>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Text>
             </View>
           ) : (
             <View style={e.vacio}>
-              <View style={[e.vacioIcono, { backgroundColor: `${t.suave}1A` }]}>
-                <Icono nombre="documento" tamano={30} color={t.suave} />
+              <View style={[e.vacioIcono, { backgroundColor: `${t.suave}${t.oscuro ? '24' : '1A'}` }]}>
+                <Icono nombre="documento" tamano={26} color={t.suave} />
               </View>
-              <Text variant="titleLarge" style={e.centrado}>Nada en {PESTANAS.find((p) => p.id === pestana)!.texto.toLowerCase()}</Text>
-              <Text variant="bodyMedium" style={[e.centrado, { color: t.suave }]}>{PESTANAS.find((p) => p.id === pestana)!.vacio}</Text>
+              <Text variant="titleMedium" style={[e.centrado, e.fuerte]}>Nada en {datos.texto.toLowerCase()}</Text>
+              <Text variant="bodyMedium" style={[e.centrado, e.explicacion, { color: t.suave }]}>{datos.vacio}</Text>
             </View>
           )
         }
       />
       </PartesDeslizables>
-      {/* Acción principal en la zona del pulgar (tercio inferior) */}
-      <View pointerEvents="box-none" style={[e.cta, { paddingBottom: insets.bottom + espacio.m }]}>
-        <BotonM titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} style={e.botonNuevo} />
+      {/* Acción principal en la zona del pulgar (tercio inferior), en un panel propio como la barra del presupuesto: la superficie de nivel 2
+          con la sombra hacia arriba, hasta el borde de la pantalla. La lista pasa por debajo sin mezclarse con el botón. */}
+      <View style={[e.panel, formaPanel(t.oscuro), { backgroundColor: colors.elevation.level2, paddingBottom: insets.bottom + espacio.m }]}>
+        <BotonM titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
       </View>
     </View>
   );
 }
 
-const Separador = () => <View style={{ height: espacio.m }} />;
-
 const e = StyleSheet.create({
-  glosa: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderRadius: radio.l, padding: espacio.m },
-  glosaTextos: { flex: 1, gap: 2 },
-  aviso: { gap: espacio.s, paddingBottom: espacio.m },
+  // Lo de arriba de la lista. Abajo deja espacio.xs: la primera fila trae otros espacio.s para su sombra.
+  cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.xs },
+  resumen: { gap: 2, paddingHorizontal: espacio.xs },
+  fuerte: { fontWeight: '600' },
+  cifra: { fontVariant: ['tabular-nums'] },
   cargando: { marginTop: espacio.xxl },
   vacio: { alignItems: 'center', gap: espacio.s, paddingTop: espacio.xxl * 2, paddingHorizontal: espacio.xl },
-  vacioIcono: { width: 64, height: 64, borderRadius: radio.l, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', marginBottom: espacio.s },
+  vacioIcono: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: espacio.xs },
   centrado: { textAlign: 'center' },
-  cta: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: espacio.l },
-  // Con la elevación de Material, para que se lea sobre la lista que pasa por debajo.
-  botonNuevo: { elevation: 3, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
+  explicacion: { maxWidth: 300 },
+  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: espacio.m, paddingHorizontal: espacio.l },
 });

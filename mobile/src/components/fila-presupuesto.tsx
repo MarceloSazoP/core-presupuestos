@@ -1,21 +1,20 @@
 import * as Haptics from 'expo-haptics';
-import { hayDeslizadoReciente } from '@/lib/deslizado';
-import { IconoDinero } from '@/components/icono-dinero';
-import { LISTA, useDinero } from '@/lib/montos';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import { Surface, Text } from 'react-native-paper';
 import { Pressable as Toque } from 'react-native-gesture-handler';
-import Animated, { cancelAnimation, Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import { Divider, Text, useTheme } from 'react-native-paper';
+import Animated, { cancelAnimation, Easing, Extrapolation, interpolate, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import type { ResumenPresupuesto } from '@/api/types';
 import { useDialogo } from '@/components/dialogo';
-import { Icono, TRANSICION_PRESION } from '@/components/ui';
-import { diaCorto } from '@/lib/fechas';
+import { Icono } from '@/components/ui';
+import { hayDeslizadoReciente } from '@/lib/deslizado';
 import { elegirEstado } from '@/lib/elegir-estado';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
-import { espacio, letra, MIN_TOQUE, MONO, radio, useTema } from '@/theme';
-import { bordeElevado } from '@/theme-paper';
+import { diaCorto, enDias, haceCuanto } from '@/lib/fechas';
+import { LISTA, useDinero, useMontosOcultos } from '@/lib/montos';
+import { espacio, MIN_TOQUE, MONO, radio, useTema, type Tema } from '@/theme';
 
 // Estado que se muestra: el comercial manda una vez que el presupuesto salió; antes, el documental.
 function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'info' | 'seguimiento' | 'error' } {
@@ -24,30 +23,52 @@ function estadoVisible(q: ResumenPresupuesto): { texto: string; tono: 'aviso' | 
   return comercial ? { texto: comercial.texto, tono: comercial.tono } : { texto: 'Cerrado', tono: 'suave' }; // cerrado y aún sin enviar
 }
 
+// El «cuándo» de la fila: si hay que volver a llamar, el día (en rojo si es hoy o ya pasó); si no, cuándo se editó por última vez.
+function cuandoDe(q: ResumenPresupuesto, t: Tema): { texto: string; color: string; fuerte: boolean } | null {
+  const llamar = q.next_contact_date;
+  if (llamar) {
+    const hoy = enDias(0);
+    if (llamar === hoy) return { texto: 'Llamar hoy', color: t.error, fuerte: true };
+    if (llamar < hoy) return { texto: `Atrasado (${diaCorto(llamar)})`, color: t.error, fuerte: true };
+    return { texto: `Llamar el ${diaCorto(llamar)}`, color: t.seguimiento, fuerte: true };
+  }
+  const hace = q.updated_at ? haceCuanto(q.updated_at) : ''; // los creados sin conexión aún no la traen
+  return hace ? { texto: `editado ${hace}`, color: t.suave, fuerte: false } : null;
+}
+
+// Cada fila es un tramo de una sola tarjeta (lista de Material): la primera trae las esquinas de arriba, la última las de abajo y, entre
+// una y otra, una línea fina. Tres renglones: cliente y monto; el trabajo, en gris; y el estado, el número y el cuándo.
 // `sinCliente`: en la ficha del cliente su nombre sobra y se muestra el número del presupuesto.
-// Eliminar = mantener apretada la tarjeta: tras un instante (para no mostrarlo en un toque normal) una barra roja con «Eliminar» se
-// va llenando de izquierda a derecha; al llenarse aparece la pregunta de confirmación. Soltar antes la cancela.
+// Eliminar = mantener apretada la fila: tras un instante (para no mostrarlo en un toque normal) una barra roja con «Eliminar» se va
+// llenando de izquierda a derecha; al llenarse aparece la pregunta de confirmación. Soltar antes la cancela.
 const ESPERA_MS = 220;
 const LLENADO_MS = 800;
+// La capa de Material que oscurece (o aclara, en oscuro) la fila mientras se aprieta; transición CSS de Reanimated, sin estado por cuadro.
+const TRANSICION_CAPA = { transitionProperty: 'opacity', transitionDuration: 120 } as const;
 
-// - `onEliminar`: un presupuesto pendiente se elimina manteniendo apretada su tarjeta hasta que se llene la barra roja (los
-//   terminados no, Contrato API §6). Siempre con confirmación.
-// - `onCambiarEstado`: uno ya enviado muestra bajo la tarjeta mini pestañas con los demás estados (nunca el actual); un
-//   toque lo pasa a ese estado.
+// - `onEliminar`: un presupuesto pendiente se elimina manteniendo apretada su fila hasta que se llene la barra roja (los terminados no,
+//   Contrato API §6). Siempre con confirmación.
+// - `onCambiarEstado`: en uno ya enviado el estado es un botón que abre «Pasar a» con los demás estados (nunca el actual).
+// - `primero` y `ultimo`: el lugar de la fila en la tarjeta (sus esquinas y la línea de arriba).
 export function FilaPresupuesto({
   q,
   sinCliente = false,
+  primero = true,
+  ultimo = true,
   onEliminar,
   onCambiarEstado,
 }: {
   q: ResumenPresupuesto;
   sinCliente?: boolean;
+  primero?: boolean;
+  ultimo?: boolean;
   onEliminar?: (q: ResumenPresupuesto) => void;
   onCambiarEstado?: (q: ResumenPresupuesto, estado: EstadoElegible) => void;
 }) {
   const t = useTema();
+  const { colors } = useTheme();
   const montoDe = useDinero(LISTA);
-  const reducido = useReducedMotion();
+  const ocultos = useMontosOcultos(LISTA);
   const [presionado, setPresionado] = useState(false);
   const relleno = useSharedValue(0); // 0 a 1: cuánto se ha llenado la barra roja
   useEffect(() => {
@@ -72,7 +93,7 @@ export function FilaPresupuesto({
   };
   // Un toque corto abre el presupuesto. No lo abre: soltar el dedo tras deslizar entre pestañas, ni soltarlo después de mantener
   // apretado (cuando ya empezó a llenarse la barra roja o ya preguntó si eliminar): eso es «eliminar», no «entrar».
-  const desde = useRef(0); // cuándo se apretó la tarjeta
+  const desde = useRef(0); // cuándo se apretó la fila
   const abrir = () => {
     if (hayDeslizadoReciente()) return;
     if (puedeEliminar && Date.now() - desde.current > ESPERA_MS + 80) return;
@@ -82,7 +103,7 @@ export function FilaPresupuesto({
   const empezarLlenado = () => {
     if (!puedeEliminar) return;
     relleno.set(withDelay(ESPERA_MS, withTiming(1, { duration: LLENADO_MS, easing: Easing.linear }, (fin) => {
-      if (fin) runOnJS(llenada)();
+      if (fin) scheduleOnRN(llenada);
     })));
   };
   const llenada = () => {
@@ -96,15 +117,26 @@ export function FilaPresupuesto({
   const estiloRelleno = useAnimatedStyle(() => ({ transform: [{ scaleX: relleno.get() }] }));
   const estiloEtiqueta = useAnimatedStyle(() => ({ opacity: interpolate(relleno.get(), [0.12, 0.35], [0, 1], Extrapolation.CLAMP) }));
   const estado = estadoVisible(q);
+  const color = t[estado.tono];
   const titulo = sinCliente ? (q.number ?? 'Sin número todavía') : q.customer.name;
-  // El ID corto es con lo que la persona nombra cada presupuesto; el número CP aparece al terminarlo.
-  const identificador = [q.code_id, (q.version ?? 1) > 1 ? `Versión ${q.version}` : null, sinCliente ? null : q.number].filter(Boolean).join(' · ');
-  // La tarjeta es un botón de gesture-handler (no el de React Native): así comparte los gestos con el deslizado entre pestañas y,
-  // si el dedo arrastra, el toque se cancela.
+  const monto = q.total > 0 ? montoDe(q.total, q.currency) : 'Sin ítems';
+  // Cómo se nombra el presupuesto: su número CP una vez terminado; antes, el ID corto (se dicta letra por letra). Y la versión, si no es la primera.
+  const codigo = [sinCliente ? q.code_id : (q.number ?? q.code_id), (q.version ?? 1) > 1 ? `v${q.version}` : null].filter(Boolean).join(' · ');
+  const cuando = cuandoDe(q, t);
+  const oscuro = t.oscuro;
+
+  const etiquetaEstado = (
+    <>
+      <View style={[e.punto, { backgroundColor: color }]} />
+      <Text variant="labelMedium" style={[e.textoEstado, { color }]}>{estado.texto}</Text>
+    </>
+  );
+  // La fila es un botón de gesture-handler (no el de React Native): así comparte los gestos con el deslizado entre pestañas y, si el dedo
+  // arrastra, el toque se cancela.
   const fila = (
     <Toque
       accessibilityRole="button"
-      accessibilityLabel={`${titulo}, ${estado.texto}`}
+      accessibilityLabel={[titulo, ocultos && q.total > 0 ? 'monto oculto' : monto, estado.texto, codigo, cuando?.texto].filter(Boolean).join(', ')}
       accessibilityActions={puedeEliminar ? [{ name: 'delete', label: 'Eliminar' }] : posibles.map((s) => ({ name: s.id, label: `Pasar a ${s.texto}` }))}
       onAccessibilityAction={(a) => {
         if (a.nativeEvent.actionName === 'delete') confirmar();
@@ -121,81 +153,90 @@ export function FilaPresupuesto({
         soltar();
       }}
     >
-      {/* La tarjeta se encoge apenas al tocarla (transición CSS de Reanimated: 120 ms, sin estado por cuadro). Es una superficie elevada de
-          Material: la sombra va en la capa de afuera y la de adentro recorta la barra roja de eliminar en las esquinas redondeadas. */}
-      <Animated.View style={[TRANSICION_PRESION, { transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
-        <Surface elevation={1} style={[e.superficie, bordeElevado(t)]}>
-          <View style={e.fila}>
-            {puedeEliminar ? (
-              <>
-                <Animated.View pointerEvents="none" style={[e.relleno, { backgroundColor: t.error }, estiloRelleno]} />
-                <Animated.View pointerEvents="none" style={[e.etiquetaEliminar, estiloEtiqueta]}>
-                  <Icono nombre="cerrar" tamano={18} color="#FFFFFF" />
-                  <Text variant="titleMedium" style={e.textoEliminar}>Eliminar</Text>
-                </Animated.View>
-              </>
-            ) : null}
-            <View style={e.arriba}>
-              <Text variant="titleMedium" numberOfLines={1} style={e.flex}>{titulo}</Text>
-              <View style={e.totalFila}>
-                <IconoDinero tamano={22} />
-                <Text variant="titleMedium" style={e.monto}>{q.total > 0 ? montoDe(q.total, q.currency) : '—'}</Text>
-              </View>
-            </View>
-            <Text variant="bodyMedium" numberOfLines={1} style={{ color: t.suave }}>{q.service_description || 'Sin descripción todavía'}</Text>
-            <View style={e.abajo}>
-              {/* El estado es una etiqueta tonal de su color (Material). Si se puede cambiar, es un botón que abre la hoja nativa «Pasar a». */}
-              {posibles.length > 0 ? (
-                <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar, decidir)} style={[e.estado, { backgroundColor: `${t[estado.tono]}1F` }]}>
-                  <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
-                  <Text variant="labelMedium" style={{ color: t[estado.tono] }}>{estado.texto}</Text>
-                  <Icono nombre="despliegue" tamano={12} color={t[estado.tono]} />
-                </Toque>
-              ) : (
-                <View style={[e.estado, { backgroundColor: `${t[estado.tono]}1F` }]}>
-                  <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
-                  <Text variant="labelMedium" style={{ color: t[estado.tono] }}>{estado.texto}</Text>
-                </View>
-              )}
-              {identificador ? <Text numberOfLines={1} style={[e.id, { color: t.suave }]}>{identificador}</Text> : null}
-            </View>
-            {q.next_contact_date ? (
-              <View style={e.contacto}>
-                <Icono nombre="reloj" tamano={14} color={t.seguimiento} />
-                <Text variant="labelMedium" style={{ color: t.seguimiento }}>Contactar el {diaCorto(q.next_contact_date)}</Text>
-              </View>
-            ) : null}
-          </View>
-        </Surface>
-      </Animated.View>
+      <View style={e.fila}>
+        <Animated.View pointerEvents="none" style={[e.capa, TRANSICION_CAPA, { backgroundColor: t.texto, opacity: presionado ? 0.1 : 0 }]} />
+        {puedeEliminar ? (
+          <>
+            <Animated.View pointerEvents="none" style={[e.capa, e.relleno, { backgroundColor: t.error }, estiloRelleno]} />
+            <Animated.View pointerEvents="none" style={[e.capa, e.etiquetaEliminar, estiloEtiqueta]}>
+              <Icono nombre="cerrar" tamano={18} color="#FFFFFF" />
+              <Text variant="titleMedium" style={e.textoEliminar}>Eliminar</Text>
+            </Animated.View>
+          </>
+        ) : null}
+        <View style={e.arriba}>
+          <Text variant="titleMedium" numberOfLines={1} style={[e.fuerte, e.flex]}>{titulo}</Text>
+          <Text variant="titleMedium" style={[e.fuerte, e.cifra, q.total > 0 ? null : { color: t.suave }]}>{monto}</Text>
+        </View>
+        <Text variant="bodyMedium" numberOfLines={1} style={{ color: t.suave }}>{q.service_description || 'Sin descripción todavía'}</Text>
+        <View style={e.abajo}>
+          {/* El estado es una etiqueta tonal de su color (Material). Si se puede cambiar, es un botón que abre «Pasar a». */}
+          {posibles.length > 0 ? (
+            <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 13, bottom: 13, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar, decidir)} style={[e.estado, { backgroundColor: `${color}${oscuro ? '29' : '1A'}` }]}>
+              {etiquetaEstado}
+              <Icono nombre="despliegue" tamano={10} color={color} />
+            </Toque>
+          ) : (
+            <View style={[e.estado, { backgroundColor: `${color}${oscuro ? '29' : '1A'}` }]}>{etiquetaEstado}</View>
+          )}
+          {codigo ? <Text variant="bodySmall" numberOfLines={1} style={[e.codigo, { color: t.suave }]}>{codigo}</Text> : null}
+          {cuando ? (
+            <>
+              <Text variant="bodySmall" style={{ color: t.suave }}>·</Text>
+              <Text variant="bodySmall" numberOfLines={1} style={[e.cuando, { color: cuando.color }, cuando.fuerte ? e.fuerte : null]}>{cuando.texto}</Text>
+            </>
+          ) : null}
+        </View>
+      </View>
     </Toque>
   );
+  // Tres capas: la de afuera deja lugar a la sombra y la recorta arriba y abajo donde la fila sigue con otra (así no cae sobre la vecina);
+  // la del medio es la superficie elevada (tono, esquinas, sombra y, en oscuro, el borde); la de adentro recorta la barra roja y la capa del
+  // toque en las esquinas redondeadas.
   return (
-    <>
-      {fila}
+    <View style={[e.recorte, primero && e.recorteArriba, ultimo && e.recorteAbajo]}>
+      <View style={[{ backgroundColor: colors.elevation.level1 }, primero && e.esquinasArriba, ultimo && e.esquinasAbajo, oscuro ? e.sombraOscura : e.sombraClara, oscuro && e.bordeOscuro, oscuro && primero && e.bordeArriba, oscuro && ultimo && e.bordeAbajo]}>
+        <View style={[e.interior, primero && e.esquinasArriba, ultimo && e.esquinasAbajo]}>
+          {primero ? null : <Divider style={e.linea} />}
+          {fila}
+        </View>
+      </View>
       {dialogo}
-    </>
+    </View>
   );
 }
 
+const HOLGURA = { lado: espacio.l, arriba: espacio.s, abajo: espacio.l }; // lo que ocupa la sombra fuera de la tarjeta
+
 const e = StyleSheet.create({
-  // Superficie elevada de Material (sombra afuera) y, adentro, la fila que recorta la barra roja en las esquinas.
-  superficie: { borderRadius: radio.l },
-  fila: { overflow: 'hidden', borderRadius: radio.l, borderCurve: 'continuous', paddingVertical: 14, paddingHorizontal: espacio.l, gap: 6, minHeight: MIN_TOQUE },
-  relleno: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, transformOrigin: 'left' },
-  etiquetaEliminar: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
+  recorte: { overflow: 'hidden', paddingHorizontal: HOLGURA.lado },
+  recorteArriba: { paddingTop: HOLGURA.arriba },
+  recorteAbajo: { paddingBottom: HOLGURA.abajo },
+  esquinasArriba: { borderTopLeftRadius: radio.l, borderTopRightRadius: radio.l, borderCurve: 'continuous' },
+  esquinasAbajo: { borderBottomLeftRadius: radio.l, borderBottomRightRadius: radio.l, borderCurve: 'continuous' },
+  // La sombra de una tarjeta de Material: suave en claro; en oscuro, más honda y con el borde claro de `bordeElevado` (theme-paper).
+  sombraClara: { boxShadow: '0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10)' },
+  sombraOscura: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.55)' },
+  bordeOscuro: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(238, 242, 250, 0.16)' },
+  bordeArriba: { borderTopWidth: 1 },
+  bordeAbajo: { borderBottomWidth: 1 },
+  interior: { overflow: 'hidden' },
+  linea: { marginLeft: espacio.l },
+  fila: { paddingVertical: 14, paddingHorizontal: espacio.l, gap: 3, minHeight: MIN_TOQUE },
+  capa: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 },
+  relleno: { transformOrigin: 'left' },
+  etiquetaEliminar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
   textoEliminar: { color: '#FFFFFF', fontWeight: '700' },
   arriba: { flexDirection: 'row', alignItems: 'baseline', gap: espacio.m },
   flex: { flex: 1 },
-  abajo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s, marginTop: 2 },
-  estado: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 26, paddingHorizontal: 10, borderRadius: 13 },
-  punto: { width: 8, height: 8, borderRadius: 4 },
-  monto: { fontVariant: ['tabular-nums'] },
-  totalFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
-  // El código corto se dicta letra por letra: va en monoespaciada, en gris tenue.
-  id: { flexShrink: 1, fontFamily: Platform.select(MONO), fontSize: letra.chico - 2, letterSpacing: 0.5, opacity: 0.8 },
-  contacto: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  contenedor: { borderRadius: radio.l, borderCurve: 'continuous', overflow: 'hidden' }, // recorta lo que sale por las esquinas redondeadas
-  accion: { width: 96, borderRadius: radio.l, borderCurve: 'continuous' },
-  accionToque: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  fuerte: { fontWeight: '600' },
+  cifra: { fontVariant: ['tabular-nums'] },
+  abajo: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  // Etiqueta de estado de Material, pequeña: 22 de alto (el toque se agranda con hitSlop).
+  estado: { flexDirection: 'row', alignItems: 'center', gap: 5, minHeight: 22, paddingLeft: 7, paddingRight: 8, borderRadius: 11, marginRight: 2 },
+  punto: { width: 6, height: 6, borderRadius: 3 },
+  textoEstado: { fontWeight: '600' },
+  // El código corto se dicta letra por letra: va en monoespaciada. Cede espacio antes que el cuándo.
+  codigo: { flexShrink: 1, fontFamily: Platform.select(MONO), letterSpacing: 0.3 },
+  cuando: { flexShrink: 0 },
 });

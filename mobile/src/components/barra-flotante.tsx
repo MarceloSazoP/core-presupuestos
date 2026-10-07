@@ -117,6 +117,10 @@ export function BarraFlotante({ reserva, pista, children }: { reserva: number; p
   );
 }
 
+// La forma del panel (esquinas de arriba redondeadas, sombra hacia arriba y, en oscuro, el borde claro), para otro panel de abajo que no
+// flota: el de «Nuevo presupuesto» en la lista. El color va aparte: la superficie de nivel 2.
+export const formaPanel = (oscuro: boolean) => [e.panel, oscuro ? e.panelOscuro : e.panelClaro];
+
 const e = StyleSheet.create({
   barra: { zIndex: 10, gap: espacio.s, marginHorizontal: -espacio.l, paddingHorizontal: espacio.l, paddingTop: ZONA_PISTA + espacio.m, paddingBottom: espacio.s },
   capa: { position: 'absolute', left: 0, right: 0, top: ZONA_PISTA },
