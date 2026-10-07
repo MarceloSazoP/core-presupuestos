@@ -1,6 +1,6 @@
 import { Children, Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Divider, List, Text } from 'react-native-paper';
+import { ActivityIndicator, Divider, List, Text } from 'react-native-paper';
 import { TarjetaM } from '@/components/material';
 import { Icono, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -43,6 +43,32 @@ export function FilaAjuste({ icono, color, titulo, valor, alTocar }: { icono: No
           <Icono nombre="siguiente" tamano={14} color={t.suave} />
         </View>
       )}
+    />
+  );
+}
+
+// Una acción (no abre otra pantalla): su ícono en el círculo tonal, el nombre y, debajo, qué hace. Mientras trabaja, el indicador de
+// Material a la derecha y la fila no se puede volver a tocar. `peligro`: el nombre en rojo.
+export function FilaAccion({ icono, color, titulo, descripcion, cargando, peligro, alTocar }: { icono: NombreIcono; color: string; titulo: string; descripcion?: string; cargando?: boolean; peligro?: boolean; alTocar: () => void }) {
+  const t = useTema();
+  return (
+    <List.Item
+      title={titulo}
+      description={descripcion}
+      descriptionNumberOfLines={3}
+      titleStyle={[e.titulo, { color: peligro ? t.error : t.texto }]}
+      descriptionStyle={{ color: t.suave }}
+      onPress={cargando ? undefined : alTocar}
+      accessibilityRole="button"
+      accessibilityLabel={descripcion ? `${titulo}. ${descripcion}` : titulo}
+      accessibilityState={{ busy: !!cargando }}
+      style={e.fila}
+      left={() => (
+        <View style={[e.icono, { backgroundColor: `${color}26` }]}>
+          <Icono nombre={icono} tamano={20} color={color} />
+        </View>
+      )}
+      right={() => (cargando ? <View style={e.derecha}><ActivityIndicator size={18} color={t.acento} /></View> : null)}
     />
   );
 }
