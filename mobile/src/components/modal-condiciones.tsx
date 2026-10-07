@@ -1,9 +1,8 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 import { ElegirDescuento } from '@/components/elegir-descuento';
 import { Chips } from '@/components/modal-item';
-import { BotonM, TextoM } from '@/components/material';
-import { Campo } from '@/components/ui';
+import { BotonM, CampoM, HojaM, TarjetaM, TextoM } from '@/components/material';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 export const GARANTIAS = [{ kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' }, { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' }, { kind: 'LIFETIME', texto: 'De por vida' }] as const;
@@ -24,48 +23,38 @@ export function ModalCondiciones({ pct, alDescuento, descuentoFijo, garantia, al
 }) {
   const t = useTema();
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
-      <View style={[e.hoja, { backgroundColor: t.fondo }]}>
-        <View style={e.barra}>
-          <View style={e.lado} />
-          <TextoM fuerte accessibilityRole="header">Condiciones</TextoM>
-          <Pressable accessibilityRole="button" accessibilityLabel="Listo" onPress={alCerrar} hitSlop={8} style={[e.lado, e.derecha]}>
-            <TextoM color="acento" fuerte>Listo</TextoM>
-          </Pressable>
+    <HojaM titulo="Condiciones" listo={{ titulo: 'Listo', fuerte: true, onPress: alCerrar }} alCerrar={alCerrar}>
+      <TarjetaM>
+        <View style={e.grupo}>
+          <TextoM variante="chico" fuerte>Descuento (opcional)</TextoM>
+          <ElegirDescuento valor={pct} respaldo={descuentoFijo} alElegir={alDescuento} />
         </View>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenido}>
+      </TarjetaM>
+
+      {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
+      <TarjetaM>
+        <View style={e.fila}>
+          <TextoM style={e.flex}>Garantía</TextoM>
+          <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => alGarantia(on ? 'D30' : 'NONE')} color={t.acento} />
+        </View>
+        {garantia !== 'NONE' ? (
           <View style={e.grupo}>
-            <TextoM variante="chico" fuerte>Descuento (opcional)</TextoM>
-            <ElegirDescuento valor={pct} respaldo={descuentoFijo} alElegir={alDescuento} />
+            <TextoM variante="chico" fuerte>Duración</TextoM>
+            <Chips etiqueta="Duración de la garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={alGarantia} />
           </View>
+        ) : null}
+      </TarjetaM>
 
-          {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
-          <View style={e.fila}>
-            <TextoM style={e.flex}>Garantía</TextoM>
-            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => alGarantia(on ? 'D30' : 'NONE')} color={t.acento} />
-          </View>
-          {garantia !== 'NONE' ? (
-            <View style={e.grupo}>
-              <TextoM variante="chico" fuerte>Duración</TextoM>
-              <Chips etiqueta="Duración de la garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={alGarantia} />
-            </View>
-          ) : null}
-
-          <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => alDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
-          <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={alObs} multiline maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
-          <BotonM titulo="Listo" icono="listo" onPress={alCerrar} />
-        </ScrollView>
-      </View>
-    </Modal>
+      <TarjetaM>
+        <CampoM etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => alDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
+        <CampoM etiqueta="Observaciones (opcional)" value={obs} onChangeText={alObs} multiline maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
+      </TarjetaM>
+      <BotonM titulo="Listo" icono="listo" onPress={alCerrar} />
+    </HojaM>
   );
 }
 
 const e = StyleSheet.create({
-  hoja: { flex: 1 },
-  barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
-  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  derecha: { alignItems: 'flex-end' },
-  contenido: { padding: espacio.xl, gap: espacio.l, paddingBottom: espacio.xxl },
   grupo: { gap: espacio.s },
   fila: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   flex: { flex: 1 },

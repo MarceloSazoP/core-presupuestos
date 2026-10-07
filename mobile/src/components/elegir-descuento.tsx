@@ -1,8 +1,10 @@
 import { Picker } from '@react-native-picker/picker';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
-import { Icono, Texto } from '@/components/ui';
+import { Button, Text, TouchableRipple, useTheme } from 'react-native-paper';
+import { Icono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
+import { bordeElevado } from '@/theme-paper';
 
 // El descuento se elige girando una rueda desde abajo (0 % a 100 %), como la unidad y como la fecha en Ajustes de iPhone.
 const OPCIONES = Array.from({ length: 101 }, (_, i) => i);
@@ -10,33 +12,39 @@ const texto = (p: number | null, respaldo: string) => (p === null ? respaldo : p
 
 export function ElegirDescuento({ valor, respaldo, alElegir }: { valor: number | null; respaldo: string; alElegir: (p: number) => void }) {
   const t = useTema();
+  const { colors } = useTheme();
   const [abierto, setAbierto] = useState(false);
   const [rueda, setRueda] = useState(valor ?? 0);
   return (
     <>
-      <Pressable
+      {/* Con el contorno de un campo de Material, sobre la superficie donde está, y la onda al tocar. */}
+      <TouchableRipple
         accessibilityRole="button"
         accessibilityLabel={`Descuento: ${texto(valor, respaldo)}. Cambiar`}
         onPress={() => {
           setRueda(valor ?? 0);
           setAbierto(true);
         }}
-        style={({ pressed }) => [e.fila, { backgroundColor: t.campo, borderColor: t.bordeCampo, opacity: pressed ? 0.7 : 1 }]}
+        borderless
+        style={[e.campo, { borderColor: t.bordeCampo }]}
       >
-        <Texto fuerte>{texto(valor, respaldo)}</Texto>
-        <Icono nombre="despliegue" tamano={18} color={t.acento} />
-      </Pressable>
+        <View style={e.fila}>
+          <Text variant="bodyLarge" style={e.fuerte}>{texto(valor, respaldo)}</Text>
+          <Icono nombre="despliegue" tamano={18} color={t.acento} />
+        </View>
+      </TouchableRipple>
       <Modal visible={abierto} transparent animationType="slide" onRequestClose={() => setAbierto(false)}>
         <Pressable accessibilityLabel="Cerrar sin cambiar" style={e.fondo} onPress={() => setAbierto(false)} />
-        <View style={[e.hoja, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
+        {/* Hoja inferior de Material: esquinas de 28, la superficie elevada y la barra con botones de texto. */}
+        <View style={[e.hoja, { backgroundColor: colors.elevation.level1 }, bordeElevado(t)]}>
           <View style={e.barra}>
-            <Pressable accessibilityRole="button" onPress={() => setAbierto(false)} hitSlop={8} style={e.lado}>
-              <Texto color="acento">Cancelar</Texto>
-            </Pressable>
-            <Texto fuerte accessibilityRole="header">Descuento</Texto>
-            <Pressable accessibilityRole="button" accessibilityLabel="Listo" onPress={() => { alElegir(rueda); setAbierto(false); }} hitSlop={8} style={[e.lado, e.derecha]}>
-              <Texto color="acento" fuerte>Listo</Texto>
-            </Pressable>
+            <Button mode="text" onPress={() => setAbierto(false)} textColor={t.acento} style={e.boton} contentStyle={e.contenidoBoton} labelStyle={e.textoBoton}>
+              Cancelar
+            </Button>
+            <Text variant="titleMedium" accessibilityRole="header">Descuento</Text>
+            <Button mode="text" onPress={() => { alElegir(rueda); setAbierto(false); }} textColor={t.acento} accessibilityLabel="Listo" style={e.boton} contentStyle={e.contenidoBoton} labelStyle={[e.textoBoton, e.fuerte]}>
+              Listo
+            </Button>
           </View>
           <Picker selectedValue={rueda} onValueChange={(v) => setRueda(Number(v))} itemStyle={{ color: t.texto, fontSize: 22 }} style={e.rueda}>
             {OPCIONES.map((p) => (
@@ -50,11 +58,14 @@ export function ElegirDescuento({ valor, respaldo, alElegir }: { valor: number |
 }
 
 const e = StyleSheet.create({
-  fila: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.l },
+  campo: { minHeight: 52, borderWidth: 1, borderRadius: radio.s, justifyContent: 'center', paddingHorizontal: espacio.l },
+  fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  fuerte: { fontWeight: '600' },
   fondo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
-  hoja: { borderTopLeftRadius: radio.l, borderTopRightRadius: radio.l, borderWidth: StyleSheet.hairlineWidth, paddingBottom: espacio.xl },
-  barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l },
-  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  derecha: { alignItems: 'flex-end' },
+  hoja: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: espacio.s, paddingBottom: espacio.xl },
+  barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.s },
+  boton: { borderRadius: 999, minWidth: 96 },
+  contenidoBoton: { minHeight: MIN_TOQUE },
+  textoBoton: { fontSize: 16, lineHeight: 20 },
   rueda: { height: 216 },
 });

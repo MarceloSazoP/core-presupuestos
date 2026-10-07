@@ -5,13 +5,14 @@ import { CampoModal } from '@/components/campo-modal';
 import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { BarraListo } from '@/components/barra-listo';
 import { CampoTelefono } from '@/components/campo-telefono';
+import { useDialogo } from '@/components/dialogo';
 import { BotonM, SeccionM, TarjetaM, TextoM } from '@/components/material';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar, guardarBorrador } from '@/sync/cola';
@@ -35,13 +36,13 @@ export default function Nuevo() {
   const [errores, setErrores] = useState<{ nombre?: string; telefono?: string; correo?: string }>({});
   const [aviso, setAviso] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
-  const refTelefono = useRef<TextInput>(null);
+  const { dialogo, decidir } = useDialogo();
 
   // Cancelar: si ya escribió algo se pregunta antes de descartar, porque el gesto de deslizar hacia abajo no avisa.
   const hayDatos = [nombre, telefono, correo, direccion, servicio].some((v) => v.trim());
   const cancelar = () => {
     if (!hayDatos) return router.back();
-    Alert.alert('¿Descartar este presupuesto?', 'Lo que escribiste no se guardará. Si quieres continuar después, guárdalo.', [
+    decidir('¿Descartar este presupuesto?', 'Lo que escribiste no se guardará. Si quieres continuar después, guárdalo.', [
       { text: 'Seguir editando', style: 'cancel' },
       { text: 'Guardar', onPress: () => void crear(false) },
       { text: 'Descartar', style: 'destructive', onPress: () => router.back() },
@@ -114,7 +115,7 @@ export default function Nuevo() {
       <SeccionM titulo="Cliente" icono="cliente">
         <TarjetaM>
           <CampoModal etiqueta="Nombre" titulo="Nombre del cliente" agregar="Agregar nombre" icono="cliente" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="off" />
-          <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
+          <CampoTelefono material codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
           <CampoModal etiqueta="Correo (opcional)" titulo="Correo del cliente" agregar="Agregar correo" icono="correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Con correo, el PDF se envía solo al terminar." />
         </TarjetaM>
       </SeccionM>
@@ -131,6 +132,7 @@ export default function Nuevo() {
       </View>
     </ScrollView>
     <BarraListo />
+    {dialogo}
     </View>
   );
 }

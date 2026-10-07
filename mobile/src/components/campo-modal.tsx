@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { palabrasDe, recortarPalabras } from '@/lib/palabras';
-import { Modal, Pressable, ScrollView, StyleSheet, View, type TextInputProps } from 'react-native';
-import { Boton, Campo, Icono, Texto, type NombreIcono } from '@/components/ui';
+import { StyleSheet, View, type TextInputProps } from 'react-native';
+import { TouchableRipple } from 'react-native-paper';
+import { BotonM, CampoM, HojaM, TarjetaM, TextoM } from '@/components/material';
+import { Icono, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
 // Un texto largo (servicio, dirección, notas) que se escribe en su propia hoja: vacío es un botón «Agregar …»; con texto, la
@@ -28,17 +30,20 @@ export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeh
   const lleno = valor.trim().length > 0;
   return (
     <View style={e.campo}>
-      <Texto variante="chico" fuerte>{etiqueta}</Texto>
+      <TextoM variante="chico" fuerte>{etiqueta}</TextoM>
       {lleno ? (
-        <Pressable accessibilityRole="button" accessibilityLabel={`${etiqueta}: ${valor}. Editar`} onPress={() => setAbierto(true)} style={({ pressed }) => [e.tarjeta, { backgroundColor: t.tarjeta, borderColor: error ? t.error : t.bordeCampo, opacity: pressed ? 0.7 : 1 }]}>
-          <Icono nombre={icono} tamano={18} color={t.acento} />
-          <Texto style={e.flex}>{valor}</Texto>
-          <Icono nombre="lapiz" tamano={18} color={t.acento} />
-        </Pressable>
+        // Lo escrito, con el contorno de un campo de Material sobre la superficie donde está (sin fondo propio) y la onda al tocar.
+        <TouchableRipple accessibilityRole="button" accessibilityLabel={`${etiqueta}: ${valor}. Editar`} onPress={() => setAbierto(true)} borderless style={[e.tarjeta, { borderColor: error ? t.error : t.bordeCampo }]}>
+          <View style={e.filaTarjeta}>
+            <Icono nombre={icono} tamano={18} color={t.acento} />
+            <TextoM style={e.flex}>{valor}</TextoM>
+            <Icono nombre="lapiz" tamano={18} color={t.acento} />
+          </View>
+        </TouchableRipple>
       ) : (
-        <Boton titulo={agregar} icono={icono} colorIcono={t.acento} variante="secundario" onPress={() => setAbierto(true)} />
+        <BotonM titulo={agregar} icono={icono} colorIcono={t.acento} variante="contorno" onPress={() => setAbierto(true)} />
       )}
-      {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : ayuda ? <Texto variante="chico" suave>{ayuda}</Texto> : null}
+      {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : ayuda ? <TextoM variante="chico" suave>{ayuda}</TextoM> : null}
       {abierto ? (
         <Hoja
           titulo={titulo}
@@ -59,37 +64,24 @@ export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeh
   );
 }
 
+// La hoja de edición de Material: «Cancelar» y «Listo» arriba, el campo con contorno en una tarjeta y un «Listo» ancho abajo, a mano.
 function Hoja({ titulo, etiqueta, inicial, placeholder, multiline, maxPalabras, entrada, alListo, alCerrar }: { titulo: string; etiqueta: string; inicial: string; placeholder?: string; multiline: boolean; maxPalabras?: number; entrada: Entrada; alListo: (v: string) => void; alCerrar: () => void }) {
-  const t = useTema();
   const [v, setV] = useState(inicial); // copia: «Cancelar» la descarta
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
-      <View style={[e.hoja, { backgroundColor: t.fondo }]}>
-        <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={alCerrar} hitSlop={8} style={e.lado}>
-            <Texto color="acento">Cancelar</Texto>
-          </Pressable>
-          <Texto fuerte accessibilityRole="header">{titulo}</Texto>
-          <View style={e.lado} />
-        </View>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenido}>
-          <Campo etiqueta={etiqueta} value={v} onChangeText={(x) => setV(maxPalabras ? recortarPalabras(x, maxPalabras) : x)} placeholder={placeholder} multiline={multiline} autoFocus style={multiline ? e.grande : undefined} {...entrada} />
-          {maxPalabras ? <Texto variante="chico" suave style={e.cuenta}>{palabrasDe(v).length} de {maxPalabras} palabras</Texto> : null}
-          <Boton titulo="Listo" icono="listo" onPress={() => alListo(v.trim())} />
-        </ScrollView>
-      </View>
-    </Modal>
+    <HojaM titulo={titulo} cancelar={{ titulo: 'Cancelar', onPress: alCerrar }} listo={{ titulo: 'Listo', fuerte: true, onPress: () => alListo(v.trim()) }} alCerrar={alCerrar}>
+      <TarjetaM>
+        <CampoM etiqueta={etiqueta} value={v} onChangeText={(x) => setV(maxPalabras ? recortarPalabras(x, maxPalabras) : x)} placeholder={placeholder} multiline={multiline} autoFocus {...entrada} />
+        {maxPalabras ? <TextoM variante="chico" suave style={e.cuenta}>{palabrasDe(v).length} de {maxPalabras} palabras</TextoM> : null}
+      </TarjetaM>
+      <BotonM titulo="Listo" icono="listo" onPress={() => alListo(v.trim())} />
+    </HojaM>
   );
 }
 
 const e = StyleSheet.create({
   campo: { gap: espacio.xs },
   flex: { flex: 1 },
-  tarjeta: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m, minHeight: MIN_TOQUE },
-  hoja: { flex: 1 },
-  barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
-  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  contenido: { padding: espacio.xl, gap: espacio.l },
-  grande: { minHeight: 160 },
+  tarjeta: { borderWidth: 1, borderRadius: radio.s, padding: espacio.m, minHeight: MIN_TOQUE, justifyContent: 'center' },
+  filaTarjeta: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m },
   cuenta: { textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

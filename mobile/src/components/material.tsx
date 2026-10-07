@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { StyleSheet, View, type StyleProp, type TextProps, type ViewStyle } from 'react-native';
-import { Button, Card, Text } from 'react-native-paper';
-import { Icono, type NombreIcono } from '@/components/ui';
+import { Modal, Platform, ScrollView, StyleSheet, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { Icono, TECLADO_ID, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema, type Color } from '@/theme';
 import { bordeElevado } from '@/theme-paper';
 
@@ -140,6 +140,73 @@ export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo,
   );
 }
 
+// Campo de texto de Material 3 con contorno: la etiqueta flota sobre el borde al escribir, y el error o la ayuda van debajo. Acepta lo
+// mismo que `Campo` de ui.tsx. El fondo es el de la tarjeta elevada donde suele ir (la etiqueta corta el borde con ese color); `fondo`
+// lo cambia si va sobre otra superficie. `izquierda`: algo en la misma fila, antes del campo (el selector de país del teléfono).
+export function CampoM({ etiqueta, error, ayuda, izquierda, fondo, style, ...props }: Omit<TextInputProps, 'style' | 'selectionColor' | 'placeholderTextColor' | 'cursorColor' | 'selectionHandleColor'> & { etiqueta: string; error?: string | null; ayuda?: string; izquierda?: ReactNode; fondo?: string; style?: StyleProp<TextStyle> }) {
+  const t = useTema();
+  const { colors } = useTheme();
+  return (
+    <View style={e.campo}>
+      <View style={izquierda ? e.filaCampo : undefined}>
+        {izquierda}
+        <TextInput
+          mode="outlined"
+          label={etiqueta}
+          accessibilityLabel={etiqueta}
+          inputAccessoryViewID={TECLADO_ID}
+          placeholderTextColor={t.suave}
+          selectionColor={t.acento}
+          {...props}
+          error={!!error}
+          outlineColor={t.bordeCampo}
+          activeOutlineColor={t.acento}
+          textColor={t.texto}
+          outlineStyle={e.bordeCampo}
+          contentStyle={props.multiline ? e.multilinea : undefined}
+          style={[{ backgroundColor: fondo ?? colors.elevation.level1 }, izquierda ? e.flex : null, style]}
+        />
+      </View>
+      {error ? (
+        <HelperText type="error" visible accessibilityRole="alert">{error}</HelperText>
+      ) : ayuda ? (
+        <HelperText type="info" visible style={{ color: t.suave }}>{ayuda}</HelperText>
+      ) : null}
+    </View>
+  );
+}
+
+// Una acción de la barra de la hoja: botón de texto de Material. `fuerte`: la que confirma (Listo, Guardar).
+type AccionHoja = { titulo: string; onPress: () => void; fuerte?: boolean; disabled?: boolean };
+
+// Hoja de edición de Material (en iPhone se abre como hoja y se puede bajar; en Android ocupa la pantalla y «atrás» la cierra): la barra
+// de arriba con «Cancelar» a la izquierda, el título y la acción que confirma a la derecha, como el diálogo de pantalla completa de
+// Material; debajo, el contenido con su desplazamiento y el teclado.
+export function HojaM({ titulo, cancelar, listo, alCerrar, children }: { titulo: string; cancelar?: AccionHoja; listo?: AccionHoja; alCerrar: () => void; children: ReactNode }) {
+  const t = useTema();
+  const accion = (a: AccionHoja) => (
+    <Button mode="text" onPress={a.onPress} disabled={a.disabled} textColor={t.acento} accessibilityLabel={a.titulo} style={e.boton} contentStyle={e.contenidoBoton} labelStyle={[e.textoAccion, a.fuerte ? e.accionFuerte : null]}>
+      {a.titulo}
+    </Button>
+  );
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
+      <View style={[e.flex, { backgroundColor: t.fondo }]}>
+        {/* En la hoja de iOS, la barrita avisa que se puede deslizar hacia abajo. */}
+        {Platform.OS === 'ios' ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarre, { backgroundColor: t.suave }]} /> : null}
+        <View style={e.barraHoja}>
+          <View style={e.ladoHoja}>{cancelar ? accion(cancelar) : null}</View>
+          <Text variant="titleLarge" accessibilityRole="header" numberOfLines={1} style={e.tituloHoja}>{titulo}</Text>
+          <View style={[e.ladoHoja, e.derechaHoja]}>{listo ? accion(listo) : null}</View>
+        </View>
+        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenidoHoja}>
+          {children}
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
 const e = StyleSheet.create({
   seccion: { gap: espacio.m },
   cabecera: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
@@ -161,4 +228,17 @@ const e = StyleSheet.create({
   nota: { borderRadius: radio.l, borderWidth: StyleSheet.hairlineWidth },
   contenidoNota: { padding: espacio.l, gap: espacio.l },
   sello: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  campo: { gap: 0 },
+  // El selector va a la altura del borde del campo (Paper lo dibuja 6 más abajo, donde flota la etiqueta).
+  filaCampo: { flexDirection: 'row', alignItems: 'stretch', gap: espacio.s },
+  bordeCampo: { borderRadius: radio.s },
+  multilinea: { minHeight: 140, paddingTop: espacio.l },
+  agarre: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, opacity: 0.5, marginTop: espacio.s },
+  barraHoja: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.s, paddingTop: espacio.xs },
+  ladoHoja: { minWidth: 96, alignItems: 'flex-start' },
+  derechaHoja: { alignItems: 'flex-end' },
+  tituloHoja: { flexShrink: 1, textAlign: 'center' },
+  textoAccion: { fontSize: 16, lineHeight: 20, marginHorizontal: 12 },
+  accionFuerte: { fontWeight: '700' },
+  contenidoHoja: { padding: espacio.l, paddingBottom: espacio.xxl, gap: espacio.xl },
 });

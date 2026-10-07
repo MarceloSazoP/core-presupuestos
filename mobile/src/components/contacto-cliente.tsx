@@ -1,17 +1,17 @@
 import * as Haptics from 'expo-haptics';
 import { avisar } from '@/lib/toast';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { BotonM, TextoM } from '@/components/material';
-import { Campo, Icono } from '@/components/ui';
+import { BotonM, CampoM, HojaM, TarjetaM, TextoM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar } from '@/sync/cola';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, useTema } from '@/theme';
 
 // Nombre, teléfono y correo del cliente, corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
 // después. Se ven en el título de la pantalla (TituloCliente) y se corrigen en una hoja (EditarCliente). Funciona sin conexión: se
@@ -49,7 +49,6 @@ export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () =>
 
 export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambiar: (f: (p: Presupuesto) => Presupuesto) => void; alCerrar: () => void }) {
   const pais = usePais();
-  const t = useTema();
   const [nombre, setNombre] = useState(q.customer.name);
   const [telefono, setTelefono] = useState(separarTelefono(q.customer.phone, pais.calling_code).nacional);
   const [codigo, setCodigo] = useState(separarTelefono(q.customer.phone, pais.calling_code).codigo);
@@ -82,24 +81,15 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
   }
 
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
-      <View style={[e.hoja, { backgroundColor: t.fondo }]}>
-        <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={alCerrar} hitSlop={8} style={e.lado}>
-            <TextoM color="acento">Cancelar</TextoM>
-          </Pressable>
-          <TextoM fuerte accessibilityRole="header">Datos del cliente</TextoM>
-          <View style={e.lado} />
-        </View>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.form}>
-          <Campo etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" />
-          <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
-          <Campo etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
-          {aviso ? <TextoM variante="chico" color="error" accessibilityRole="alert">{aviso}</TextoM> : null}
-          <BotonM titulo="Guardar" icono="listo" onPress={() => void guardar()} />
-        </ScrollView>
-      </View>
-    </Modal>
+    <HojaM titulo="Datos del cliente" cancelar={{ titulo: 'Cancelar', onPress: alCerrar }} listo={{ titulo: 'Guardar', fuerte: true, onPress: () => void guardar() }} alCerrar={alCerrar}>
+      <TarjetaM>
+        <CampoM etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" />
+        <CampoTelefono material codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
+        <CampoM etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
+        {aviso ? <TextoM variante="chico" color="error" accessibilityRole="alert">{aviso}</TextoM> : null}
+      </TarjetaM>
+      <BotonM titulo="Guardar" icono="listo" onPress={() => void guardar()} />
+    </HojaM>
   );
 }
 
@@ -111,8 +101,4 @@ const e = StyleSheet.create({
   dato: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   correo: { flexShrink: 1 },
   flexTexto: { flexShrink: 1 },
-  hoja: { flex: 1 },
-  barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
-  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  form: { padding: espacio.xl, gap: espacio.l },
 });

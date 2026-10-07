@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { ElegirUnidad } from '@/components/elegir-unidad';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { BarraListo } from '@/components/barra-listo';
+import { Chip } from 'react-native-paper';
 import { BotonM, TextoM } from '@/components/material';
-import { Campo } from '@/components/ui';
+import { Campo, Icono } from '@/components/ui';
 import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
@@ -17,14 +18,27 @@ export const valorDe = (f: Fila) => (f.tipo === 'tarea' ? entero(f.unit_price) :
 
 export function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }: { opciones: readonly { id: T; texto: string }[]; valor: string; alElegir: (v: T) => void; etiqueta: string }) {
   const t = useTema();
+  // Chips de filtro de Material 3: el elegido en el tono suave del acento con su ✓; los demás, solo con el contorno. Miden 32 de alto
+  // y el área de toque se agranda a 48 con `hitSlop`.
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={etiqueta} contentContainerStyle={e.chips}>
       {opciones.map((o) => {
         const elegido = o.id === valor;
         return (
-          <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ selected: elegido }} onPress={() => alElegir(o.id)} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? t.acento : t.campo, opacity: pressed ? 0.7 : 1 }]}>
-            <TextoM color={elegido ? 'sobreAcento' : 'texto'} fuerte={elegido}>{o.texto}</TextoM>
-          </Pressable>
+          <Chip
+            key={o.id}
+            mode="outlined"
+            selected={elegido}
+            showSelectedCheck={false}
+            icon={elegido ? ({ size, color }) => <Icono nombre="listo" tamano={size} color={color} /> : undefined}
+            onPress={() => alElegir(o.id)}
+            accessibilityRole="radio"
+            hitSlop={{ top: 8, bottom: 8 }}
+            style={[e.chip, elegido ? { backgroundColor: `${t.acento}26`, borderColor: 'transparent' } : { backgroundColor: 'transparent', borderColor: t.bordeCampo }]}
+            textStyle={[e.textoChip, { color: t.texto }, elegido ? e.chipElegido : null]}
+          >
+            {o.texto}
+          </Chip>
         );
       })}
     </ScrollView>
@@ -121,7 +135,9 @@ const e = StyleSheet.create({
   mitad: { flex: 1 },
   grupo: { gap: espacio.s },
   chips: { gap: espacio.s },
-  chip: { minHeight: MIN_TOQUE, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.l, alignItems: 'center', justifyContent: 'center' },
+  chip: { borderRadius: 8, marginVertical: espacio.s },
+  textoChip: { fontSize: 15 },
+  chipElegido: { fontWeight: '600' },
   total: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.l },
   monto: { fontVariant: ['tabular-nums'] },
 });
