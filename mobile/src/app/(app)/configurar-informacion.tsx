@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Divider, Text, TouchableRipple } from 'react-native-paper';
@@ -6,7 +5,11 @@ import { SeccionM, TarjetaM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { avisar } from '@/lib/toast';
 import { espacio, useTema } from '@/theme';
+import app from '../../../app.json';
 
+// La versión sale de app.json y viaja con el código: al actualizar la app se ve la nueva. (La de `expo-constants` es la del build
+// instalado y no cambiaba hasta compilar otra vez.)
+const VERSION = app.expo.version;
 const AÑO_DE_CREACION = 2026;
 const SITIO_WEB = 'www.corepresupuestos.cl';
 const SITIO_EMPRESA = 'www.coretecnologia.cl';
@@ -40,7 +43,7 @@ export default function Informacion() {
     <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <SeccionM titulo="Acerca de" icono="info">
         <TarjetaM sinRelleno>
-          {fila('Versión', Constants.expoConfig?.version ?? '—')}
+          {fila('Versión', VERSION)}
           <Divider />
           {enlace('Sitio web', SITIO_WEB)}
           <Divider />
