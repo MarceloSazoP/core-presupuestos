@@ -10,8 +10,8 @@ import { espacio, useTema } from '@/theme';
 // ni botones «Agregar…», ni textos de ayuda a la vista: eso era el ruido.
 
 // Un grupo: el título (con candado si es solo del profesional), su nota a la derecha y una tarjeta con las filas, separadas por una línea
-// que empieza donde empieza el texto.
-export function GrupoVisita({ titulo, nota, candado, children }: { titulo: string; nota: string; candado?: boolean; children: ReactNode }) {
+// que empieza donde empieza el texto. `pie`: acciones al pie de la tarjeta, bajo una línea completa (los «+ Ítem» y «+ Tarea»).
+export function GrupoVisita({ titulo, nota, candado, pie, children }: { titulo: string; nota: string; candado?: boolean; pie?: ReactNode; children: ReactNode }) {
   const t = useTema();
   const filas = Children.toArray(children);
   return (
@@ -30,6 +30,12 @@ export function GrupoVisita({ titulo, nota, candado, children }: { titulo: strin
             {fila}
           </Fragment>
         ))}
+        {pie ? (
+          <>
+            <Divider />
+            <View style={e.pie}>{pie}</View>
+          </>
+        ) : null}
       </TarjetaM>
     </View>
   );
@@ -96,4 +102,5 @@ const e = StyleSheet.create({
   insignia: { borderRadius: 10, paddingHorizontal: espacio.s, paddingVertical: 2 },
   // La línea empieza donde empieza el texto: el relleno de la fila más el ícono y su espacio.
   linea: { marginLeft: espacio.l + ICONO + espacio.l },
+  pie: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.xs, paddingVertical: 6, paddingHorizontal: espacio.s },
 });

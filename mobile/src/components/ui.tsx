@@ -39,6 +39,8 @@ const ICONOS = {
   mensaje: { ios: 'message', android: 'chat', web: 'chat' },
   correo: { ios: 'envelope', android: 'mail', web: 'mail' },
   calendario: { ios: 'calendar', android: 'calendar_month', web: 'calendar_month' },
+  porcentaje: { ios: 'percent', android: 'percent', web: 'percent' },
+  escudo: { ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' },
   listo: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   sincronizar: { ios: 'arrow.triangle.2.circlepath', android: 'sync', web: 'sync' },
   documento: { ios: 'doc.text', android: 'description', web: 'description' },

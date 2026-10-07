@@ -1,6 +1,5 @@
 import * as Haptics from 'expo-haptics';
 import { GARANTIAS, ModalCondiciones } from '@/components/modal-condiciones';
-import { IconoDinero } from '@/components/icono-dinero';
 import { BotonOjo } from '@/components/boton-ojo';
 import { delPresupuesto, useDinero } from '@/lib/montos';
 import { BarraFlotante } from '@/components/barra-flotante';
@@ -11,16 +10,17 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Linking, Share, StyleSheet, View } from 'react-native';
-import { Switch } from 'react-native-paper';
+import { Button, Divider, Switch, Text, TouchableRipple } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
 import { useDialogo } from '@/components/dialogo';
-import { BotonM, PastillaM, SeccionM, TarjetaM, TextoM } from '@/components/material';
-import { Icono, Presionable } from '@/components/ui';
+import { FilaVisita, GrupoVisita } from '@/components/fila-visita';
+import { BotonM, PastillaM, TarjetaM, TextoM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, useTema } from '@/theme';
 
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
 // el número y el PDF los calcula el servidor; aquí solo se captura y se muestra.
@@ -64,12 +64,6 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   const tasa = q.vat_rate ?? 19;
   const desc = pct === null ? q.discount : montoDeDescuento(subtotal, pct); // el servidor guarda el monto; aquí se elige en porcentaje
   const { iva, total } = totalesDe(subtotal, desc, conIva, tasa);
-  const resumenCondiciones = [
-    desc > 0 ? (pct ? `Descuento ${pct} %` : 'Descuento fijo') : null,
-    garantia === 'NONE' ? 'Sin garantía' : `Garantía ${GARANTIAS.find((g) => g.kind === garantia)?.texto ?? ''}`,
-    `Validez ${dias || '—'} días`,
-    obs.trim() ? 'Con observaciones' : null,
-  ].filter(Boolean).join(' · ');
   const detalle = conIva || desc > 0; // con impuesto o descuento, el cuadro desglosa; si no, dice solo «Total»
 
   async function guardar() {
@@ -118,99 +112,92 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       { text: 'Terminar', onPress: () => void correr('terminar') },
     ]);
 
+  const abrirCondiciones = () => setCondiciones(true);
+  const conDesglose = `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''}`;
+
   return (
     <>
-      {/* El total siempre a la vista, arriba, y es el real. Como las tarjetas del inicio: fondo neutro, un ícono de dinero con su color y las
-          palabras en ese color; las cifras en el color del texto (blanco en oscuro). Sin impuesto ni descuento dice solo «Total»; si no se
-          desglosa: subtotal, descuento (con su %), impuesto y total. */}
-      <TarjetaM>
-        <View accessible accessibilityLabel={detalle ? `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''} Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
+      {/* Rediseño: arriba el total (grande, con su desglose en gris y el impuesto, que es lo que lo cambia); después «Lo que cobras» como
+          lista, con «+ Ítem» y «+ Tarea» al pie de la tarjeta (botones de texto: ya no se confunden con Guardar y Terminar); y las
+          condiciones a la vista, una fila cada una. */}
+      <TarjetaM sinRelleno>
+        <View accessible accessibilityLabel={`${detalle ? conDesglose : ''} Total ${clp(total)}.`} style={e.bloqueTotal}>
+          <View style={e.filaDesglose}>
+            <Text variant="labelLarge" style={{ color: t.suave }}>Total del presupuesto</Text>
+            <BotonOjo clave={delPresupuesto(q.id)} color={t.suave} chico />
+          </View>
+          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto, { color: t.texto }]}>{clp(total)}</Text>
           {detalle ? (
-            <>
+            <View style={e.desglose}>
               <View style={e.filaDesglose}>
-                <TextoM variante="chico" fuerte style={{ color: t.totalTinta }}>Subtotal</TextoM>
-                <TextoM fuerte style={e.monto}>{clp(subtotal)}</TextoM>
+                <Text variant="bodyMedium" style={{ color: t.suave }}>Subtotal</Text>
+                <Text variant="bodyMedium" style={[e.monto, { color: t.suave }]}>{clp(subtotal)}</Text>
               </View>
               {desc > 0 ? (
                 <View style={e.filaDesglose}>
-                  <TextoM variante="chico" fuerte style={{ color: t.totalTinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</TextoM>
-                  <TextoM fuerte style={e.monto}>−{clp(desc)}</TextoM>
+                  <Text variant="bodyMedium" style={{ color: t.suave }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</Text>
+                  <Text variant="bodyMedium" style={[e.monto, { color: t.suave }]}>−{clp(desc)}</Text>
                 </View>
               ) : null}
               {conIva ? (
                 <View style={e.filaDesglose}>
-                  <TextoM variante="chico" fuerte style={{ color: t.totalTinta }}>{impuesto} {tasa}%</TextoM>
-                  <TextoM fuerte style={e.monto}>{clp(iva)}</TextoM>
+                  <Text variant="bodyMedium" style={{ color: t.suave }}>{impuesto} {tasa} %</Text>
+                  <Text variant="bodyMedium" style={[e.monto, { color: t.suave }]}>{clp(iva)}</Text>
                 </View>
               ) : null}
-            </>
-          ) : null}
-          <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: t.borde }]}>
-            <View style={e.etiquetaTotal}>
-              <IconoDinero tamano={36} />
-              <TextoM fuerte style={{ color: t.totalTinta }}>Total</TextoM>
-              <BotonOjo clave={delPresupuesto(q.id)} color={t.totalTinta} chico />
             </View>
-            <TextoM variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</TextoM>
-          </View>
+          ) : filas.length === 0 ? (
+            <Text variant="bodySmall" style={{ color: t.suave }}>Se calcula solo con lo que cobras.</Text>
+          ) : null}
         </View>
-        {/* El impuesto va aquí, justo bajo el total, porque es lo que lo cambia. */}
-        <View style={[e.filaIva, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde, paddingTop: espacio.m }]}>
-          <TextoM style={e.textoIva}>Agregar {impuesto} ({tasa}%)</TextoM>
+        <Divider />
+        <View style={e.filaIva}>
+          <Text variant="bodyLarge" style={e.textoIva}>Agregar {impuesto} ({tasa} %)</Text>
           <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} color={t.acento} />
         </View>
       </TarjetaM>
 
-      <SeccionM titulo="Ítems y tareas" icono="lista" descripcion="Lo que cobras. Sale en el PDF.">
+      <GrupoVisita
+        titulo="Lo que cobras"
+        nota="Sale en el PDF"
+        pie={
+          <>
+            <Button mode="text" icon={({ size, color }) => <Icono nombre="mas" tamano={size} color={color} />} textColor={t.acento} disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} accessibilityLabel="Agregar ítem" style={e.botonPie} contentStyle={e.contenidoPie} labelStyle={e.textoPie}>
+              Ítem
+            </Button>
+            <Button mode="text" icon={({ size, color }) => <Icono nombre="mas" tamano={size} color={color} />} textColor={t.acento} disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} accessibilityLabel="Agregar tarea" style={e.botonPie} contentStyle={e.contenidoPie} labelStyle={e.textoPie}>
+              Tarea
+            </Button>
+          </>
+        }
+      >
         {filas.length ? (
-          <TarjetaM sinRelleno>
-            {/* Grilla: encabezado fijo y una fila por ítem o tarea; tocar una fila abre su hoja. */}
-            <View style={[e.filaLista, e.encabezado, { backgroundColor: t.campo, borderBottomColor: t.borde }]}>
-              <TextoM variante="chico" suave fuerte style={e.colDesc}>Descripción</TextoM>
-              <TextoM variante="chico" suave fuerte style={e.colCant}>Cant.</TextoM>
-              <TextoM variante="chico" suave fuerte style={e.colMonto}>Total</TextoM>
-            </View>
-            {filas.map((f, n) => (
-              <Animated.View key={f.clave} entering={f.clave === recien ? FadeIn.duration(180) : undefined}>
-              <Presionable
-                accessibilityRole="button"
-                accessibilityLabel={`${f.tipo === 'tarea' ? 'Tarea' : 'Ítem'} ${n + 1}: ${f.description || 'sin descripción'}. Editar`}
-                onPress={() => setAbierta({ fila: f, nueva: false })}
-                estilo={[e.filaLista, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
-              >
-                <View style={e.colDesc}>
-                  <TextoM numberOfLines={2} suave={!f.description.trim()}>{f.description.trim() || (f.tipo === 'tarea' ? 'Tarea sin descripción' : 'Ítem sin descripción')}</TextoM>
-                  {f.tipo === 'item' ? <TextoM variante="chico" suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.monto}>{clp(entero(f.unit_price))} c/u</TextoM> : null}
-                </View>
-                <TextoM suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${simboloUnidad(f.unit)}`}</TextoM>
-                <TextoM fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.monto]}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</TextoM>
-              </Presionable>
-              </Animated.View>
-            ))}
-          </TarjetaM>
+          filas.map((f, n) => (
+            <Animated.View key={f.clave} entering={f.clave === recien ? FadeIn.duration(180) : undefined}>
+              <FilaCobro
+                fila={f}
+                numero={n + 1}
+                detalle={f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${simboloUnidad(f.unit)} × ${clp(entero(f.unit_price))}`}
+                monto={f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}
+                alTocar={() => setAbierta({ fila: f, nueva: false })}
+              />
+            </Animated.View>
+          ))
         ) : (
-          <TarjetaM>
-            <TextoM suave>Aún no agregas nada. Toca «Ítem» para lo que vendes (con cantidad y precio) o «Tarea» para algo que haces sin cantidad, como botar escombros.</TextoM>
-          </TarjetaM>
+          <View style={e.vacio}>
+            <Text variant="titleSmall">Aún no agregas nada</Text>
+            <Text variant="bodySmall" style={[e.centrado, { color: t.suave }]}>Un ítem es lo que vendes, con cantidad y precio. Una tarea es algo que haces, como botar escombros.</Text>
+          </View>
         )}
-        <View style={e.fila}>
-          <BotonM titulo="Ítem" accessibilityLabel="Agregar ítem" prefijo="+" icono="caja" colorIcono={t.kpi1Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
-          <BotonM titulo="Tarea" accessibilityLabel="Agregar tarea" prefijo="+" icono="tarea" colorIcono={t.kpi3Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
-        </View>
-      </SeccionM>
+      </GrupoVisita>
 
-      {/* Todo lo que se acuerda con el cliente, en una sola tarjeta: descuento, impuesto, garantía, validez y observaciones. */}
-      {/* Las condiciones (descuento, garantía, validez y observaciones) viven en su propia ventana; aquí solo su resumen. */}
-      <SeccionM titulo="Condiciones" icono="documento" descripcion="Descuento, garantía, validez y observaciones.">
-        <TarjetaM sinRelleno>
-          <Presionable accessibilityRole="button" accessibilityLabel={`Condiciones: ${resumenCondiciones}. Editar`} onPress={() => setCondiciones(true)} estilo={e.filaCondiciones}>
-            <TextoM style={e.flexTexto}>{resumenCondiciones}</TextoM>
-            <Icono nombre="siguiente" tamano={14} color={t.suave} />
-          </Presionable>
-        </TarjetaM>
-      </SeccionM>
-
-      <TextoM variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</TextoM>
+      {/* Las condiciones a la vista, una fila cada una; todas abren la misma hoja. */}
+      <GrupoVisita titulo="Condiciones" nota="Sale en el PDF">
+        <FilaVisita icono="porcentaje" etiqueta="Descuento" valor={desc > 0 ? (pct ? `${pct} %` : `Descuento fijo ${clp(q.discount)}`) : 'Sin descuento'} alTocar={abrirCondiciones} />
+        <FilaVisita icono="escudo" etiqueta="Garantía" valor={garantia === 'NONE' ? 'Sin garantía' : (GARANTIAS.find((g) => g.kind === garantia)?.texto ?? '')} alTocar={abrirCondiciones} />
+        <FilaVisita icono="calendario" etiqueta="Validez" valor={`${dias || '—'} días`} alTocar={abrirCondiciones} />
+        <FilaVisita icono="documento" etiqueta="Observaciones" valor={obs} vacio="Agregar plazos, forma de pago…" alTocar={abrirCondiciones} />
+      </GrupoVisita>
 
       {/* Las acciones flotan al pie mientras queda formulario por ver y, al llegar al final, se quedan en su sitio sin tapar nada. */}
       <BarraFlotante reserva={RESERVA_BARRA} pista="Condiciones">
@@ -302,31 +289,48 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
   );
 }
 
+// Una fila de «Lo que cobras»: el ícono (caja para un ítem, lista para una tarea), la descripción, el detalle («4 un × $12.500») y el monto a
+// la derecha. Tocarla abre su hoja.
+function FilaCobro({ fila, numero, detalle, monto, alTocar }: { fila: Fila; numero: number; detalle: string; monto: string; alTocar: () => void }) {
+  const t = useTema();
+  const tarea = fila.tipo === 'tarea';
+  const descripcion = fila.description.trim();
+  return (
+    <TouchableRipple accessibilityRole="button" accessibilityLabel={`${tarea ? 'Tarea' : 'Ítem'} ${numero}: ${descripcion || 'sin descripción'}, ${detalle}, ${monto}. Editar`} onPress={alTocar} style={e.filaCobro}>
+      <View style={e.contenidoCobro}>
+        <View style={e.iconoCobro}>
+          <Icono nombre={tarea ? 'tarea' : 'caja'} tamano={22} color={t.suave} />
+        </View>
+        <View style={e.flex}>
+          <Text variant="bodyLarge" numberOfLines={2} style={{ color: descripcion ? t.texto : t.suave }}>{descripcion || (tarea ? 'Tarea sin descripción' : 'Ítem sin descripción')}</Text>
+          <Text variant="bodySmall" numberOfLines={1} style={[e.monto, { color: t.suave }]}>{detalle}</Text>
+        </View>
+        <Text variant="titleMedium" numberOfLines={1} style={[e.monto, e.fuerte, { color: monto === 'Incluido' ? t.suave : t.texto }]}>{monto}</Text>
+      </View>
+    </TouchableRipple>
+  );
+}
+
 const RESERVA_BARRA = espacio.xxl * 2; // igual al paddingBottom del contenido de la pantalla del presupuesto
 const e = StyleSheet.create({
-  tarjetaCondiciones: { padding: 0 },
-  filaCondiciones: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l, paddingVertical: espacio.m },
-  flexTexto: { flex: 1 },
-  etiquetaTotal: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  bloqueTotal: { gap: espacio.s },
-  filaDesglose: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
-  totalMonto: { flexShrink: 1, textAlign: 'right' },
-  fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   flex: { flex: 1 },
-  encabezado: { minHeight: 36, paddingVertical: espacio.s, borderBottomWidth: StyleSheet.hairlineWidth },
-  colDesc: { flex: 1 },
-  colCant: { width: 72, textAlign: 'right' },
-  colMonto: { width: 104, textAlign: 'right' },
-  lista: { padding: 0, gap: 0, overflow: 'hidden' },
-  filaLista: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingVertical: espacio.m, paddingHorizontal: espacio.l },
-  mitad: { flex: 1 },
-  grupo: { gap: espacio.s },
-  filaIva: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  bloqueTotal: { paddingTop: espacio.l, paddingHorizontal: espacio.l, paddingBottom: 14, gap: espacio.xs },
+  filaDesglose: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  totalMonto: { fontSize: 34, lineHeight: 40, fontWeight: '700', letterSpacing: -0.5 },
+  desglose: { gap: espacio.xs, marginTop: espacio.s },
+  filaIva: { minHeight: 56, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m, paddingHorizontal: espacio.l },
   textoIva: { flex: 1 },
-  filaTotal: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: espacio.m },
-  totales: { gap: espacio.s, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: espacio.m },
-  total: { borderTopWidth: 1, paddingTop: espacio.m, marginTop: espacio.xs },
+  filaCobro: { paddingVertical: 14, paddingHorizontal: espacio.l },
+  contenidoCobro: { flexDirection: 'row', alignItems: 'center', gap: espacio.l },
+  iconoCobro: { alignSelf: 'flex-start', paddingTop: 2 },
+  vacio: { alignItems: 'center', gap: 6, paddingTop: espacio.xl, paddingBottom: espacio.m, paddingHorizontal: espacio.xl },
+  botonPie: { borderRadius: 999 },
+  contenidoPie: { minHeight: 44 },
+  textoPie: { fontSize: 15, fontWeight: '600', letterSpacing: 0.1 },
+  fila: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
+  mitad: { flex: 1 },
   mayor: { flex: 1.6 },
   monto: { fontVariant: ['tabular-nums'] },
+  fuerte: { fontWeight: '600' },
   centrado: { textAlign: 'center' },
 });
