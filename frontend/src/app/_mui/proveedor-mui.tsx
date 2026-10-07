@@ -5,7 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { tema } from "./tema";
 
-// Material UI solo en /presupuesto. Los estilos de MUI van en `@layer mui` (ver globals.css): así las clases de Tailwind que aún
+// Material UI en /presupuesto y en la vista del cliente. Los estilos de MUI van en `@layer mui` (ver globals.css): así las clases de Tailwind que aún
 // quedan pueden sobreescribirlos. El modo claro/oscuro se guarda en la misma clave («tema») que el resto de la web.
 export function ProveedorMui({ children }: { children: React.ReactNode }) {
   return (

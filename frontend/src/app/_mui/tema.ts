@@ -5,7 +5,7 @@ import { Roboto } from "next/font/google";
 
 const roboto = Roboto({ weight: ["400", "500", "700"], subsets: ["latin"], display: "swap" });
 
-// Tema de Material UI para /presupuesto. Claro y oscuro con variables CSS bajo `data-theme` (el mismo atributo que usa el resto de
+// Tema de Material UI (/presupuesto y la vista del cliente /q). Claro y oscuro con variables CSS bajo `data-theme` (el mismo atributo que usa el resto de
 // la web), así el modo elegido se respeta en todas las páginas. Los fondos son los mismos que el `theme-color` del layout raíz.
 export const tema = createTheme({
   cssVariables: { colorSchemeSelector: "data-theme" },
