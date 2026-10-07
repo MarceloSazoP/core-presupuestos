@@ -213,7 +213,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       <TextoM variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</TextoM>
 
       {/* Las acciones flotan al pie mientras queda formulario por ver y, al llegar al final, se quedan en su sitio sin tapar nada. */}
-      <BarraFlotante reserva={RESERVA_BARRA}>
+      <BarraFlotante reserva={RESERVA_BARRA} pista="Condiciones">
         {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
         <View style={e.fila}>
           <BotonM titulo="Guardar" icono="guardar" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} style={e.mitad} accessibilityLabel="Guardar y volver" />
