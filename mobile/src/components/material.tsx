@@ -92,14 +92,16 @@ type VarianteM = 'principal' | 'contorno' | 'texto' | 'peligro' | 'primario' | '
 // Botón de Material 3, con su forma de píldora y su etiqueta: «principal» relleno con el acento (52 de alto); «contorno» (los secundarios)
 // es el botón tonal de Material, relleno con el tono suave del acento, el texto en el color de texto y el ícono en su color; «texto» sin
 // relleno; «peligro» relleno rojo. Mínimo 48 de alto.
-// `prefijo`: un texto antes del ícono (un signo); `icono2`: un segundo ícono junto al primero.
-export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo, colorIcono, cargando, disabled, onPress, style, accessibilityLabel }: {
+// `prefijo`: un texto antes del ícono (un signo); `icono2`: un segundo ícono junto al primero. `alFinal`: el ícono va después del texto
+// (una flecha que dice «sigue»).
+export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo, colorIcono, alFinal, cargando, disabled, onPress, style, accessibilityLabel }: {
   titulo: string;
   variante?: VarianteM;
   icono?: NombreIcono;
   icono2?: NombreIcono;
   prefijo?: string;
   colorIcono?: string;
+  alFinal?: boolean;
   cargando?: boolean;
   disabled?: boolean;
   onPress: () => void;
@@ -132,7 +134,7 @@ export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo,
       }
       accessibilityLabel={accessibilityLabel}
       style={[e.boton, style]}
-      contentStyle={v === 'principal' ? e.contenidoPrincipal : e.contenidoBoton}
+      contentStyle={[v === 'principal' ? e.contenidoPrincipal : e.contenidoBoton, alFinal ? e.iconoAlFinal : null]}
       labelStyle={e.textoBoton}
     >
       {titulo}
@@ -218,6 +220,7 @@ const e = StyleSheet.create({
   boton: { borderRadius: 999 },
   contenidoBoton: { minHeight: MIN_TOQUE },
   contenidoPrincipal: { minHeight: 52 },
+  iconoAlFinal: { flexDirection: 'row-reverse' },
   // La etiqueta de Material 3 (labelLarge), un punto más grande para leer bien en terreno.
   textoBoton: { fontSize: 15, lineHeight: 20, fontWeight: '600', letterSpacing: 0.1 },
   iconos: { flexDirection: 'row', alignItems: 'center', gap: 2 },

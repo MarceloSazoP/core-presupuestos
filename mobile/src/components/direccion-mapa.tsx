@@ -3,9 +3,10 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { IconButton, Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { api } from '@/api/client';
-import { CampoModal } from '@/components/campo-modal';
-import { Boton, Campo, Icono, Texto, type NombreIcono } from '@/components/ui';
+import { CampoM } from '@/components/material';
+import { Boton, Campo, Icono, Texto } from '@/components/ui';
 import { formatearDireccion, puntoDe, redondear, sesionNueva, type Punto } from '@/lib/direccion';
 import { avisar } from '@/lib/toast';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -21,39 +22,68 @@ type Sugerencia = { id: string; text: string };
 const SANTIAGO = { latitude: -33.4489, longitude: -70.6693, latitudeDelta: 0.12, longitudeDelta: 0.12 };
 const ZOOM = 0.004;
 
-export function DireccionMapa({ etiqueta, direccion, latitude, longitude, alCambiar }: Props) {
+// La dirección del trabajo como un campo de Material (en «Nuevo presupuesto»): con contorno y, cuando tiene algo, su etiqueta sobre el
+// borde; al lado, el botón tonal del mapa. Tocar el campo o el botón abre la hoja para escribirla o marcar el punto; con un punto marcado,
+// debajo va el mapa quieto (tocarlo también abre la hoja). La ✕ del campo la quita.
+export function CampoDireccion({ etiqueta, direccion, latitude, longitude, alCambiar }: Props) {
   const t = useTema();
+  const { colors } = useTheme();
   const [abierta, setAbierta] = useState(false);
   const punto = puntoDe(latitude, longitude);
   // La web (vista previa en el navegador) no trae mapas nativos: solo el texto.
   if (Platform.OS === 'web') {
-    return <CampoModal etiqueta={etiqueta} titulo="Dirección" agregar="Agregar dirección" icono="ubicacion" valor={direccion} alCambiar={(v) => alCambiar({ direccion: v, latitude: null, longitude: null })} multiline={false} maxLength={300} />;
+    return <CampoM etiqueta={etiqueta} value={direccion} onChangeText={(v) => alCambiar({ direccion: v, latitude: null, longitude: null })} maxLength={300} />;
   }
   const lleno = direccion.trim().length > 0 || punto !== null;
+  const fondo = colors.elevation.level1; // el de la tarjeta donde va: la etiqueta corta el borde con ese color
+  const abrir = () => setAbierta(true);
   return (
     <View style={e.campo}>
-      <Texto variante="chico" fuerte>{etiqueta}</Texto>
-      {lleno ? (
-        <Pressable accessibilityRole="button" accessibilityLabel={`${etiqueta}: ${direccion || 'punto en el mapa'}. Editar`} onPress={() => setAbierta(true)} style={({ pressed }) => [e.tarjeta, { backgroundColor: t.tarjeta, borderColor: t.bordeCampo, opacity: pressed ? 0.7 : 1 }]}>
-          <Icono nombre="ubicacion" tamano={18} color={t.acento} />
-          <Texto style={e.flex}>{direccion || 'Punto marcado en el mapa'}</Texto>
-          <Icono nombre="lapiz" tamano={18} color={t.acento} />
-        </Pressable>
-      ) : (
-        <Boton titulo="Agregar dirección" icono="ubicacion" variante="secundario" onPress={() => setAbierta(true)} />
-      )}
+      <View style={e.filaDireccion}>
+        <View style={e.flex}>
+          <TouchableRipple
+            accessibilityRole="button"
+            accessibilityLabel={lleno ? `${etiqueta}: ${direccion || 'punto en el mapa'}. Cambiar` : `${etiqueta}. Agregar`}
+            rippleColor={`${t.texto}1F`}
+            onPress={abrir}
+            style={[e.contorno, { borderColor: t.bordeCampo, backgroundColor: fondo }]}
+          >
+            <View style={e.contornoFila}>
+              <Text variant="bodyLarge" numberOfLines={2} style={[e.flex, { color: lleno ? t.texto : t.suave }]}>{lleno ? direccion || 'Punto marcado en el mapa' : etiqueta}</Text>
+              {lleno ? (
+                <IconButton
+                  icon={({ size, color }) => <Icono nombre="cerrar" tamano={size} color={color} />}
+                  iconColor={t.suave}
+                  size={20}
+                  accessibilityLabel="Quitar la dirección"
+                  onPress={() => {
+                    alCambiar({ direccion: '', latitude: null, longitude: null });
+                    avisar.info('Dirección quitada');
+                  }}
+                  style={e.quitar}
+                />
+              ) : null}
+            </View>
+          </TouchableRipple>
+          {lleno ? <Text variant="bodySmall" pointerEvents="none" style={[e.etiquetaArriba, { color: t.suave, backgroundColor: fondo }]}>{etiqueta}</Text> : null}
+        </View>
+        <IconButton
+          mode="contained-tonal"
+          icon={({ color }) => <Icono nombre="ubicacion" tamano={22} color={color} />}
+          iconColor={t.acento}
+          containerColor={`${t.acento}${t.oscuro ? '29' : '1F'}`}
+          accessibilityLabel={punto ? 'Ver y mover el punto en el mapa' : 'Marcar en el mapa'}
+          onPress={abrir}
+          style={e.botonMapa}
+        />
+      </View>
       {punto ? (
         // Vista previa: el mapa no se mueve; tocarlo abre la hoja para corregir el punto.
-        <Pressable accessibilityRole="button" accessibilityLabel="Ver y mover el punto en el mapa" onPress={() => setAbierta(true)} style={[e.vista, { borderColor: t.borde }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Ver y mover el punto en el mapa" onPress={abrir} style={[e.vista, { borderColor: t.borde }]}>
           <MapView pointerEvents="none" liteMode style={e.flex} initialRegion={{ ...punto, latitudeDelta: ZOOM, longitudeDelta: ZOOM }} scrollEnabled={false} zoomEnabled={false} rotateEnabled={false} pitchEnabled={false} toolbarEnabled={false}>
             <Marker coordinate={punto} />
           </MapView>
         </Pressable>
-      ) : null}
-      {lleno ? (
-        <View style={e.acciones}>
-          <Pastilla icono="papelera" texto="Quitar dirección" tono={t.error} alTocar={() => { alCambiar({ direccion: '', latitude: null, longitude: null }); avisar.info('Dirección quitada'); }} />
-        </View>
       ) : null}
       {abierta ? (
         <HojaDireccion
@@ -244,28 +274,23 @@ export function MiniMapa({ latitude, longitude }: { latitude: number; longitude:
   );
 }
 
-function Pastilla({ icono, texto, tono, alTocar }: { icono: NombreIcono; texto: string; tono: string; alTocar: () => void }) {
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={texto} onPress={alTocar} style={({ pressed }) => [e.pastilla, { backgroundColor: `${tono}1A`, opacity: pressed ? 0.6 : 1 }]}>
-      <Icono nombre={icono} tamano={16} color={tono} />
-      <Texto variante="chico" fuerte style={{ color: tono }}>{texto}</Texto>
-    </Pressable>
-  );
-}
-
 const e = StyleSheet.create({
   miniMapa: { width: 64, height: 56, borderRadius: 12, overflow: 'hidden' },
   filaCampo: { flexDirection: 'row', alignItems: 'flex-end', gap: espacio.s },
+  filaDireccion: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
+  // El campo con contorno de Material (como `CampoM`): 56 de alto, borde de 1 y esquinas de radio.s; la etiqueta corta el borde arriba.
+  contorno: { minHeight: 56, borderWidth: 1, borderRadius: radio.s, justifyContent: 'center', overflow: 'hidden' },
+  contornoFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs, paddingLeft: espacio.l, paddingRight: espacio.xs, paddingVertical: espacio.xs, minHeight: 54 },
+  etiquetaArriba: { position: 'absolute', top: -9, left: espacio.m - 2, paddingHorizontal: 4 },
+  quitar: { margin: 0 },
+  botonMapa: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, margin: 0 },
   borrar: { width: 48, height: 48, borderRadius: radio.m, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   sobreMapa: { position: 'absolute', minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, paddingHorizontal: espacio.m, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   abajoIzq: { left: espacio.s, bottom: espacio.s },
   arribaDer: { right: espacio.s, top: espacio.s },
-  acciones: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
-  pastilla: { minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 20, paddingHorizontal: espacio.m },
-  campo: { gap: espacio.xs },
+  campo: { gap: espacio.m, marginTop: espacio.xs },
   flex: { flex: 1 },
-  tarjeta: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m, minHeight: MIN_TOQUE },
-  vista: { height: 140, borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', overflow: 'hidden' },
+  vista: { height: 120, borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', overflow: 'hidden' },
   hoja: { flex: 1 },
   barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
   lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
