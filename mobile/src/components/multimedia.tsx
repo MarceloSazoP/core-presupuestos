@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { useDialogo, type Decidir } from '@/components/dialogo';
-import { BotonM, HojaM, SeccionM, TarjetaM, TextoM } from '@/components/material';
+import { BotonM, HojaM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
 import { avisar } from '@/lib/toast';
@@ -22,14 +22,14 @@ import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 // Fotos y notas de voz de la visita (CLAUDE.md §10, etapa 2). Son solo del profesional: no salen en el PDF. Funcionan sin conexión: cada
 // una se guarda en el teléfono y la cola de envío (sync/cola.ts) la sube después.
 //
-// En la tarjeta «De la visita» queda una fila con lo que hay (y las primeras fotos en miniatura); al tocarla se abre la hoja con las dos
-// partes. Las fotos van en una cuadrícula: tocar una la abre en grande (se pasa a las demás deslizando) y cada una tiene su ✕ para
-// quitarla. Las notas de voz se graban con un botón redondo grande; mientras graba, un punto rojo late junto al tiempo. Si se cierra la
-// hoja mientras graba, la nota se guarda antes de cerrar (antes se perdía).
+// En la pantalla Visita, «Foto» abre la cámara al tiro (`useFotos`) y «Voz» abre su hoja grabando (`HojaVoz` con `grabarAlAbrir`); las
+// filas de Fotos y Notas de voz abren su hoja para ver y quitar. Las fotos van en una cuadrícula: tocar una la abre en grande (se pasa a
+// las demás deslizando) y cada una tiene su ✕ para quitarla. Las notas de voz se graban con un botón redondo grande; mientras graba, un
+// punto rojo late junto al tiempo. Si se cierra la hoja mientras graba, la nota se guarda antes de cerrar.
 const MAX_FOTOS = 30;
 const MAX_VOCES = 5;
 const MAX_VOZ_SEGUNDOS = 300;
-const MINIATURAS = 4; // cuántas fotos se ven en la fila de la tarjeta
+const MINIATURAS = 4; // cuántas fotos se ven en la fila de la visita
 const COLUMNAS = 3;
 const ESPACIO_GRILLA = espacio.s;
 
@@ -39,7 +39,7 @@ type Foto = Presupuesto['survey']['photos'][number];
 type ControlVoz = { grabando: () => boolean; detener: () => Promise<void> };
 
 const conSurvey = (q: Presupuesto, s: Partial<Presupuesto['survey']>): Presupuesto => ({ ...q, survey: { ...q.survey, ...s } });
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+export const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 const fuenteDe = (f: Foto) => (f.local_uri ? { uri: f.local_uri } : fuenteDeArchivo(f.url));
 const sinPermiso = (decidir: Decidir, que: string) =>
   decidir(`Sin permiso para ${que}`, 'Actívalo en Ajustes para poder usarlo en la visita.', [
@@ -47,69 +47,12 @@ const sinPermiso = (decidir: Decidir, que: string) =>
     { text: 'Abrir Ajustes', onPress: () => void Linking.openSettings() },
   ]);
 
-export function Multimedia({ q, cambiar }: Props) {
-  const t = useTema();
-  const [abierta, setAbierta] = useState(false);
-  const voz = useRef<ControlVoz>(null);
-  const fotos = q.survey.photos;
-  const voces = q.survey.voice_notes.length;
-  const vacio = fotos.length + voces === 0;
-  const resumen = vacio ? 'Toma fotos y graba notas de lo que viste' : [fotos.length ? `${fotos.length} ${fotos.length === 1 ? 'foto' : 'fotos'}` : null, voces ? `${voces} ${voces === 1 ? 'nota de voz' : 'notas de voz'}` : null].filter(Boolean).join(' · ');
-  const resto = fotos.length - MINIATURAS;
-
-  // Cerrar (Listo, deslizar la hoja o «atrás» en Android): si está grabando, primero se detiene y se guarda la nota.
-  async function cerrar() {
-    if (voz.current?.grabando()) await voz.current.detener();
-    setAbierta(false);
-  }
-
-  return (
-    <>
-      <TouchableRipple accessibilityRole="button" accessibilityLabel={`Fotos y notas de voz: ${resumen}. Abrir`} onPress={() => setAbierta(true)} borderless style={[e.entrada, { borderColor: t.bordeCampo }]}>
-        <View style={e.filaEntrada}>
-          <View style={[e.circulo, { backgroundColor: `${t.acento}1F` }]}>
-            <Icono nombre="camara" tamano={20} color={t.acento} />
-          </View>
-          <View style={e.flex}>
-            <Text variant="titleSmall">Fotos y notas de voz</Text>
-            <Text variant="bodySmall" style={{ color: t.suave }}>{resumen}</Text>
-            {fotos.length ? (
-              <View style={e.miniaturas}>
-                {fotos.slice(0, MINIATURAS).map((f) => (
-                  <Image key={f.id} source={fuenteDe(f)} recyclingKey={f.id} contentFit="cover" style={[e.miniatura, { backgroundColor: t.campo }]} />
-                ))}
-                {resto > 0 ? (
-                  <View style={[e.miniatura, e.mas, { backgroundColor: `${t.acento}1F` }]}>
-                    <Text variant="labelLarge" style={{ color: t.acento }}>+{resto}</Text>
-                  </View>
-                ) : null}
-              </View>
-            ) : null}
-          </View>
-          <Icono nombre="siguiente" tamano={16} color={t.acento} />
-        </View>
-      </TouchableRipple>
-      {abierta ? (
-        <HojaM titulo="Fotos y notas de voz" listo={{ titulo: 'Listo', fuerte: true, onPress: () => void cerrar() }} alCerrar={() => void cerrar()}>
-          <Fotos q={q} cambiar={cambiar} />
-          <Voz ref={voz} q={q} cambiar={cambiar} />
-          <BotonM titulo="Listo" icono="listo" variante="secundario" onPress={() => void cerrar()} />
-        </HojaM>
-      ) : null}
-    </>
-  );
-}
-
-// ── Fotos ─────────────────────────────────────────────────────────────────────────────────────
-function Fotos({ q, cambiar }: Props) {
-  const t = useTema();
+// Agregar y quitar fotos: lo usan la hoja de Fotos y el botón «Foto» de la visita. `dialogo` va en el JSX de quien lo usa (los permisos
+// y la confirmación de quitar se preguntan ahí).
+export function useFotos(q: Presupuesto, cambiar: Cambiar) {
   const { dialogo, decidir } = useDialogo();
   const [preparando, setPreparando] = useState(0);
-  const [ancho, setAncho] = useState(0);
-  const [viendo, setViendo] = useState<number | null>(null); // la foto abierta en grande
-  const fotos = q.survey.photos;
-  const quedan = MAX_FOTOS - fotos.length;
-  const lado = ancho > 0 ? (ancho - ESPACIO_GRILLA * (COLUMNAS - 1)) / COLUMNAS : 0;
+  const quedan = MAX_FOTOS - q.survey.photos.length;
 
   async function agregar(origen: 'camara' | 'galeria') {
     Keyboard.dismiss(); // con el teclado abierto, el selector deja el espacio de abajo mal calculado
@@ -149,8 +92,39 @@ function Fotos({ q, cambiar }: Props) {
       { text: 'Quitar', style: 'destructive', onPress: () => void quitarFoto(id).catch((err) => avisar.error('No se pudo quitar', mensajeDe(err))) },
     ]);
 
+  return { agregar, quitar, quitarFoto, preparando, quedan, dialogo };
+}
+
+// Las primeras fotos en miniatura (y «+N» si hay más), para la fila de Fotos de la visita.
+export function MiniaturasFotos({ fotos }: { fotos: Foto[] }) {
+  const t = useTema();
+  const resto = fotos.length - MINIATURAS;
   return (
-    <SeccionM titulo="Fotos" icono="camara" descripcion={fotos.length ? `${fotos.length} de ${MAX_FOTOS} · toca una para verla en grande` : `Hasta ${MAX_FOTOS} fotos de lo que viste en terreno.`}>
+    <View style={e.miniaturas}>
+      {fotos.slice(0, MINIATURAS).map((f) => (
+        <Image key={f.id} source={fuenteDe(f)} recyclingKey={f.id} contentFit="cover" style={[e.miniatura, { backgroundColor: t.campo }]} />
+      ))}
+      {resto > 0 ? (
+        <View style={[e.miniatura, e.mas, { backgroundColor: `${t.acento}1F` }]}>
+          <Text variant="labelLarge" style={{ color: t.acento }}>+{resto}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+// ── Fotos ─────────────────────────────────────────────────────────────────────────────────────
+export function HojaFotos({ q, cambiar, alCerrar }: Props & { alCerrar: () => void }) {
+  const t = useTema();
+  const { agregar, quitar, quitarFoto, preparando, quedan, dialogo } = useFotos(q, cambiar);
+  const [ancho, setAncho] = useState(0);
+  const [viendo, setViendo] = useState<number | null>(null); // la foto abierta en grande
+  const fotos = q.survey.photos;
+  const lado = ancho > 0 ? (ancho - ESPACIO_GRILLA * (COLUMNAS - 1)) / COLUMNAS : 0;
+
+  return (
+    <HojaM titulo="Fotos" listo={{ titulo: 'Listo', fuerte: true, onPress: alCerrar }} alCerrar={alCerrar}>
+      <TextoM variante="chico" suave>{fotos.length ? `${fotos.length} de ${MAX_FOTOS} · toca una para verla en grande` : `Hasta ${MAX_FOTOS} fotos de lo que viste en terreno. Solo para ti: no salen en el PDF.`}</TextoM>
       <TarjetaM>
         <View style={e.fila}>
           <BotonM titulo="Tomar foto" icono="camara" onPress={() => void agregar('camara')} disabled={quedan <= 0} style={e.mitad} />
@@ -170,7 +144,7 @@ function Fotos({ q, cambiar }: Props) {
                     <Pressable accessibilityRole="imagebutton" accessibilityLabel={`Foto ${i + 1} de ${fotos.length}. Ver en grande`} onPress={() => setViendo(i)} style={e.llenar}>
                       <Image source={fuenteDe(f)} recyclingKey={f.id} contentFit="cover" transition={150} style={[e.llenar, e.foto, { backgroundColor: t.campo }]} />
                     </Pressable>
-                    {/* Aún no sube (se tomó sin conexión): una nube en la esquina. */}
+                    {/* Aún no sube (se tomó sin conexión): una marca en la esquina. */}
                     {f.local_uri ? (
                       <View accessibilityLabel="Pendiente de subir" style={[e.insignia, e.abajoIzq]}>
                         <Icono nombre="sincronizar" tamano={12} color="#FFFFFF" />
@@ -194,7 +168,7 @@ function Fotos({ q, cambiar }: Props) {
         <VisorFotos fotos={fotos} inicial={Math.min(viendo, fotos.length - 1)} alCerrar={() => setViendo(null)} alQuitar={(id) => void quitarFoto(id).catch((err) => avisar.error('No se pudo quitar', mensajeDe(err)))} />
       ) : null}
       {dialogo}
-    </SeccionM>
+    </HojaM>
   );
 }
 
@@ -260,8 +234,24 @@ function VisorFotos({ fotos, inicial, alCerrar, alQuitar }: { fotos: Foto[]; ini
 }
 
 // ── Voz ───────────────────────────────────────────────────────────────────────────────────────
+// La hoja de Notas de voz. `grabarAlAbrir`: viene del botón «Voz» de la visita y empieza a grabar al abrirse. Cerrarla mientras graba
+// (Listo, deslizar o «atrás» en Android) primero detiene y guarda la nota.
+export function HojaVoz({ q, cambiar, grabarAlAbrir, alCerrar }: Props & { grabarAlAbrir?: boolean; alCerrar: () => void }) {
+  const voz = useRef<ControlVoz>(null);
+  async function cerrar() {
+    if (voz.current?.grabando()) await voz.current.detener();
+    alCerrar();
+  }
+  return (
+    <HojaM titulo="Notas de voz" listo={{ titulo: 'Listo', fuerte: true, onPress: () => void cerrar() }} alCerrar={() => void cerrar()}>
+      <TextoM variante="chico" suave>{`${q.survey.voice_notes.length} de ${MAX_VOCES} · hasta 5 minutos cada una. Solo para ti: no salen en el PDF.`}</TextoM>
+      <Voz ref={voz} q={q} cambiar={cambiar} grabarAlAbrir={grabarAlAbrir} />
+    </HojaM>
+  );
+}
+
 // `ref`: la hoja pregunta si está grabando y, al cerrarse, detiene y guarda.
-function Voz({ q, cambiar, ref }: Props & { ref?: Ref<ControlVoz> }) {
+function Voz({ q, cambiar, grabarAlAbrir, ref }: Props & { grabarAlAbrir?: boolean; ref?: Ref<ControlVoz> }) {
   const t = useTema();
   const reducido = useReducedMotion();
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY); // .m4a (AAC) en iOS y Android
@@ -306,13 +296,21 @@ function Voz({ q, cambiar, ref }: Props & { ref?: Ref<ControlVoz> }) {
 
   useImperativeHandle(ref, () => ({ grabando: () => recorder.isRecording, detener }));
   useEffect(() => () => clearTimeout(corte.current), []); // al salir no queda un corte pendiente
+  // Desde el botón «Voz»: graba apenas se abre la hoja (una sola vez).
+  const yaGrabo = useRef(false);
+  useEffect(() => {
+    if (!grabarAlAbrir || yaGrabo.current) return;
+    yaGrabo.current = true;
+    void empezar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grabarAlAbrir]);
 
   const grabando = estado.isRecording;
   const segundos = estado.durationMillis / 1000;
   const fondoBoton = grabando ? t.error : t.acento;
 
   return (
-    <SeccionM titulo="Notas de voz" icono="microfono" descripcion={`${notas.length} de ${MAX_VOCES} · hasta 5 minutos cada una`}>
+    <>
       <TarjetaM>
         {/* El botón de grabar, grande y al centro: rojo con ■ mientras graba. Debajo, qué pasa al tocarlo. */}
         <View style={e.grabadora}>
@@ -360,7 +358,7 @@ function Voz({ q, cambiar, ref }: Props & { ref?: Ref<ControlVoz> }) {
         ) : null}
       </TarjetaM>
       {dialogo}
-    </SeccionM>
+    </>
   );
 }
 
@@ -413,12 +411,9 @@ const e = StyleSheet.create({
   flex: { flex: 1 },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   centrado: { textAlign: 'center' },
-  // La fila de la tarjeta «De la visita»: con el contorno de un campo de Material sobre la superficie de la tarjeta.
-  entrada: { borderWidth: 1, borderRadius: radio.m, padding: espacio.m },
-  filaEntrada: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
   circulo: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   miniaturas: { flexDirection: 'row', gap: 6, marginTop: espacio.s },
-  miniatura: { width: 44, height: 44, borderRadius: 8 },
+  miniatura: { width: 52, height: 52, borderRadius: 10 },
   mas: { alignItems: 'center', justifyContent: 'center' },
   fila: { flexDirection: 'row', gap: espacio.m },
   mitad: { flex: 1 },

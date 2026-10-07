@@ -56,7 +56,7 @@ export function DireccionMapa({ etiqueta, direccion, latitude, longitude, alCamb
         </View>
       ) : null}
       {abierta ? (
-        <Hoja
+        <HojaDireccion
           inicial={direccion}
           puntoInicial={punto}
           alListo={(d) => {
@@ -70,7 +70,8 @@ export function DireccionMapa({ etiqueta, direccion, latitude, longitude, alCamb
   );
 }
 
-function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; puntoInicial: Punto | null; alListo: (d: DireccionConPunto) => void; alCerrar: () => void }) {
+// Se exporta como `HojaDireccion` para abrirla desde la fila de la pantalla Visita.
+export function HojaDireccion({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; puntoInicial: Punto | null; alListo: (d: DireccionConPunto) => void; alCerrar: () => void }) {
   const t = useTema();
   const [texto, setTexto] = useState(inicial);
   const [punto, setPunto] = useState<Punto | null>(puntoInicial);
@@ -232,6 +233,17 @@ function Hoja({ inicial, puntoInicial, alListo, alCerrar }: { inicial: string; p
   );
 }
 
+// El punto en un mapa chico y quieto (la fila de la dirección en la pantalla Visita): no recibe toques, la fila es la que abre la hoja.
+export function MiniMapa({ latitude, longitude }: { latitude: number; longitude: number }) {
+  return (
+    <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={e.miniMapa}>
+      <MapView liteMode style={e.flex} initialRegion={{ latitude, longitude, latitudeDelta: ZOOM, longitudeDelta: ZOOM }} scrollEnabled={false} zoomEnabled={false} rotateEnabled={false} pitchEnabled={false} toolbarEnabled={false}>
+        <Marker coordinate={{ latitude, longitude }} />
+      </MapView>
+    </View>
+  );
+}
+
 function Pastilla({ icono, texto, tono, alTocar }: { icono: NombreIcono; texto: string; tono: string; alTocar: () => void }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={texto} onPress={alTocar} style={({ pressed }) => [e.pastilla, { backgroundColor: `${tono}1A`, opacity: pressed ? 0.6 : 1 }]}>
@@ -242,6 +254,7 @@ function Pastilla({ icono, texto, tono, alTocar }: { icono: NombreIcono; texto: 
 }
 
 const e = StyleSheet.create({
+  miniMapa: { width: 64, height: 56, borderRadius: 12, overflow: 'hidden' },
   filaCampo: { flexDirection: 'row', alignItems: 'flex-end', gap: espacio.s },
   borrar: { width: 48, height: 48, borderRadius: radio.m, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
   sobreMapa: { position: 'absolute', minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, paddingHorizontal: espacio.m, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },

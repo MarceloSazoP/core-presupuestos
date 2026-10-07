@@ -9,7 +9,7 @@ import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 // Un texto largo (servicio, dirección, notas) que se escribe en su propia hoja: vacío es un botón «Agregar …»; con texto, la
 // tarjeta con lo escrito, que se toca para editarlo. La hoja tiene el campo con todo el espacio y un «Listo» ancho; «Cancelar»
 // la cierra sin cambiar nada.
-type Entrada = Pick<TextInputProps, 'maxLength' | 'autoComplete' | 'textContentType' | 'autoCapitalize' | 'autoCorrect' | 'keyboardType'>;
+export type Entrada = Pick<TextInputProps, 'maxLength' | 'autoComplete' | 'textContentType' | 'autoCapitalize' | 'autoCorrect' | 'keyboardType'>;
 type Props = {
   etiqueta: string;
   titulo: string; // título de la hoja, p. ej. «Servicio»
@@ -45,7 +45,7 @@ export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeh
       )}
       {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : ayuda ? <TextoM variante="chico" suave>{ayuda}</TextoM> : null}
       {abierto ? (
-        <Hoja
+        <HojaTexto
           titulo={titulo}
           etiqueta={etiqueta}
           inicial={valor}
@@ -65,7 +65,8 @@ export function CampoModal({ etiqueta, titulo, agregar, valor, alCambiar, placeh
 }
 
 // La hoja de edición de Material: «Cancelar» y «Listo» arriba, el campo con contorno en una tarjeta y un «Listo» ancho abajo, a mano.
-function Hoja({ titulo, etiqueta, inicial, placeholder, multiline, maxPalabras, entrada, alListo, alCerrar }: { titulo: string; etiqueta: string; inicial: string; placeholder?: string; multiline: boolean; maxPalabras?: number; entrada: Entrada; alListo: (v: string) => void; alCerrar: () => void }) {
+// Se exporta como `HojaTexto` para abrirla desde otra presentación (las filas de la pantalla Visita).
+export function HojaTexto({ titulo, etiqueta, inicial, placeholder, multiline, maxPalabras, entrada, alListo, alCerrar }: { titulo: string; etiqueta: string; inicial: string; placeholder?: string; multiline: boolean; maxPalabras?: number; entrada: Entrada; alListo: (v: string) => void; alCerrar: () => void }) {
   const [v, setV] = useState(inicial); // copia: «Cancelar» la descarta
   return (
     <HojaM titulo={titulo} cancelar={{ titulo: 'Cancelar', onPress: alCerrar }} listo={{ titulo: 'Listo', fuerte: true, onPress: () => alListo(v.trim()) }} alCerrar={alCerrar}>
