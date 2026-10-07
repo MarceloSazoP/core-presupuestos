@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { api, ApiError, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Icono, Texto } from '@/components/ui';
+import { BotonM, TextoM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { guardarCodigo } from '@/lib/codigos';
 import { guardarBorrador } from '@/sync/cola';
 import { espacio, radio, useTema } from '@/theme';
@@ -47,17 +48,17 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
     <View style={[e.tarjeta, { backgroundColor: `${t.error}14`, borderColor: `${t.error}66` }]}>
       <View style={e.rotulo}>
         <Icono nombre="alerta" tamano={18} color={t.error} />
-        <Texto fuerte color="error">Presupuesto rechazado</Texto>
+        <TextoM fuerte color="error">Presupuesto rechazado</TextoM>
       </View>
       {q.next_version_id ? (
         <>
-          <Texto variante="chico" suave>Ya lo rehiciste como una versión nueva.</Texto>
-          <Boton titulo="Ver la versión nueva" variante="secundario" onPress={() => abrir(q.next_version_id!)} />
+          <TextoM variante="chico" suave>Ya lo rehiciste como una versión nueva.</TextoM>
+          <BotonM titulo="Ver la versión nueva" variante="secundario" onPress={() => abrir(q.next_version_id!)} />
         </>
       ) : (
         <>
-          <Texto variante="chico" suave>Puedes corregirlo y volver a enviarlo como la versión {siguiente}. Es un presupuesto nuevo: el rechazado no cambia.</Texto>
-          <Boton titulo={`Crear versión ${siguiente}`} onPress={confirmar} cargando={trabajando} />
+          <TextoM variante="chico" suave>Puedes corregirlo y volver a enviarlo como la versión {siguiente}. Es un presupuesto nuevo: el rechazado no cambia.</TextoM>
+          <BotonM titulo={`Crear versión ${siguiente}`} onPress={confirmar} cargando={trabajando} />
         </>
       )}
     </View>

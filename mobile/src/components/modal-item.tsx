@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ElegirUnidad } from '@/components/elegir-unidad';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { BarraListo } from '@/components/barra-listo';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { BotonM, TextoM } from '@/components/material';
+import { Campo } from '@/components/ui';
 import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
@@ -22,7 +23,7 @@ export function Chips<T extends string>({ opciones, valor, alElegir, etiqueta }:
         const elegido = o.id === valor;
         return (
           <Pressable key={o.id} accessibilityRole="radio" accessibilityState={{ selected: elegido }} onPress={() => alElegir(o.id)} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? t.acento : t.campo, opacity: pressed ? 0.7 : 1 }]}>
-            <Texto color={elegido ? 'sobreAcento' : 'texto'} fuerte={elegido}>{o.texto}</Texto>
+            <TextoM color={elegido ? 'sobreAcento' : 'texto'} fuerte={elegido}>{o.texto}</TextoM>
           </Pressable>
         );
       })}
@@ -54,11 +55,11 @@ export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }
       <View style={[e.hoja, { backgroundColor: t.fondo }]}>
         <View style={e.barra}>
           <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={alCerrar} hitSlop={8} style={e.lado}>
-            <Texto color="acento">Cancelar</Texto>
+            <TextoM color="acento">Cancelar</TextoM>
           </Pressable>
-          <Texto fuerte accessibilityRole="header">{nueva ? (tarea ? 'Nueva tarea' : 'Nuevo ítem') : tarea ? 'Tarea' : 'Ítem'}</Texto>
+          <TextoM fuerte accessibilityRole="header">{nueva ? (tarea ? 'Nueva tarea' : 'Nuevo ítem') : tarea ? 'Tarea' : 'Ítem'}</TextoM>
           <Pressable accessibilityRole="button" accessibilityLabel={nueva ? 'Agregar' : 'Guardar'} onPress={guardar} hitSlop={8} style={[e.lado, e.derecha]}>
-            <Texto color="acento" fuerte>{nueva ? 'Agregar' : 'Guardar'}</Texto>
+            <TextoM color="acento" fuerte>{nueva ? 'Agregar' : 'Guardar'}</TextoM>
           </Pressable>
         </View>
 
@@ -87,21 +88,21 @@ export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }
                 </View>
               </View>
               <View style={e.grupo}>
-                <Texto variante="chico" fuerte>Unidad</Texto>
+                <TextoM variante="chico" fuerte>Unidad</TextoM>
                 <ElegirUnidad valor={f.unit} alElegir={(u) => cambiar('unit', u)} />
               </View>
             </>
           )}
 
-          {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
+          {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
 
           {/* El resultado de la línea, bien a la vista: es lo que importa al terminar de llenar. */}
           <View style={[e.total, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-            <Texto suave>{tarea ? 'Valor en el presupuesto' : 'Total de la línea'}</Texto>
-            <Texto variante="titulo" style={e.monto}>{total}</Texto>
+            <TextoM suave>{tarea ? 'Valor en el presupuesto' : 'Total de la línea'}</TextoM>
+            <TextoM variante="titulo" style={e.monto}>{total}</TextoM>
           </View>
 
-          {nueva ? null : <Boton titulo={tarea ? 'Quitar esta tarea' : 'Quitar este ítem'} icono="cerrar" variante="peligro" onPress={alQuitar} />}
+          {nueva ? null : <BotonM titulo={tarea ? 'Quitar esta tarea' : 'Quitar este ítem'} icono="cerrar" variante="peligro" onPress={alQuitar} />}
         </ScrollView>
       </View>
       <BarraListo />

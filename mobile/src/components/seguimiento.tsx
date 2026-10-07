@@ -5,7 +5,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Icono, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { BotonM, SeccionM, TarjetaM, TextoM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, enDias } from '@/lib/fechas';
 import { pedirPermiso, sincronizarRecordatorios } from '@/lib/notificaciones';
@@ -63,52 +64,52 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
 
   const conFecha = !!q.next_contact_date;
   return (
-    <Seccion titulo="Seguimiento" icono="reloj" descripcion="Para que no se te olvide volver a llamar.">
+    <SeccionM titulo="Seguimiento" icono="reloj" descripcion="Para que no se te olvide volver a llamar.">
       {cerrada ? null : (
-        <Tarjeta>
+        <TarjetaM>
           {/* Destacado: es lo que no hay que olvidar */}
           <View style={[e.proximo, { backgroundColor: conFecha ? `${t.seguimiento}1A` : t.campo, borderColor: conFecha ? t.seguimiento : t.borde }]}>
             <View style={e.rotulo}>
               <Icono nombre="calendario" tamano={16} color={conFecha ? t.seguimiento : t.suave} />
-              <Texto variante="chico" fuerte color={conFecha ? 'seguimiento' : 'suave'}>Próximo contacto</Texto>
+              <TextoM variante="chico" fuerte color={conFecha ? 'seguimiento' : 'suave'}>Próximo contacto</TextoM>
             </View>
-            <Texto variante="titulo" color={conFecha ? 'seguimiento' : 'suave'}>{conFecha ? diaCorto(q.next_contact_date!) : 'Sin fecha'}</Texto>
-            {conFecha ? <Texto variante="chico" suave>Ese día, a las 9:00, te llega un aviso en este teléfono.</Texto> : <Texto variante="chico" suave>Elige cuándo volver a contactar al cliente.</Texto>}
+            <TextoM variante="titulo" color={conFecha ? 'seguimiento' : 'suave'}>{conFecha ? diaCorto(q.next_contact_date!) : 'Sin fecha'}</TextoM>
+            {conFecha ? <TextoM variante="chico" suave>Ese día, a las 9:00, te llega un aviso en este teléfono.</TextoM> : <TextoM variante="chico" suave>Elige cuándo volver a contactar al cliente.</TextoM>}
           </View>
           <View style={e.chips}>
             {PLAZOS.map((p) => {
               const elegido = q.next_contact_date === enDias(p.dias);
               return (
                 <Pressable key={p.dias} accessibilityRole="button" accessibilityState={{ selected: elegido }} disabled={ocupado} onPress={() => void programar(enDias(p.dias))} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? `${t.acento}1A` : t.campo, opacity: pressed ? 0.7 : 1 }]}>
-                  <Texto color={elegido ? 'acento' : 'texto'} fuerte={elegido}>{p.texto}</Texto>
+                  <TextoM color={elegido ? 'acento' : 'texto'} fuerte={elegido}>{p.texto}</TextoM>
                 </Pressable>
               );
             })}
           </View>
-          {Platform.OS === 'web' ? null : <Boton titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha'} icono="calendario" variante="secundario" disabled={ocupado} onPress={abrirCalendario} />}
+          {Platform.OS === 'web' ? null : <BotonM titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha'} icono="calendario" variante="secundario" disabled={ocupado} onPress={abrirCalendario} />}
           {calendario && Platform.OS === 'ios' ? (
             <View style={[e.calendario, { backgroundColor: t.campo, borderColor: t.borde }]}>
               <DateTimePicker value={elegida} mode="date" display="inline" minimumDate={new Date()} accentColor={t.acento} onChange={(_, d) => d && setElegida(d)} />
-              <Boton titulo={`Programar para el ${diaCorto(aFechaLocal(elegida))}`} disabled={ocupado} onPress={() => void programar(aFechaLocal(elegida))} />
+              <BotonM titulo={`Programar para el ${diaCorto(aFechaLocal(elegida))}`} disabled={ocupado} onPress={() => void programar(aFechaLocal(elegida))} />
             </View>
           ) : null}
-          {conFecha ? <Boton titulo="Quitar la fecha" variante="texto" disabled={ocupado} onPress={() => void hacer(() => api(`/quotes/${q.id}/next-contact`, { method: 'DELETE' }))} /> : null}
-        </Tarjeta>
+          {conFecha ? <BotonM titulo="Quitar la fecha" variante="texto" disabled={ocupado} onPress={() => void hacer(() => api(`/quotes/${q.id}/next-contact`, { method: 'DELETE' }))} /> : null}
+        </TarjetaM>
       )}
 
-      <Tarjeta>
+      <TarjetaM>
         <View style={e.fila}>
-          <Boton titulo="Llamar" icono="llamar" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`tel:${q.customer.phone}`)} />
-          <Boton titulo="WhatsApp" icono="mensaje" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
+          <BotonM titulo="Llamar" icono="llamar" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`tel:${q.customer.phone}`)} />
+          <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
         </View>
         <CampoModal etiqueta="Nota (opcional)" titulo="Nota" agregar="Agregar nota" icono="lapiz" valor={nota} alCambiar={setNota} maxLength={2000} placeholder="Qué te dijo, qué falta" />
-        <Boton titulo="Guardar nota" variante="secundario" disabled={ocupado || !nota.trim()} onPress={() => void soloNota()} />
-        {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-      </Tarjeta>
+        <BotonM titulo="Guardar nota" variante="secundario" disabled={ocupado || !nota.trim()} onPress={() => void soloNota()} />
+        {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+      </TarjetaM>
 
       {historial.length ? (
-        <Tarjeta>
-          <Texto variante="chico" fuerte>Historial</Texto>
+        <TarjetaM>
+          <TextoM variante="chico" fuerte>Historial</TextoM>
           {/* Línea de tiempo: un punto por registro, unidos por una línea. */}
           {historial.map((h, i) => (
             <View key={h.id} style={e.registro}>
@@ -117,14 +118,14 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
                 {i < historial.length - 1 ? <View style={[e.linea, { backgroundColor: t.borde }]} /> : null}
               </View>
               <View style={e.registroTexto}>
-                <Texto variante="chico" suave>{diaCorto(h.created_at.slice(0, 10))} · {NOMBRE[h.commercial_status] ?? h.commercial_status}{h.next_contact_date ? ` · contactar ${diaCorto(h.next_contact_date)}` : ''}</Texto>
-                {h.note ? <Texto>{h.note}</Texto> : null}
+                <TextoM variante="chico" suave>{diaCorto(h.created_at.slice(0, 10))} · {NOMBRE[h.commercial_status] ?? h.commercial_status}{h.next_contact_date ? ` · contactar ${diaCorto(h.next_contact_date)}` : ''}</TextoM>
+                {h.note ? <TextoM>{h.note}</TextoM> : null}
               </View>
             </View>
           ))}
-        </Tarjeta>
+        </TarjetaM>
       ) : null}
-    </Seccion>
+    </SeccionM>
   );
 }
 

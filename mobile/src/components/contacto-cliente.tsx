@@ -5,7 +5,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { Boton, Campo, Icono, Texto } from '@/components/ui';
+import { BotonM, TextoM } from '@/components/material';
+import { Campo, Icono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -28,17 +29,17 @@ export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () =>
       <View style={e.datos}>
         <View style={e.dato}>
           <Icono nombre="cliente" tamano={15} color={t.acento} />
-          <Texto fuerte numberOfLines={1} style={e.flexTexto}>{q.customer.name}</Texto>
+          <TextoM fuerte numberOfLines={1} style={e.flexTexto}>{q.customer.name}</TextoM>
           <Icono nombre="lapiz" tamano={14} color={t.acento} />
         </View>
         <View style={e.contacto}>
           <View style={e.dato}>
             <Icono nombre="llamar" tamano={13} color={t.acento} />
-            <Texto variante="chico" suave numberOfLines={1}>{q.customer.phone}</Texto>
+            <TextoM variante="chico" suave numberOfLines={1}>{q.customer.phone}</TextoM>
           </View>
           <View style={[e.dato, e.correo]}>
             <Icono nombre="correo" tamano={13} color={t.acento} />
-            <Texto variante="chico" suave numberOfLines={1} style={e.flexTexto}>{q.customer.email ?? 'Sin correo'}</Texto>
+            <TextoM variante="chico" suave numberOfLines={1} style={e.flexTexto}>{q.customer.email ?? 'Sin correo'}</TextoM>
           </View>
         </View>
       </View>
@@ -85,17 +86,17 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
       <View style={[e.hoja, { backgroundColor: t.fondo }]}>
         <View style={e.barra}>
           <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={alCerrar} hitSlop={8} style={e.lado}>
-            <Texto color="acento">Cancelar</Texto>
+            <TextoM color="acento">Cancelar</TextoM>
           </Pressable>
-          <Texto fuerte accessibilityRole="header">Datos del cliente</Texto>
+          <TextoM fuerte accessibilityRole="header">Datos del cliente</TextoM>
           <View style={e.lado} />
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.form}>
           <Campo etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" />
           <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
           <Campo etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
-          {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
-          <Boton titulo="Guardar" icono="listo" onPress={() => void guardar()} />
+          {aviso ? <TextoM variante="chico" color="error" accessibilityRole="alert">{aviso}</TextoM> : null}
+          <BotonM titulo="Guardar" icono="listo" onPress={() => void guardar()} />
         </ScrollView>
       </View>
     </Modal>

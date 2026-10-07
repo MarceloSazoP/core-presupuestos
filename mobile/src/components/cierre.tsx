@@ -10,11 +10,13 @@ import { simboloUnidad } from '@/lib/unidades';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Alert, Linking, Share, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Linking, Share, StyleSheet, View } from 'react-native';
+import { Switch } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
-import { Boton, Icono, Pastilla, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { BotonM, PastillaM, SeccionM, TarjetaM, TextoM } from '@/components/material';
+import { Icono, Presionable } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -119,24 +121,24 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
       {/* El total siempre a la vista, arriba, y es el real. Como las tarjetas del inicio: fondo neutro, un ícono de dinero con su color y las
           palabras en ese color; las cifras en el color del texto (blanco en oscuro). Sin impuesto ni descuento dice solo «Total»; si no se
           desglosa: subtotal, descuento (con su %), impuesto y total. */}
-      <Tarjeta style={{ backgroundColor: t.tarjeta, borderColor: t.borde }}>
+      <TarjetaM style={{ backgroundColor: t.tarjeta, borderColor: t.borde }}>
         <View accessible accessibilityLabel={detalle ? `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''} Total ${clp(total)}.` : `Total ${clp(total)}.`} style={e.bloqueTotal}>
           {detalle ? (
             <>
               <View style={e.filaDesglose}>
-                <Texto variante="chico" fuerte style={{ color: t.totalTinta }}>Subtotal</Texto>
-                <Texto fuerte style={e.monto}>{clp(subtotal)}</Texto>
+                <TextoM variante="chico" fuerte style={{ color: t.totalTinta }}>Subtotal</TextoM>
+                <TextoM fuerte style={e.monto}>{clp(subtotal)}</TextoM>
               </View>
               {desc > 0 ? (
                 <View style={e.filaDesglose}>
-                  <Texto variante="chico" fuerte style={{ color: t.totalTinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</Texto>
-                  <Texto fuerte style={e.monto}>−{clp(desc)}</Texto>
+                  <TextoM variante="chico" fuerte style={{ color: t.totalTinta }}>{pct ? `Descuento ${pct} %` : 'Descuento'}</TextoM>
+                  <TextoM fuerte style={e.monto}>−{clp(desc)}</TextoM>
                 </View>
               ) : null}
               {conIva ? (
                 <View style={e.filaDesglose}>
-                  <Texto variante="chico" fuerte style={{ color: t.totalTinta }}>{impuesto} {tasa}%</Texto>
-                  <Texto fuerte style={e.monto}>{clp(iva)}</Texto>
+                  <TextoM variante="chico" fuerte style={{ color: t.totalTinta }}>{impuesto} {tasa}%</TextoM>
+                  <TextoM fuerte style={e.monto}>{clp(iva)}</TextoM>
                 </View>
               ) : null}
             </>
@@ -144,27 +146,27 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           <View style={[e.filaDesglose, detalle && e.total, detalle && { borderTopColor: t.borde }]}>
             <View style={e.etiquetaTotal}>
               <IconoDinero tamano={36} />
-              <Texto fuerte style={{ color: t.totalTinta }}>Total</Texto>
+              <TextoM fuerte style={{ color: t.totalTinta }}>Total</TextoM>
               <BotonOjo clave={delPresupuesto(q.id)} color={t.totalTinta} chico />
             </View>
-            <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</Texto>
+            <TextoM variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[e.monto, e.totalMonto]}>{clp(total)}</TextoM>
           </View>
         </View>
         {/* El impuesto va aquí, justo bajo el total, porque es lo que lo cambia. */}
         <View style={[e.filaIva, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde, paddingTop: espacio.m }]}>
-          <Texto style={e.textoIva}>Agregar {impuesto} ({tasa}%)</Texto>
-          <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} trackColor={{ true: t.acento }} />
+          <TextoM style={e.textoIva}>Agregar {impuesto} ({tasa}%)</TextoM>
+          <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} color={t.acento} />
         </View>
-      </Tarjeta>
+      </TarjetaM>
 
-      <Seccion titulo="Ítems y tareas" icono="lista" descripcion="Lo que cobras. Sale en el PDF.">
+      <SeccionM titulo="Ítems y tareas" icono="lista" descripcion="Lo que cobras. Sale en el PDF.">
         {filas.length ? (
-          <Tarjeta style={e.lista}>
+          <TarjetaM sinRelleno>
             {/* Grilla: encabezado fijo y una fila por ítem o tarea; tocar una fila abre su hoja. */}
             <View style={[e.filaLista, e.encabezado, { backgroundColor: t.campo, borderBottomColor: t.borde }]}>
-              <Texto variante="chico" suave fuerte style={e.colDesc}>Descripción</Texto>
-              <Texto variante="chico" suave fuerte style={e.colCant}>Cant.</Texto>
-              <Texto variante="chico" suave fuerte style={e.colMonto}>Total</Texto>
+              <TextoM variante="chico" suave fuerte style={e.colDesc}>Descripción</TextoM>
+              <TextoM variante="chico" suave fuerte style={e.colCant}>Cant.</TextoM>
+              <TextoM variante="chico" suave fuerte style={e.colMonto}>Total</TextoM>
             </View>
             {filas.map((f, n) => (
               <Animated.View key={f.clave} entering={f.clave === recien ? FadeIn.duration(180) : undefined}>
@@ -175,45 +177,45 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
                 estilo={[e.filaLista, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
               >
                 <View style={e.colDesc}>
-                  <Texto numberOfLines={2} suave={!f.description.trim()}>{f.description.trim() || (f.tipo === 'tarea' ? 'Tarea sin descripción' : 'Ítem sin descripción')}</Texto>
-                  {f.tipo === 'item' ? <Texto variante="chico" suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.monto}>{clp(entero(f.unit_price))} c/u</Texto> : null}
+                  <TextoM numberOfLines={2} suave={!f.description.trim()}>{f.description.trim() || (f.tipo === 'tarea' ? 'Tarea sin descripción' : 'Ítem sin descripción')}</TextoM>
+                  {f.tipo === 'item' ? <TextoM variante="chico" suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.monto}>{clp(entero(f.unit_price))} c/u</TextoM> : null}
                 </View>
-                <Texto suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${simboloUnidad(f.unit)}`}</Texto>
-                <Texto fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.monto]}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</Texto>
+                <TextoM suave numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colCant, e.monto]}>{f.tipo === 'tarea' ? 'Tarea' : `${String(f.quantity).replace('.', ',')} ${simboloUnidad(f.unit)}`}</TextoM>
+                <TextoM fuerte numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[e.colMonto, e.monto]}>{f.tipo === 'tarea' && !f.unit_price ? 'Incluido' : clp(valorDe(f))}</TextoM>
               </Presionable>
               </Animated.View>
             ))}
-          </Tarjeta>
+          </TarjetaM>
         ) : (
-          <Tarjeta>
-            <Texto suave>Aún no agregas nada. Toca «Ítem» para lo que vendes (con cantidad y precio) o «Tarea» para algo que haces sin cantidad, como botar escombros.</Texto>
-          </Tarjeta>
+          <TarjetaM>
+            <TextoM suave>Aún no agregas nada. Toca «Ítem» para lo que vendes (con cantidad y precio) o «Tarea» para algo que haces sin cantidad, como botar escombros.</TextoM>
+          </TarjetaM>
         )}
         <View style={e.fila}>
-          <Boton titulo="Ítem" accessibilityLabel="Agregar ítem" prefijo="+" icono="caja" colorIcono={t.kpi1Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
-          <Boton titulo="Tarea" accessibilityLabel="Agregar tarea" prefijo="+" icono="tarea" colorIcono={t.kpi3Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
+          <BotonM titulo="Ítem" accessibilityLabel="Agregar ítem" prefijo="+" icono="caja" colorIcono={t.kpi1Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('item')} style={e.mitad} />
+          <BotonM titulo="Tarea" accessibilityLabel="Agregar tarea" prefijo="+" icono="tarea" colorIcono={t.kpi3Tinta} variante="secundario" disabled={filas.length >= MAX_ITEMS} onPress={() => agregar('tarea')} style={e.mitad} />
         </View>
-      </Seccion>
+      </SeccionM>
 
       {/* Todo lo que se acuerda con el cliente, en una sola tarjeta: descuento, impuesto, garantía, validez y observaciones. */}
       {/* Las condiciones (descuento, garantía, validez y observaciones) viven en su propia ventana; aquí solo su resumen. */}
-      <Seccion titulo="Condiciones" icono="documento" descripcion="Descuento, garantía, validez y observaciones.">
-        <Tarjeta style={e.tarjetaCondiciones}>
+      <SeccionM titulo="Condiciones" icono="documento" descripcion="Descuento, garantía, validez y observaciones.">
+        <TarjetaM sinRelleno>
           <Presionable accessibilityRole="button" accessibilityLabel={`Condiciones: ${resumenCondiciones}. Editar`} onPress={() => setCondiciones(true)} estilo={e.filaCondiciones}>
-            <Texto style={e.flexTexto}>{resumenCondiciones}</Texto>
+            <TextoM style={e.flexTexto}>{resumenCondiciones}</TextoM>
             <Icono nombre="siguiente" tamano={14} color={t.suave} />
           </Presionable>
-        </Tarjeta>
-      </Seccion>
+        </TarjetaM>
+      </SeccionM>
 
-      <Texto variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</Texto>
+      <TextoM variante="chico" suave style={e.centrado}>Al terminar se numera y se genera el PDF. Después ya no se puede editar.</TextoM>
 
       {/* Las acciones flotan al pie mientras queda formulario por ver y, al llegar al final, se quedan en su sitio sin tapar nada. */}
       <BarraFlotante reserva={RESERVA_BARRA}>
-        {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
+        {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
         <View style={e.fila}>
-          <Boton titulo="Guardar" icono="guardar" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} style={e.mitad} accessibilityLabel="Guardar y volver" />
-          <Boton titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} style={e.mayor} />
+          <BotonM titulo="Guardar" icono="guardar" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} style={e.mitad} accessibilityLabel="Guardar y volver" />
+          <BotonM titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} style={e.mayor} />
         </View>
       </BarraFlotante>
 
@@ -283,15 +285,15 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
     });
 
   return (
-    <Tarjeta>
-      <Pastilla texto={enviado ? 'Enviado al cliente' : 'Listo para enviar'} tono={enviado ? 'ok' : 'aviso'} />
-      <Texto variante="subtitulo" accessibilityRole="header">Enviar al cliente</Texto>
-      <Texto suave>Tu cliente recibe el PDF y un enlace de solo lectura. No puede editar nada.</Texto>
-      {q.public_url ? <Boton titulo="Compartir" icono="compartir" onPress={() => void compartir()} /> : null}
-      <Boton titulo="WhatsApp" icono="mensaje" variante="secundario" onPress={() => void whatsapp()} />
-      {q.customer.email ? <Boton titulo="Enviar por correo" icono="correo" variante="secundario" onPress={correo} cargando={ocupado} disabled={ocupado} /> : <Texto variante="chico" suave>El cliente no tiene correo guardado.</Texto>}
-      {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-    </Tarjeta>
+    <TarjetaM>
+      <PastillaM texto={enviado ? 'Enviado al cliente' : 'Listo para enviar'} tono={enviado ? 'ok' : 'aviso'} />
+      <TextoM variante="subtitulo" accessibilityRole="header">Enviar al cliente</TextoM>
+      <TextoM suave>Tu cliente recibe el PDF y un enlace de solo lectura. No puede editar nada.</TextoM>
+      {q.public_url ? <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} /> : null}
+      <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" onPress={() => void whatsapp()} />
+      {q.customer.email ? <BotonM titulo="Enviar por correo" icono="correo" variante="secundario" onPress={correo} cargando={ocupado} disabled={ocupado} /> : <TextoM variante="chico" suave>El cliente no tiene correo guardado.</TextoM>}
+      {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+    </TarjetaM>
   );
 }
 

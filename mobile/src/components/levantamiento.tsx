@@ -11,7 +11,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, Linking, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
-import { Boton, Icono, Nota, Presionable, Seccion, Tarjeta, TECLADO_ID, Texto, type NombreIcono } from '@/components/ui';
+import { BotonM, NotaM, SeccionM, TarjetaM, TextoM } from '@/components/material';
+import { Icono, Presionable, TECLADO_ID, type NombreIcono } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
 import { guardarArchivo } from '@/sync/archivos';
 import { descartarSubida, encolar } from '@/sync/cola';
@@ -39,16 +40,16 @@ const conSurvey = (q: Presupuesto, s: Partial<Presupuesto['survey']>): Presupues
 export function Levantamiento({ q, cambiar }: Props) {
   return (
     <>
-      <Seccion titulo="El trabajo" icono="trabajo" descripcion="Sale en el PDF del cliente.">
-        <Tarjeta>
+      <SeccionM titulo="El trabajo" icono="trabajo" descripcion="Sale en el PDF del cliente.">
+        <TarjetaM>
           <Trabajo q={q} cambiar={cambiar} />
-        </Tarjeta>
-      </Seccion>
-      <Nota titulo="De la visita" icono="ubicacion">
+        </TarjetaM>
+      </SeccionM>
+      <NotaM titulo="De la visita" icono="ubicacion">
         <Notas q={q} cambiar={cambiar} />
         <Medidas q={q} cambiar={cambiar} />
         <Multimedia q={q} cambiar={cambiar} />
-      </Nota>
+      </NotaM>
     </>
   );
 }
@@ -64,7 +65,7 @@ function Multimedia({ q, cambiar }: Props) {
     <View style={e.bloque}>
       <Rotulo icono="camara" texto="Fotos y notas de voz" />
       <Presionable accessibilityRole="button" accessibilityLabel={`Fotos y notas de voz: ${resumen}. Abrir`} onPress={() => setAbierta(true)} estilo={[e.filaMultimedia, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-        <Texto style={e.flexMultimedia} suave={fotos + voces === 0}>{resumen}</Texto>
+        <TextoM style={e.flexMultimedia} suave={fotos + voces === 0}>{resumen}</TextoM>
         <Icono nombre="siguiente" tamano={14} color={t.suave} />
       </Presionable>
       {abierta ? (
@@ -72,15 +73,15 @@ function Multimedia({ q, cambiar }: Props) {
           <View style={[e.hojaMultimedia, { backgroundColor: t.fondo }]}>
             <View style={e.barraMultimedia}>
               <View style={e.ladoMultimedia} />
-              <Texto fuerte accessibilityRole="header">Fotos y notas de voz</Texto>
+              <TextoM fuerte accessibilityRole="header">Fotos y notas de voz</TextoM>
               <Pressable accessibilityRole="button" accessibilityLabel="Listo" onPress={() => setAbierta(false)} hitSlop={8} style={[e.ladoMultimedia, e.derechaMultimedia]}>
-                <Texto color="acento" fuerte>Listo</Texto>
+                <TextoM color="acento" fuerte>Listo</TextoM>
               </Pressable>
             </View>
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={e.contenidoMultimedia}>
               <Fotos q={q} cambiar={cambiar} />
               <Voz q={q} cambiar={cambiar} />
-              <Boton titulo="Listo" icono="listo" onPress={() => setAbierta(false)} />
+              <BotonM titulo="Listo" icono="listo" onPress={() => setAbierta(false)} />
             </ScrollView>
           </View>
         </Modal>
@@ -95,7 +96,7 @@ function Rotulo({ icono, texto }: { icono: NombreIcono; texto: string }) {
   return (
     <View style={e.rotulo}>
       <Icono nombre={icono} tamano={16} color={t.notaSello} />
-      <Texto variante="chico" fuerte>{texto}</Texto>
+      <TextoM variante="chico" fuerte>{texto}</TextoM>
     </View>
   );
 }
@@ -195,8 +196,8 @@ function Medidas({ q, cambiar }: Props) {
           </Pressable>
         </View>
       ))}
-      {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-      <Boton titulo="Agregar medida" icono="mas" variante="secundario" disabled={filas.length >= MAX_MEDIDAS} onPress={() => { const id = randomUUID(); setFilas((fs) => [...fs, { clave: id, id, label: '', value: '' }]); }} />
+      {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+      <BotonM titulo="Agregar medida" icono="mas" variante="secundario" disabled={filas.length >= MAX_MEDIDAS} onPress={() => { const id = randomUUID(); setFilas((fs) => [...fs, { clave: id, id, label: '', value: '' }]); }} />
     </View>
   );
 }
@@ -268,12 +269,12 @@ function Fotos({ q, cambiar }: Props) {
       {preparando > 0 ? (
         <View style={e.subiendo}>
           <ActivityIndicator color={t.suave} />
-          <Texto variante="chico" suave>Guardando {preparando} {preparando === 1 ? 'foto' : 'fotos'}…</Texto>
+          <TextoM variante="chico" suave>Guardando {preparando} {preparando === 1 ? 'foto' : 'fotos'}…</TextoM>
         </View>
       ) : null}
       <View style={e.fila}>
-        <Boton titulo="Tomar foto" icono="camara" variante="secundario" onPress={() => void agregar('camara')} style={e.mitad} />
-        <Boton titulo="Galería" icono="galeria" variante="secundario" onPress={() => void agregar('galeria')} style={e.mitad} />
+        <BotonM titulo="Tomar foto" icono="camara" variante="secundario" onPress={() => void agregar('camara')} style={e.mitad} />
+        <BotonM titulo="Galería" icono="galeria" variante="secundario" onPress={() => void agregar('galeria')} style={e.mitad} />
       </View>
     </View>
   );
@@ -334,7 +335,7 @@ function Voz({ q, cambiar }: Props) {
           if (!(await descartarSubida(q.id, n.id))) await encolar({ quote_id: q.id, method: 'DELETE', path: `/quotes/${q.id}/voice-notes/${n.id}` });
         }} />
       ))}
-      <Boton titulo={grabando ? `Detener · ${mmss(segundos)}` : 'Grabar nota de voz'} icono={grabando ? 'detener' : 'microfono'} variante={grabando ? 'primario' : 'secundario'} cargando={guardando} onPress={() => void (grabando ? detener() : empezar())} />
+      <BotonM titulo={grabando ? `Detener · ${mmss(segundos)}` : 'Grabar nota de voz'} icono={grabando ? 'detener' : 'microfono'} variante={grabando ? 'primario' : 'secundario'} cargando={guardando} onPress={() => void (grabando ? detener() : empezar())} />
     </View>
   );
 }
@@ -364,9 +365,9 @@ function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_note
         <View style={[e.botonPlay, { backgroundColor: t.acento }]}>
           <Icono nombre={playing ? 'pausar' : 'reproducir'} tamano={16} color={t.sobreAcento} />
         </View>
-        <Texto fuerte>{playing ? 'Reproduciendo' : 'Nota de voz'}</Texto>
+        <TextoM fuerte>{playing ? 'Reproduciendo' : 'Nota de voz'}</TextoM>
       </Pressable>
-      <Texto suave style={e.duracion}>{mmss(nota.duration_seconds)}</Texto>
+      <TextoM suave style={e.duracion}>{mmss(nota.duration_seconds)}</TextoM>
       <Pressable accessibilityRole="button" accessibilityLabel="Quitar nota de voz" onPress={quitar} hitSlop={4} style={({ pressed }) => [e.quitar, { opacity: pressed ? 0.5 : 1 }]}>
         <Icono nombre="cerrar" tamano={18} color={t.suave} />
       </Pressable>

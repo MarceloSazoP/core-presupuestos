@@ -1,7 +1,9 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Switch } from 'react-native-paper';
 import { ElegirDescuento } from '@/components/elegir-descuento';
 import { Chips } from '@/components/modal-item';
-import { Boton, Campo, Texto } from '@/components/ui';
+import { BotonM, TextoM } from '@/components/material';
+import { Campo } from '@/components/ui';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 export const GARANTIAS = [{ kind: 'D30', texto: '30 días' }, { kind: 'M3', texto: '3 meses' }, { kind: 'M6', texto: '6 meses' }, { kind: 'Y1', texto: '1 año' }, { kind: 'LIFETIME', texto: 'De por vida' }] as const;
@@ -26,32 +28,32 @@ export function ModalCondiciones({ pct, alDescuento, descuentoFijo, garantia, al
       <View style={[e.hoja, { backgroundColor: t.fondo }]}>
         <View style={e.barra}>
           <View style={e.lado} />
-          <Texto fuerte accessibilityRole="header">Condiciones</Texto>
+          <TextoM fuerte accessibilityRole="header">Condiciones</TextoM>
           <Pressable accessibilityRole="button" accessibilityLabel="Listo" onPress={alCerrar} hitSlop={8} style={[e.lado, e.derecha]}>
-            <Texto color="acento" fuerte>Listo</Texto>
+            <TextoM color="acento" fuerte>Listo</TextoM>
           </Pressable>
         </View>
         <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenido}>
           <View style={e.grupo}>
-            <Texto variante="chico" fuerte>Descuento (opcional)</Texto>
+            <TextoM variante="chico" fuerte>Descuento (opcional)</TextoM>
             <ElegirDescuento valor={pct} respaldo={descuentoFijo} alElegir={alDescuento} />
           </View>
 
           {/* Un interruptor: apagado es «sin garantía»; al encenderlo aparecen las duraciones (30 días por defecto). */}
           <View style={e.fila}>
-            <Texto style={e.flex}>Garantía</Texto>
-            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => alGarantia(on ? 'D30' : 'NONE')} trackColor={{ true: t.acento }} />
+            <TextoM style={e.flex}>Garantía</TextoM>
+            <Switch accessibilityLabel="Garantía" value={garantia !== 'NONE'} onValueChange={(on) => alGarantia(on ? 'D30' : 'NONE')} color={t.acento} />
           </View>
           {garantia !== 'NONE' ? (
             <View style={e.grupo}>
-              <Texto variante="chico" fuerte>Duración</Texto>
+              <TextoM variante="chico" fuerte>Duración</TextoM>
               <Chips etiqueta="Duración de la garantía" opciones={GARANTIAS.map((g) => ({ id: g.kind, texto: g.texto }))} valor={garantia} alElegir={alGarantia} />
             </View>
           ) : null}
 
           <Campo etiqueta="Validez del presupuesto (días)" value={dias} onChangeText={(v) => alDias(v.replace(/\D/g, '').slice(0, 3))} keyboardType="number-pad" />
           <Campo etiqueta="Observaciones (opcional)" value={obs} onChangeText={alObs} multiline maxLength={5000} placeholder="Plazos, forma de pago, lo que incluye…" />
-          <Boton titulo="Listo" icono="listo" onPress={alCerrar} />
+          <BotonM titulo="Listo" icono="listo" onPress={alCerrar} />
         </ScrollView>
       </View>
     </Modal>

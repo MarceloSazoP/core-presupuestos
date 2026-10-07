@@ -9,7 +9,8 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, IconButton } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
@@ -19,7 +20,8 @@ import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { PartesDeslizables } from '@/components/partes-deslizables';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { Boton, Icono, Pastilla, Tarjeta, Texto } from '@/components/ui';
+import { BotonM, PastillaM, TarjetaM, TextoM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { PestanasParte } from '@/components/pestanas-parte';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
@@ -85,7 +87,7 @@ export default function Detalle() {
   if (!q) {
     return (
       <View style={[e.centro, { backgroundColor: t.fondo }]}>
-        {error ? <Texto color="error" accessibilityRole="alert">{error}</Texto> : <ActivityIndicator color={t.suave} />}
+        {error ? <TextoM color="error" accessibilityRole="alert">{error}</TextoM> : <ActivityIndicator color={t.acento} />}
       </View>
     );
   }
@@ -147,17 +149,23 @@ export default function Detalle() {
       <View style={e.bloque}>
         <View style={e.filaPastillas}>
           <View style={e.pastillas}>
-            <Pastilla texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
-            {(q.version ?? 1) > 1 ? <Pastilla texto={`Versión ${q.version}`} tono="acento" /> : null}
+            <PastillaM texto={cerrado ? `Cerrado · ${q.number}` : 'Pendiente'} tono={cerrado ? 'ok' : 'aviso'} />
+            {(q.version ?? 1) > 1 ? <PastillaM texto={`Versión ${q.version}`} tono="acento" /> : null}
           </View>
           {/* Un presupuesto pendiente se puede eliminar desde aquí (los terminados no, Contrato API §6). Siempre con confirmación. */}
           {!cerrado ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Eliminar este presupuesto" hitSlop={8} onPress={eliminarEste} style={({ pressed }) => [e.papelera, { backgroundColor: `${t.error}1A`, opacity: pressed ? 0.6 : 1 }]}>
-              <Icono nombre="papelera" tamano={18} color={t.error} />
-            </Pressable>
+            <IconButton
+              mode="contained-tonal"
+              icon={({ size }) => <Icono nombre="papelera" tamano={size} color={t.error} />}
+              containerColor={`${t.error}1A`}
+              accessibilityLabel="Eliminar este presupuesto"
+              hitSlop={8}
+              onPress={eliminarEste}
+              style={e.papelera}
+            />
           ) : null}
         </View>
-        {q.previous_number ? <Texto variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</Texto> : null}
+        {q.previous_number ? <TextoM variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</TextoM> : null}
       </View>
 
       <PestanasParte partes={partes} valor={actualId} alElegir={setParte} />
@@ -178,42 +186,42 @@ export default function Detalle() {
           ) : null}
           <View style={[e.parte, oculta('detalle')]}>
             {q.service_description || q.address ? (
-              <Tarjeta>
-                {q.service_description ? <Texto>{q.service_description}</Texto> : null}
-                {q.address ? <Texto variante="chico" suave>{q.address}</Texto> : null}
-              </Tarjeta>
+              <TarjetaM>
+                {q.service_description ? <TextoM>{q.service_description}</TextoM> : null}
+                {q.address ? <TextoM variante="chico" suave>{q.address}</TextoM> : null}
+              </TarjetaM>
             ) : null}
             {q.items.length ? (
-              <Tarjeta>
-                <Texto variante="subtitulo" accessibilityRole="header">Ítems</Texto>
+              <TarjetaM>
+                <TextoM variante="subtitulo" accessibilityRole="header">Ítems</TextoM>
                 {q.items.map((i) => (
                   <View key={i.id} style={[e.item, { borderBottomColor: t.borde }]}>
                     <View style={e.flex}>
-                      <Texto>{i.description}</Texto>
+                      <TextoM>{i.description}</TextoM>
                       {i.kind === 'TASK' ? (
-                        <Texto variante="chico" suave>Tarea</Texto>
+                        <TextoM variante="chico" suave>Tarea</TextoM>
                       ) : (
-                        <Texto variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {simboloUnidad(i.unit)} × {montoDe(i.unit_price, q.currency)}</Texto>
+                        <TextoM variante="chico" suave style={e.monto}>{String(i.quantity).replace('.', ',')} {simboloUnidad(i.unit)} × {montoDe(i.unit_price, q.currency)}</TextoM>
                       )}
                     </View>
-                    <Texto fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : montoDe(i.line_total, q.currency)}</Texto>
+                    <TextoM fuerte style={e.monto}>{i.kind === 'TASK' && i.line_total === 0 ? 'Incluido' : montoDe(i.line_total, q.currency)}</TextoM>
                   </View>
                 ))}
                 {q.include_vat ? (
                   <View style={e.filaTotal}>
-                    <Texto suave>{q.vat_label ?? 'IVA'} ({q.vat_rate ?? 19}%)</Texto>
-                    <Texto suave style={e.monto}>{montoDe(q.vat, q.currency)}</Texto>
+                    <TextoM suave>{q.vat_label ?? 'IVA'} ({q.vat_rate ?? 19}%)</TextoM>
+                    <TextoM suave style={e.monto}>{montoDe(q.vat, q.currency)}</TextoM>
                   </View>
                 ) : null}
                 <View style={[e.filaTotal, e.total, { borderTopColor: t.texto }]}>
                   <View style={e.etiquetaTotal}>
                     <IconoDinero tamano={32} />
-                    <Texto fuerte>Total</Texto>
+                    <TextoM fuerte>Total</TextoM>
                     <BotonOjo clave={delPresupuesto(id)} chico />
                   </View>
-                  <Texto variante="titulo" style={e.monto}>{montoDe(q.total, q.currency)}</Texto>
+                  <TextoM variante="titulo" style={e.monto}>{montoDe(q.total, q.currency)}</TextoM>
                 </View>
-              </Tarjeta>
+              </TarjetaM>
             ) : null}
           </View>
         </>
@@ -221,7 +229,7 @@ export default function Detalle() {
         <>
           <View style={[e.parte, oculta('visita')]}>
             <Levantamiento key={`levantamiento-${vista.levantamiento}`} q={q} cambiar={cambiar} />
-            <Boton titulo="Seguir con el presupuesto" onPress={() => setParte('presupuesto')} />
+            <BotonM titulo="Seguir con el presupuesto" onPress={() => setParte('presupuesto')} />
           </View>
           <View style={[e.parte, oculta('presupuesto')]}>
             <Cierre key={`cierre-${vista.cierre}`} q={q} recargar={recargar} alTerminar={() => setRecienTerminado(true)} />
@@ -241,7 +249,7 @@ const e = StyleSheet.create({
   bloque: { gap: espacio.s },
   filaPastillas: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   pastillas: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: espacio.s },
-  papelera: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  papelera: { width: 40, height: 40, borderRadius: 20, margin: 0 },
   flex: { flex: 1 },
   parte: { gap: espacio.xl },
   oculta: { display: 'none' },
