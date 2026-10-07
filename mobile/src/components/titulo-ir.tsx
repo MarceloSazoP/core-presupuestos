@@ -1,60 +1,117 @@
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { StyleSheet, View } from 'react-native';
-import { Text, TouchableRipple } from 'react-native-paper';
+import { useCallback } from 'react';
+import { StyleSheet, View, type LayoutChangeEvent, type TextStyle } from 'react-native';
+import { TouchableRipple, useTheme } from 'react-native-paper';
+import Animated, { Easing, interpolate, interpolateColor, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Icono } from '@/components/ui';
 import { espacio, useTema } from '@/theme';
 
 // Título de la barra que también es un botón entre dos pantallas, para no tener un botón aparte:
 // - hacia adelante: «Inicio → Presupuestos» (la pantalla actual y, en un chip, a dónde se va);
 // - hacia atrás: «Inicio ← Presupuestos» (el chip, a la izquierda, es la pantalla a la que se vuelve; la actual queda a la derecha).
-// Con Material 3: la pantalla actual con su ícono en un círculo tonal y su nombre en «título medio» (en «título grande» no cabe junto al
-// chip en la barra del iPhone); el destino, un chip tonal con su ícono y la onda al tocar (32 de alto; el toque se agranda a 48).
+// Las dos pantallas ocupan siempre el mismo lugar (Inicio a la izquierda, Presupuestos a la derecha); lo que cambia es el papel: la actual
+// en el color del texto y el destino en el acento, sobre el chip tonal de Material.
+//
+// Al pasar de una a otra, el chip se desliza hasta su nuevo lugar y los dos nombres cambian de color a la vez (300 ms, curva de
+// movimiento en pantalla), al mismo tiempo que la transición de la pantalla: se ve que los papeles se intercambian. Solo cuando se llega
+// desde la otra pantalla del par; volver desde un presupuesto a la lista no lo repite. Con «reducir movimiento» el chip no se desliza:
+// aparece en su lugar con un fundido y los colores cambian igual.
 type Pantalla = { texto: string; icono: SymbolViewProps['name'] };
+
+// La curva de movimiento en pantalla (animate-expo); el efecto acompaña a la transición nativa, que dura más.
+const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1);
+const DURACION = 300;
+// El título que se mostró por última vez: dice si se llega desde la otra pantalla del par.
+let ultimoTitulo: string | null = null;
 
 export function TituloIr({ actual, destino, sentido, alIr }: { actual: Pantalla; destino: Pantalla; sentido: 'adelante' | 'atras'; alIr: () => void }) {
   const t = useTema();
-  const pantalla = (p: Pantalla) => (
-    <View style={e.pantalla}>
-      <View style={[e.circulo, { backgroundColor: `${t.acento}1F` }]}>
-        <SymbolView name={p.icono} size={16} tintColor={t.acento} fallback={<View />} />
-      </View>
-      <Text variant="titleMedium" numberOfLines={1} style={[e.actual, { color: t.texto }]}>{p.texto}</Text>
+  const { fonts } = useTheme();
+  const reducido = useReducedMotion();
+  // 0: como se veía en la otra pantalla (el chip sobre la actual); 1: como corresponde aquí (el chip sobre el destino).
+  const progreso = useSharedValue(1);
+  // Lugar y ancho de cada pantalla en la fila, medidos al dibujarse; el chip va de uno a otro.
+  const actualX = useSharedValue(0);
+  const actualAncho = useSharedValue(0);
+  const destinoX = useSharedValue(0);
+  const destinoAncho = useSharedValue(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      const desdeElOtro = ultimoTitulo === destino.texto;
+      ultimoTitulo = actual.texto;
+      if (!desdeElOtro) return;
+      progreso.set(0);
+      progreso.set(withTiming(1, { duration: DURACION, easing: EASE_IN_OUT, reduceMotion: ReduceMotion.Never }));
+    }, [actual.texto, destino.texto, progreso]),
+  );
+
+  const medir = (x: { set: (v: number) => void }, ancho: { set: (v: number) => void }) => (ev: LayoutChangeEvent) => {
+    x.set(ev.nativeEvent.layout.x);
+    ancho.set(ev.nativeEvent.layout.width);
+  };
+
+  // El chip es una pieza absoluta y sin hijos: se mueve con transform y su ancho cambia sin rehacer el resto de la fila.
+  const estiloChip = useAnimatedStyle(() => {
+    const p = progreso.get();
+    // Hasta medir las dos pantallas no se muestra (en iOS la barra puede medir el título ya empezada la transición).
+    if (actualAncho.get() === 0 || destinoAncho.get() === 0) return { opacity: 0 };
+    if (reducido) return { width: destinoAncho.get(), opacity: p, transform: [{ translateX: destinoX.get() }] };
+    return {
+      width: interpolate(p, [0, 1], [actualAncho.get(), destinoAncho.get()]),
+      opacity: 1,
+      transform: [{ translateX: interpolate(p, [0, 1], [actualX.get(), destinoX.get()]) }],
+    };
+  });
+  const colorActual = useAnimatedStyle<TextStyle>(() => ({ color: interpolateColor(progreso.get(), [0, 1], [t.acento, t.texto]) }));
+  const colorDestino = useAnimatedStyle<TextStyle>(() => ({ color: interpolateColor(progreso.get(), [0, 1], [t.texto, t.acento]) }));
+
+  const nombre = (p: Pantalla, color: typeof colorActual) => (
+    <View style={e.contenido}>
+      <SymbolView name={p.icono} size={16} tintColor={t.acento} fallback={<View />} />
+      <Animated.Text numberOfLines={1} style={[fonts.titleMedium, e.texto, color]}>{p.texto}</Animated.Text>
+    </View>
+  );
+  const pantallaActual = (
+    <View onLayout={medir(actualX, actualAncho)} style={e.parte}>
+      {nombre(actual, colorActual)}
     </View>
   );
   const chip = (
-    <TouchableRipple
-      accessibilityRole="button"
-      accessibilityLabel={`Ir a ${destino.texto}`}
-      hitSlop={8}
-      borderless
-      onPress={() => {
-        void Haptics.selectionAsync();
-        alIr();
-      }}
-      style={[e.chip, { backgroundColor: `${t.acento}26` }]}
-    >
-      <View style={e.filaChip}>
-        <SymbolView name={destino.icono} size={16} tintColor={t.acento} fallback={<View />} />
-        <Text variant="labelLarge" style={{ color: t.acento }}>{destino.texto}</Text>
-      </View>
-    </TouchableRipple>
+    <View onLayout={medir(destinoX, destinoAncho)}>
+      <TouchableRipple
+        accessibilityRole="button"
+        accessibilityLabel={`Ir a ${destino.texto}`}
+        hitSlop={8}
+        borderless
+        onPress={() => {
+          void Haptics.selectionAsync();
+          alIr();
+        }}
+        style={e.parte}
+      >
+        {nombre(destino, colorDestino)}
+      </TouchableRipple>
+    </View>
   );
   return (
     <View accessibilityRole="header" accessibilityLabel={actual.texto} style={e.fila}>
-      {sentido === 'adelante' ? pantalla(actual) : chip}
+      <Animated.View pointerEvents="none" style={[e.chip, { backgroundColor: `${t.acento}26` }, estiloChip]} />
+      {sentido === 'adelante' ? pantallaActual : chip}
       <Icono nombre={sentido === 'adelante' ? 'flecha' : 'flechaIzq'} tamano={14} color={t.suave} />
-      {sentido === 'adelante' ? chip : pantalla(actual)}
+      {sentido === 'adelante' ? chip : pantallaActual}
     </View>
   );
 }
 
 const e = StyleSheet.create({
-  fila: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  pantalla: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-  circulo: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  actual: { flexShrink: 1 },
-  // Chip de Material 3: 32 de alto y esquinas de 8.
-  chip: { minHeight: 32, borderRadius: 8, justifyContent: 'center', paddingHorizontal: espacio.m },
-  filaChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  fila: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
+  // Las dos pantallas con el mismo relleno, así la fila no cambia de ancho cuando el chip pasa de una a otra (chip de Material 3: 32 de
+  // alto y esquinas de 8).
+  parte: { minHeight: 32, borderRadius: 8, justifyContent: 'center', paddingHorizontal: 10 },
+  contenido: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  texto: { flexShrink: 1 },
+  chip: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 8 },
 });
