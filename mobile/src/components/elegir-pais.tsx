@@ -1,56 +1,49 @@
-import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Icono, Texto } from '@/components/ui';
+import { Fragment } from 'react';
+import { StyleSheet, Text as TextoNativo } from 'react-native';
+import { Divider, List } from 'react-native-paper';
+import { HojaM, TarjetaM, TextoM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { bandera, PAISES_ORDENADOS, type Pais } from '@/lib/paises';
-import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
+import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
-// Hoja para elegir un país (en iPhone, la hoja nativa que se desliza desde abajo). Sirve para el país de la cuenta (moneda e
-// impuesto) y para el código de país de un teléfono: `titulo`, `nota` y `detalle` dicen qué se muestra en cada caso.
+// Hoja para elegir un país (en iPhone, la hoja nativa que se desliza desde abajo; en Android, a pantalla completa). Sirve para el país
+// de la cuenta (moneda e impuesto) y para el código de país de un teléfono: `titulo`, `nota` y `detalle` dicen qué se muestra en cada
+// caso. Con Material 3: la barra de la hoja y una lista en una tarjeta; el elegido, en el tono suave del acento y con su ✓.
 export function ElegirPais({ titulo, nota, detalle, actual, alElegir, alCerrar }: { titulo: string; nota?: string; detalle: (p: Pais) => string; actual: string; alElegir: (country: string) => void; alCerrar: () => void }) {
   const t = useTema();
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
-      <View style={[e.hoja, { backgroundColor: t.fondo }]}>
-        <View style={e.barra}>
-          <View style={e.lado} />
-          <Texto fuerte accessibilityRole="header">{titulo}</Texto>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cerrar" onPress={alCerrar} hitSlop={8} style={[e.lado, e.derecha]}>
-            <Texto color="acento" fuerte>Cerrar</Texto>
-          </Pressable>
-        </View>
-        <ScrollView contentContainerStyle={e.contenido}>
-          {nota ? <Texto variante="chico" suave>{nota}</Texto> : null}
-          <View style={[e.lista, { backgroundColor: t.tarjeta, borderColor: t.borde }]}>
-            {PAISES_ORDENADOS.map((p, n) => (
-              <Pressable
-                key={p.country}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: p.country === actual }}
+    <HojaM titulo={titulo} listo={{ titulo: 'Cerrar', fuerte: true, onPress: alCerrar }} alCerrar={alCerrar}>
+      {nota ? <TextoM variante="chico" suave>{nota}</TextoM> : null}
+      <TarjetaM sinRelleno>
+        {PAISES_ORDENADOS.map((p, n) => {
+          const elegido = p.country === actual;
+          return (
+            <Fragment key={p.country}>
+              {n > 0 ? <Divider /> : null}
+              <List.Item
+                title={p.name}
+                description={detalle(p)}
                 onPress={() => alElegir(p.country)}
-                style={[e.fila, n > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}
-              >
-                <Texto style={e.bandera} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{bandera(p.country)}</Texto>
-                <View style={e.flex}>
-                  <Texto fuerte={p.country === actual}>{p.name}</Texto>
-                  <Texto variante="chico" suave>{detalle(p)}</Texto>
-                </View>
-                {p.country === actual ? <Icono nombre="listo" tamano={18} color={t.acento} /> : null}
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-      </View>
-    </Modal>
+                accessibilityRole="radio"
+                accessibilityState={{ selected: elegido }}
+                accessibilityLabel={`${p.name}, ${detalle(p)}`}
+                style={[e.fila, elegido ? { backgroundColor: `${t.acento}1F` } : null]}
+                titleStyle={[e.titulo, { color: t.texto }, elegido ? e.fuerte : null]}
+                descriptionStyle={{ color: t.suave }}
+                left={() => <TextoNativo style={e.bandera} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{bandera(p.country)}</TextoNativo>}
+                right={() => (elegido ? <Icono nombre="listo" tamano={20} color={t.acento} /> : null)}
+              />
+            </Fragment>
+          );
+        })}
+      </TarjetaM>
+    </HojaM>
   );
 }
 
 const e = StyleSheet.create({
-  hoja: { flex: 1 },
-  barra: { minHeight: MIN_TOQUE + espacio.s, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: espacio.l, paddingTop: espacio.s },
-  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  derecha: { alignItems: 'flex-end' },
-  contenido: { padding: espacio.l, gap: espacio.m },
-  lista: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', overflow: 'hidden' },
-  fila: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l, paddingVertical: espacio.s },
-  flex: { flex: 1 },
-  bandera: { fontSize: 24 },
+  fila: { minHeight: MIN_TOQUE + 8, justifyContent: 'center', paddingLeft: espacio.l, paddingRight: espacio.l },
+  titulo: { fontSize: 16 },
+  fuerte: { fontWeight: '600' },
+  bandera: { fontSize: 24, alignSelf: 'center' },
 });
