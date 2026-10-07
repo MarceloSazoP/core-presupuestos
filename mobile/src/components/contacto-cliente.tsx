@@ -1,13 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { avisar } from '@/lib/toast';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Text, TouchableRipple } from 'react-native-paper';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
 import { BotonM, CampoM, HojaM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
+import { ESTADOS } from '@/lib/estados';
 import { usePais } from '@/lib/pais-actual';
 import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -18,50 +19,34 @@ import { espacio, useTema } from '@/theme';
 // después. Se ven en el título de la pantalla (TituloCliente) y se corrigen en una hoja (EditarCliente). Funciona sin conexión: se
 // guarda en el teléfono y viaja por la cola.
 
-// Título de la barra: el nombre y, debajo, en qué va el presupuesto (pendiente, o su número si ya se terminó, y la versión), el teléfono y
-// el correo. Tocarlo abre la hoja para corregir los datos del cliente. Con Material 3: el sello en un círculo tonal del color del estado,
-// el nombre en «título medio», el resto en letra chica y la onda al tocar. El estado va aquí (y no en una fila propia) para que el
-// formulario empiece más arriba.
+// Título de la barra: el nombre del cliente con un lápiz (tocarlo abre la hoja para corregir nombre, teléfono y correo) y, debajo, en qué
+// va el presupuesto, en su color: «Pendiente», o su número y su estado comercial si ya se terminó, y la versión. El teléfono y el correo
+// no van aquí (no cabían): están en la hoja del cliente. En iPhone el título va centrado; en Android, a la izquierda.
 export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () => void }) {
   const t = useTema();
   const cerrado = q.doc_status === 'FINALIZED';
-  const colorEstado = cerrado ? t.ok : t.aviso;
+  const comercial = ESTADOS.find((s) => s.id === q.commercial_status);
+  const colorEstado = !cerrado ? t.aviso : comercial ? t[comercial.tono] : t.ok;
   const version = (q.version ?? 1) > 1 ? q.version : null;
-  const estado = `${cerrado ? (q.number ?? 'Cerrado') : 'Pendiente'}${version ? ` · v${version}` : ''}`;
+  const estado = [cerrado ? (q.number ?? 'Cerrado') : 'Pendiente', cerrado ? (comercial?.texto ?? 'Cerrado') : null, version ? `v${version}` : null].filter(Boolean).join(' · ');
+  const centrado = Platform.OS === 'ios';
   return (
     <TouchableRipple
       accessibilityRole="button"
-      accessibilityLabel={`${q.customer.name}. ${cerrado ? `Cerrado${q.number ? `, ${q.number}` : ''}` : 'Pendiente'}${version ? `, versión ${version}` : ''}. ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Corregir los datos del cliente`}
+      accessibilityLabel={`${q.customer.name}. ${estado}. Datos del cliente: ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Editar`}
       onPress={alEditar}
       hitSlop={6}
       borderless
       style={e.toque}
     >
-      <View style={e.titulo}>
-        {/* El presupuesto a la izquierda, en el color de su estado; a su lado, el cliente y, debajo, el estado y el contacto. */}
-        <View style={[e.sello, { backgroundColor: `${colorEstado}26` }]}>
-          <Icono nombre={cerrado ? 'listo' : 'documento'} tamano={18} color={colorEstado} />
+      <View style={[e.titulo, centrado ? e.centro : null]}>
+        <View style={e.dato}>
+          <Text variant="titleMedium" numberOfLines={1} style={[e.flexTexto, e.nombre, { color: t.texto }]}>{q.customer.name}</Text>
+          <Icono nombre="lapiz" tamano={14} color={t.acento} />
         </View>
-        <View style={e.datos}>
-          <View style={e.dato}>
-            <Icono nombre="cliente" tamano={15} color={t.acento} />
-            <Text variant="titleMedium" numberOfLines={1} style={[e.flexTexto, { color: t.texto }]}>{q.customer.name}</Text>
-            <Icono nombre="lapiz" tamano={14} color={t.acento} />
-          </View>
-          <View style={e.contacto}>
-            <View style={e.dato}>
-              <View style={[e.punto, { backgroundColor: colorEstado }]} />
-              <Text variant="labelMedium" numberOfLines={1} style={{ color: colorEstado }}>{estado}</Text>
-            </View>
-            <View style={e.dato}>
-              <Icono nombre="llamar" tamano={13} color={t.acento} />
-              <Text variant="bodySmall" numberOfLines={1} style={{ color: t.suave }}>{q.customer.phone}</Text>
-            </View>
-            <View style={[e.dato, e.correo]}>
-              <Icono nombre="correo" tamano={13} color={t.acento} />
-              <Text variant="bodySmall" numberOfLines={1} style={[e.flexTexto, { color: t.suave }]}>{q.customer.email ?? 'Sin correo'}</Text>
-            </View>
-          </View>
+        <View style={e.dato}>
+          <View style={[e.punto, { backgroundColor: colorEstado }]} />
+          <Text variant="labelMedium" numberOfLines={1} style={[e.flexTexto, { color: colorEstado }]}>{estado}</Text>
         </View>
       </View>
     </TouchableRipple>
@@ -115,13 +100,11 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
 }
 
 const e = StyleSheet.create({
-  toque: { borderRadius: 12, maxWidth: 250 },
+  toque: { borderRadius: 12, maxWidth: 230 },
+  titulo: { gap: 1, paddingHorizontal: espacio.s, paddingVertical: 2 },
+  centro: { alignItems: 'center' },
+  dato: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  nombre: { fontWeight: '600' },
   punto: { width: 7, height: 7, borderRadius: 4 },
-  titulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingVertical: 2, paddingRight: espacio.xs },
-  sello: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  datos: { flexShrink: 1, gap: 1 },
-  contacto: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  dato: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  correo: { flexShrink: 1 },
   flexTexto: { flexShrink: 1 },
 });

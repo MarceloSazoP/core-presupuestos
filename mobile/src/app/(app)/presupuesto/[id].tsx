@@ -95,6 +95,14 @@ export default function Detalle() {
   }
 
   const cerrado = q.doc_status === 'FINALIZED';
+  // «⋯» de la barra: las opciones en el diálogo de Material (en vez de un menú anclado, que en la barra nativa se ubica distinto en iPhone y
+  // Android). Eliminar pide su propia confirmación después.
+  const masOpciones = () =>
+    decidir(`Presupuesto de ${q.customer.name}`, undefined, [
+      { text: 'Datos del cliente', onPress: () => setEditandoCliente(true) },
+      ...(!cerrado ? [{ text: 'Eliminar presupuesto', style: 'destructive' as const, onPress: eliminarEste }] : []),
+      { text: 'Cancelar', style: 'cancel' as const },
+    ]);
   const eliminarEste = () =>
     decidir(`¿Eliminar el presupuesto de ${q.customer.name}?`, 'Se borran también sus fotos, notas de voz y notas. No se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
@@ -134,18 +142,18 @@ export default function Detalle() {
         options={{
           title: q.customer.name,
           gestureEnabled: false, // el deslizar es para cambiar de parte: el gesto nativo de «volver» lo pisaba y dejaba la pantalla por error (se vuelve con el botón de la barra)
+          // Volver es solo la flecha (sin «Atrás»): deja espacio al título.
+          headerBackButtonDisplayMode: 'minimal',
           headerTitle: () => <TituloCliente q={q} alEditar={() => setEditandoCliente(true)} />,
-          // A la derecha, el QR para abrirlo en la web y, si está pendiente, eliminarlo (los terminados no se eliminan, Contrato API §6;
-          // siempre con confirmación). La papelera vive aquí y no en el contenido, para que el formulario empiece más arriba.
+          // A la derecha, el QR para abrirlo en la web y «⋯» con lo demás: los datos del cliente y, si está pendiente, eliminarlo (los
+          // terminados no se eliminan, Contrato API §6; siempre con confirmación). Lo destructivo va en el menú, no a la vista.
           headerRight: () => (
             <View style={e.accionesCabecera}>
-              {!cerrado ? (
-                <Pressable accessibilityRole="button" accessibilityLabel="Eliminar este presupuesto" hitSlop={6} onPress={eliminarEste} style={e.cabeceraBoton}>
-                  <Icono nombre="papelera" tamano={21} color={t.error} />
-                </Pressable>
-              ) : null}
               <Pressable accessibilityRole="button" accessibilityLabel="Código y QR para abrirlo en la web" hitSlop={6} onPress={() => router.push({ pathname: '/codigo', params: { id, titulo: `${q.number ?? 'Presupuesto'} de ${q.customer.name}`, ...(q.code_id ? { codeId: q.code_id } : {}) } })} style={e.cabeceraBoton}>
                 <Icono nombre="qr" tamano={22} color={t.acento} />
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Más opciones" hitSlop={6} onPress={masOpciones} style={e.cabeceraBoton}>
+                <Icono nombre="opciones" tamano={22} color={t.acento} />
               </Pressable>
             </View>
           ),
