@@ -86,8 +86,9 @@ export function TarjetaM({ children, sinRelleno, elevacion = 1, style }: { child
 // «primario» y «secundario» son los nombres de `Boton` en ui.tsx (equivalen a «principal» y «contorno»).
 type VarianteM = 'principal' | 'contorno' | 'texto' | 'peligro' | 'primario' | 'secundario';
 
-// Botón de Material: «principal» relleno con el acento (52 de alto, como el principal de la app); «contorno» con el texto en el color de
-// texto y el ícono en su color (como los secundarios de la app); «texto» sin borde; «peligro» relleno rojo. Mínimo 48 de alto.
+// Botón de Material 3, con su forma de píldora y su etiqueta: «principal» relleno con el acento (52 de alto); «contorno» (los secundarios)
+// es el botón tonal de Material, relleno con el tono suave del acento, el texto en el color de texto y el ícono en su color; «texto» sin
+// relleno; «peligro» relleno rojo. Mínimo 48 de alto.
 // `prefijo`: un texto antes del ícono (un signo); `icono2`: un segundo ícono junto al primero.
 export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo, colorIcono, cargando, disabled, onPress, style, accessibilityLabel }: {
   titulo: string;
@@ -104,7 +105,7 @@ export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo,
 }) {
   const t = useTema();
   const v = variante === 'primario' ? 'principal' : variante === 'secundario' ? 'contorno' : variante;
-  const modo = v === 'principal' || v === 'peligro' ? 'contained' : v === 'contorno' ? 'outlined' : 'text';
+  const modo = v === 'principal' || v === 'peligro' ? 'contained' : v === 'contorno' ? 'contained-tonal' : 'text';
   const texto = v === 'principal' ? t.sobreAcento : v === 'peligro' ? '#FFFFFF' : v === 'contorno' ? t.texto : t.acento;
   const conIcono = !cargando && (icono || prefijo);
   return (
@@ -127,7 +128,7 @@ export function BotonM({ titulo, variante = 'principal', icono, icono2, prefijo,
           : undefined
       }
       accessibilityLabel={accessibilityLabel}
-      style={[e.boton, v === 'contorno' && { borderColor: t.bordeCampo }, style]}
+      style={[e.boton, style]}
       contentStyle={v === 'principal' ? e.contenidoPrincipal : e.contenidoBoton}
       labelStyle={e.textoBoton}
     >
@@ -144,10 +145,11 @@ const e = StyleSheet.create({
   tarjeta: { borderRadius: radio.l },
   relleno: { padding: espacio.l, gap: espacio.m },
   lista: { borderRadius: radio.l, overflow: 'hidden' },
-  boton: { borderRadius: radio.m },
+  boton: { borderRadius: 999 },
   contenidoBoton: { minHeight: MIN_TOQUE },
   contenidoPrincipal: { minHeight: 52 },
-  textoBoton: { fontSize: 16, lineHeight: 22 },
+  // La etiqueta de Material 3 (labelLarge), un punto más grande para leer bien en terreno.
+  textoBoton: { fontSize: 15, lineHeight: 20, fontWeight: '600', letterSpacing: 0.1 },
   iconos: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   prefijo: { fontSize: 16, fontWeight: '700' },
   fuerte: { fontWeight: '600' },
