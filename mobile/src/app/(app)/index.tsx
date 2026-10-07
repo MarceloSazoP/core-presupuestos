@@ -91,19 +91,19 @@ export default function Principal() {
   );
 }
 
-// La marca de CORE Presupuestos a la izquierda de la barra (la versión clara u oscura según el tema), en un espacio del mismo ancho que el
-// ☰ de la derecha: con los dos lados iguales, el selector queda justo al centro en iPhone y en Android.
+// La marca de CORE Presupuestos a la izquierda de la barra (la versión clara u oscura según el tema), en un botón redondo del mismo ancho
+// que el ☰ de la derecha: con los dos lados iguales, el selector queda justo al centro en iPhone y en Android. Tocarla abre «Información».
 function Marca() {
   const t = useTema();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel="CORE Presupuestos" style={e.marca}>
+    <TouchableRipple accessibilityRole="button" accessibilityLabel="CORE Presupuestos. Ver información" rippleColor={`${t.acento}29`} onPress={() => router.push('/configurar-informacion')} style={e.marca}>
       <Image source={t.oscuro ? require('../../../assets/images/marca-carga-dark.png') : require('../../../assets/images/marca-carga.png')} style={e.logo} contentFit="contain" />
-    </View>
+    </TouchableRipple>
   );
 }
 
 const e = StyleSheet.create({
-  marca: { width: MIN_TOQUE, height: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' },
+  marca: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   logo: { width: 32, height: 29 }, // la marca mide 576 × 520
   pantalla: { flex: 1, overflow: 'hidden' },
   paginas: { flex: 1, flexDirection: 'row' },

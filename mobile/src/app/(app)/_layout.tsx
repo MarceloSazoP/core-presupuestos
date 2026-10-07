@@ -37,7 +37,8 @@ export default function AppLayout() {
       <Stack.Screen name="configurar-imagenes" options={{ title: 'Logo y firma', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Logo y firma" icono={{ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }} /> }} />
       <Stack.Screen name="configurar-pais" options={{ title: 'País', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="País" icono={{ ios: 'globe', android: 'public', web: 'public' }} /> }} />
       <Stack.Screen name="configurar-apariencia" options={{ title: 'Apariencia', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Apariencia" icono={{ ios: 'moon.fill', android: 'dark_mode', web: 'dark_mode' }} /> }} />
-      <Stack.Screen name="configurar-informacion" options={{ title: 'Información', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Información" icono={{ ios: 'info.circle.fill', android: 'info', web: 'info' }} /> }} />
+      {/* Se llega desde Configurar o desde la marca de la barra de Inicio: el «volver» de iPhone dice el título de la pantalla anterior. */}
+      <Stack.Screen name="configurar-informacion" options={{ title: 'Información', headerTitle: () => <TituloConIcono texto="Información" icono={{ ios: 'info.circle.fill', android: 'info', web: 'info' }} /> }} />
       <Stack.Screen name="configurar-cuenta" options={{ title: 'Mi cuenta', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Mi cuenta" icono={{ ios: 'person.crop.circle.fill', android: 'account_circle', web: 'account_circle' }} /> }} />
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
       </Stack>
