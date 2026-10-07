@@ -4,12 +4,14 @@ import { avisar } from '@/lib/toast';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Surface, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
-import { Boton, Icono, Texto } from '@/components/ui';
+import { BotonM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import type { EstadoElegible } from '@/lib/estados';
 import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
 import { Pestanas } from '@/components/pestanas';
@@ -124,35 +126,35 @@ export default function ListaPresupuestos() {
         ListHeaderComponent={
           <View style={e.aviso}>
             <Sincronizacion />
-            {error ? <Texto variante="chico" color="error" accessibilityRole="alert">{error}</Texto> : null}
-            {/* La glosa de la pestaña: qué contiene y si se pueden eliminar (y cómo). */}
-            <View style={[e.glosa, { backgroundColor: `${t.acento}0F`, borderColor: t.borde }]}>
-              <Icono nombre="info" tamano={18} color={t.acento} />
+            {error ? <Text variant="bodySmall" style={{ color: t.error }} accessibilityRole="alert">{error}</Text> : null}
+            {/* La glosa de la pestaña (qué contiene y si se pueden eliminar, y cómo) en una superficie tonal de Material. */}
+            <Surface elevation={0} style={[e.glosa, { backgroundColor: `${t.acento}14` }]}>
+              <Icono nombre="info" tamano={20} color={t.acento} />
               <View style={e.glosaTextos}>
-                <Texto variante="chico">{PESTANAS[posicion]!.glosa}</Texto>
-                <Texto variante="chico" suave>{PESTANAS[posicion]!.eliminar}</Texto>
+                <Text variant="bodyMedium">{PESTANAS[posicion]!.glosa}</Text>
+                <Text variant="bodySmall" style={{ color: t.suave }}>{PESTANAS[posicion]!.eliminar}</Text>
               </View>
-            </View>
+            </Surface>
           </View>
         }
         ListEmptyComponent={
           lista === null ? (
-            <ActivityIndicator style={e.cargando} color={t.suave} />
+            <ActivityIndicator style={e.cargando} color={t.acento} />
           ) : lista.length === 0 ? (
             <View style={e.vacio}>
               <View style={[e.vacioIcono, { backgroundColor: `${t.acento}1A` }]}>
                 <Icono nombre="documento" tamano={30} color={t.acento} />
               </View>
-              <Texto variante="subtitulo" style={e.centrado}>Aún no tienes presupuestos</Texto>
-              <Texto suave style={e.centrado}>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Texto>
+              <Text variant="titleLarge" style={e.centrado}>Aún no tienes presupuestos</Text>
+              <Text variant="bodyMedium" style={[e.centrado, { color: t.suave }]}>Cuando estés en una visita, toca «Nuevo presupuesto»: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Text>
             </View>
           ) : (
             <View style={e.vacio}>
               <View style={[e.vacioIcono, { backgroundColor: `${t.suave}1A` }]}>
                 <Icono nombre="documento" tamano={30} color={t.suave} />
               </View>
-              <Texto variante="subtitulo" style={e.centrado}>Nada en {PESTANAS.find((p) => p.id === pestana)!.texto.toLowerCase()}</Texto>
-              <Texto suave style={e.centrado}>{PESTANAS.find((p) => p.id === pestana)!.vacio}</Texto>
+              <Text variant="titleLarge" style={e.centrado}>Nada en {PESTANAS.find((p) => p.id === pestana)!.texto.toLowerCase()}</Text>
+              <Text variant="bodyMedium" style={[e.centrado, { color: t.suave }]}>{PESTANAS.find((p) => p.id === pestana)!.vacio}</Text>
             </View>
           )
         }
@@ -160,7 +162,7 @@ export default function ListaPresupuestos() {
       </PartesDeslizables>
       {/* Acción principal en la zona del pulgar (tercio inferior) */}
       <View pointerEvents="box-none" style={[e.cta, { paddingBottom: insets.bottom + espacio.m }]}>
-        <Boton titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
+        <BotonM titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} style={e.botonNuevo} />
       </View>
     </View>
   );
@@ -169,7 +171,7 @@ export default function ListaPresupuestos() {
 const Separador = () => <View style={{ height: espacio.m }} />;
 
 const e = StyleSheet.create({
-  glosa: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.s, borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m },
+  glosa: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderRadius: radio.l, padding: espacio.m },
   glosaTextos: { flex: 1, gap: 2 },
   aviso: { gap: espacio.s, paddingBottom: espacio.m },
   cargando: { marginTop: espacio.xxl },
@@ -177,4 +179,6 @@ const e = StyleSheet.create({
   vacioIcono: { width: 64, height: 64, borderRadius: radio.l, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center', marginBottom: espacio.s },
   centrado: { textAlign: 'center' },
   cta: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: espacio.l },
+  // Con la elevación de Material, para que se lea sobre la lista que pasa por debajo.
+  botonNuevo: { elevation: 3, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } },
 });

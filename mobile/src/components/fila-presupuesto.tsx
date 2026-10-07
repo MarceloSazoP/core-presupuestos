@@ -4,11 +4,12 @@ import { IconoDinero } from '@/components/icono-dinero';
 import { LISTA, useDinero } from '@/lib/montos';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Surface, Text } from 'react-native-paper';
 import { Pressable as Toque } from 'react-native-gesture-handler';
 import Animated, { cancelAnimation, Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
-import { Icono, Texto, TRANSICION_PRESION } from '@/components/ui';
+import { Icono, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { elegirEstado } from '@/lib/elegir-estado';
 import { ESTADOS, estadosPosibles, type EstadoElegible } from '@/lib/estados';
@@ -117,47 +118,52 @@ export function FilaPresupuesto({
         soltar();
       }}
     >
-      {/* La tarjeta se encoge apenas al tocarla (transición CSS de Reanimated: 120 ms, sin estado por cuadro). */}
-      <Animated.View style={[e.fila, TRANSICION_PRESION, { backgroundColor: t.tarjeta, borderColor: t.borde, transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
-        {puedeEliminar ? (
-          <>
-            <Animated.View pointerEvents="none" style={[e.relleno, { backgroundColor: t.error }, estiloRelleno]} />
-            <Animated.View pointerEvents="none" style={[e.etiquetaEliminar, estiloEtiqueta]}>
-              <Icono nombre="cerrar" tamano={18} color="#FFFFFF" />
-              <Text style={e.textoEliminar}>Eliminar</Text>
-            </Animated.View>
-          </>
-        ) : null}
-        <View style={e.arriba}>
-          <Texto fuerte numberOfLines={1} style={e.flex}>{titulo}</Texto>
-          <View style={e.totalFila}>
-            <IconoDinero tamano={22} />
-            <Texto fuerte style={e.monto}>{q.total > 0 ? montoDe(q.total, q.currency) : '—'}</Texto>
-          </View>
-        </View>
-        <Texto variante="chico" suave numberOfLines={1}>{q.service_description || 'Sin descripción todavía'}</Texto>
-        <View style={e.abajo}>
-          {/* El estado es una palabra con su punto de color. Si se puede cambiar, es un botón que abre la hoja nativa «Pasar a». */}
-          {posibles.length > 0 ? (
-            <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar)} style={e.estadoToque}>
-              <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
-              <Text style={[e.estadoTexto, { color: t[estado.tono] }]}>{estado.texto}</Text>
-              <Icono nombre="despliegue" tamano={12} color={t[estado.tono]} />
-            </Toque>
-          ) : (
-            <View style={e.estadoToque}>
-              <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
-              <Text style={[e.estadoTexto, { color: t[estado.tono] }]}>{estado.texto}</Text>
+      {/* La tarjeta se encoge apenas al tocarla (transición CSS de Reanimated: 120 ms, sin estado por cuadro). Es una superficie elevada de
+          Material: la sombra va en la capa de afuera y la de adentro recorta la barra roja de eliminar en las esquinas redondeadas. */}
+      <Animated.View style={[TRANSICION_PRESION, { transform: [{ scale: presionado && !reducido ? 0.98 : 1 }] }]}>
+        <Surface elevation={1} style={[e.superficie, { backgroundColor: t.tarjeta }]}>
+          <View style={e.fila}>
+            {puedeEliminar ? (
+              <>
+                <Animated.View pointerEvents="none" style={[e.relleno, { backgroundColor: t.error }, estiloRelleno]} />
+                <Animated.View pointerEvents="none" style={[e.etiquetaEliminar, estiloEtiqueta]}>
+                  <Icono nombre="cerrar" tamano={18} color="#FFFFFF" />
+                  <Text variant="titleMedium" style={e.textoEliminar}>Eliminar</Text>
+                </Animated.View>
+              </>
+            ) : null}
+            <View style={e.arriba}>
+              <Text variant="titleMedium" numberOfLines={1} style={e.flex}>{titulo}</Text>
+              <View style={e.totalFila}>
+                <IconoDinero tamano={22} />
+                <Text variant="titleMedium" style={e.monto}>{q.total > 0 ? montoDe(q.total, q.currency) : '—'}</Text>
+              </View>
             </View>
-          )}
-          {identificador ? <Text numberOfLines={1} style={[e.id, { color: t.suave }]}>{identificador}</Text> : null}
-        </View>
-        {q.next_contact_date ? (
-          <View style={e.contacto}>
-            <Icono nombre="reloj" tamano={14} color={t.seguimiento} />
-            <Texto variante="chico" fuerte color="seguimiento">Contactar el {diaCorto(q.next_contact_date)}</Texto>
+            <Text variant="bodyMedium" numberOfLines={1} style={{ color: t.suave }}>{q.service_description || 'Sin descripción todavía'}</Text>
+            <View style={e.abajo}>
+              {/* El estado es una etiqueta tonal de su color (Material). Si se puede cambiar, es un botón que abre la hoja nativa «Pasar a». */}
+              {posibles.length > 0 ? (
+                <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar)} style={[e.estado, { backgroundColor: `${t[estado.tono]}1F` }]}>
+                  <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
+                  <Text variant="labelMedium" style={{ color: t[estado.tono] }}>{estado.texto}</Text>
+                  <Icono nombre="despliegue" tamano={12} color={t[estado.tono]} />
+                </Toque>
+              ) : (
+                <View style={[e.estado, { backgroundColor: `${t[estado.tono]}1F` }]}>
+                  <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
+                  <Text variant="labelMedium" style={{ color: t[estado.tono] }}>{estado.texto}</Text>
+                </View>
+              )}
+              {identificador ? <Text numberOfLines={1} style={[e.id, { color: t.suave }]}>{identificador}</Text> : null}
+            </View>
+            {q.next_contact_date ? (
+              <View style={e.contacto}>
+                <Icono nombre="reloj" tamano={14} color={t.seguimiento} />
+                <Text variant="labelMedium" style={{ color: t.seguimiento }}>Contactar el {diaCorto(q.next_contact_date)}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
+        </Surface>
       </Animated.View>
     </Toque>
   );
@@ -165,16 +171,16 @@ export function FilaPresupuesto({
 }
 
 const e = StyleSheet.create({
-  // Sin sombra: la fila que se desliza recorta lo que sale de sus bordes, y todas las tarjetas de la lista deben verse iguales.
-  fila: { overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderRadius: radio.l, borderCurve: 'continuous', paddingVertical: 14, paddingHorizontal: espacio.l, gap: 6, minHeight: MIN_TOQUE },
+  // Superficie elevada de Material (sombra afuera) y, adentro, la fila que recorta la barra roja en las esquinas.
+  superficie: { borderRadius: radio.l },
+  fila: { overflow: 'hidden', borderRadius: radio.l, borderCurve: 'continuous', paddingVertical: 14, paddingHorizontal: espacio.l, gap: 6, minHeight: MIN_TOQUE },
   relleno: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, transformOrigin: 'left' },
   etiquetaEliminar: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s },
-  textoEliminar: { color: '#FFFFFF', fontSize: letra.cuerpo, fontWeight: '700' },
+  textoEliminar: { color: '#FFFFFF', fontWeight: '700' },
   arriba: { flexDirection: 'row', alignItems: 'baseline', gap: espacio.m },
   flex: { flex: 1 },
   abajo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.s, marginTop: 2 },
-  estadoToque: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  estadoTexto: { fontSize: letra.chico, fontWeight: '600' },
+  estado: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 26, paddingHorizontal: 10, borderRadius: 13 },
   punto: { width: 8, height: 8, borderRadius: 4 },
   monto: { fontVariant: ['tabular-nums'] },
   totalFila: { flexDirection: 'row', alignItems: 'center', gap: espacio.xs },
