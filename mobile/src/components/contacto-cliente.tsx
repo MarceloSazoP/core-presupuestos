@@ -1,13 +1,13 @@
 import * as Haptics from 'expo-haptics';
 import { avisar } from '@/lib/toast';
 import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import { Text, TouchableRipple } from 'react-native-paper';
+import { Linking, Platform, StyleSheet, View } from 'react-native';
+import { Avatar, Text, TouchableRipple } from 'react-native-paper';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { BotonM, CampoM, HojaM, TarjetaM, TextoM } from '@/components/material';
-import { Icono } from '@/components/ui';
+import { CampoM, HojaM, TarjetaM, TextoM } from '@/components/material';
+import { Icono, type NombreIcono } from '@/components/ui';
 import { ESTADOS } from '@/lib/estados';
 import { usePais } from '@/lib/pais-actual';
 import { separarTelefono } from '@/lib/paises';
@@ -54,6 +54,7 @@ export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () =>
 }
 
 export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambiar: (f: (p: Presupuesto) => Presupuesto) => void; alCerrar: () => void }) {
+  const t = useTema();
   const pais = usePais();
   const [nombre, setNombre] = useState(q.customer.name);
   const [telefono, setTelefono] = useState(separarTelefono(q.customer.phone, pais.calling_code).nacional);
@@ -86,16 +87,65 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
     }
   }
 
+  // Llamar, WhatsApp y correo usan los datos guardados (los que ya conoce la app), no lo que se está escribiendo.
+  const abrir = (url: string, que: string) => void Linking.openURL(url).catch(() => avisar.error(`No se pudo abrir ${que}`, 'Revisa que el teléfono tenga una app para eso.'));
+  const telGuardado = q.customer.phone;
+  const correoGuardado = q.customer.email;
+
+  // Diseño aprobado (lienzo «Rediseño encabezado del presupuesto», Datos del cliente): arriba las iniciales y el nombre; tres accesos
+  // rápidos (el teléfono y el correo ya no están en el título de la barra); y los campos para corregir nombre, teléfono y correo.
   return (
     <HojaM titulo="Datos del cliente" cancelar={{ titulo: 'Cancelar', onPress: alCerrar }} listo={{ titulo: 'Guardar', fuerte: true, onPress: () => void guardar() }} alCerrar={alCerrar}>
+      <View style={e.cabeceraCliente}>
+        <Avatar.Text size={64} label={iniciales(nombre || q.customer.name)} color={t.acento} style={{ backgroundColor: `${t.acento}1F` }} />
+        <Text variant="headlineSmall" numberOfLines={2} style={[e.nombreGrande, { color: t.texto }]}>{nombre.trim() || q.customer.name}</Text>
+      </View>
+      <View style={e.accesos}>
+        <Acceso icono="llamar" texto="Llamar" etiqueta={`Llamar a ${q.customer.name}`} alTocar={() => abrir(`tel:${telGuardado}`, 'el teléfono')} />
+        <Acceso icono="mensaje" texto="WhatsApp" etiqueta={`Escribir a ${q.customer.name} por WhatsApp`} alTocar={() => abrir(`https://wa.me/${telGuardado.replace(/\D/g, '')}`, 'WhatsApp')} />
+        <Acceso icono="correo" texto="Correo" etiqueta={correoGuardado ? `Escribir a ${correoGuardado}` : 'Sin correo guardado'} deshabilitado={!correoGuardado} alTocar={() => abrir(`mailto:${correoGuardado}`, 'el correo')} />
+      </View>
       <TarjetaM>
         <CampoM etiqueta="Nombre del cliente" value={nombre} onChangeText={setNombre} error={errores.nombre} autoCapitalize="words" />
-        <CampoTelefono material codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono del cliente" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
-        <CampoM etiqueta="Correo del cliente" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
+        <CampoTelefono material codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
+        <CampoM etiqueta="Correo" value={correo} onChangeText={setCorreo} error={errores.correo} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Déjalo vacío si no tiene." />
         {aviso ? <TextoM variante="chico" color="error" accessibilityRole="alert">{aviso}</TextoM> : null}
       </TarjetaM>
-      <BotonM titulo="Guardar" icono="listo" onPress={() => void guardar()} />
+      <TextoM variante="chico" suave>Si corriges el teléfono o el correo, los envíos y el seguimiento usan los nuevos.</TextoM>
     </HojaM>
+  );
+}
+
+// Las iniciales del nombre (las dos primeras palabras), para el círculo de arriba.
+const iniciales = (nombre: string) =>
+  nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase())
+    .join('') || '?';
+
+// Un acceso rápido: el ícono en el acento sobre su tono suave y el nombre debajo (como la captura rápida de la visita).
+function Acceso({ icono, texto, etiqueta, deshabilitado, alTocar }: { icono: NombreIcono; texto: string; etiqueta: string; deshabilitado?: boolean; alTocar: () => void }) {
+  const t = useTema();
+  return (
+    <TouchableRipple
+      accessibilityRole="button"
+      accessibilityLabel={etiqueta}
+      accessibilityState={{ disabled: !!deshabilitado }}
+      disabled={deshabilitado}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        alTocar();
+      }}
+      borderless
+      style={[e.acceso, { backgroundColor: `${t.acento}${t.oscuro ? '29' : '1A'}`, opacity: deshabilitado ? 0.45 : 1 }]}
+    >
+      <View style={e.contenidoAcceso}>
+        <Icono nombre={icono} tamano={22} color={t.acento} />
+        <Text variant="labelLarge" style={{ color: t.texto }}>{texto}</Text>
+      </View>
+    </TouchableRipple>
   );
 }
 
@@ -107,4 +157,9 @@ const e = StyleSheet.create({
   nombre: { fontWeight: '600' },
   punto: { width: 7, height: 7, borderRadius: 4 },
   flexTexto: { flexShrink: 1 },
+  cabeceraCliente: { alignItems: 'center', gap: espacio.s, paddingTop: espacio.xs },
+  nombreGrande: { fontWeight: '600', textAlign: 'center' },
+  accesos: { flexDirection: 'row', gap: espacio.s },
+  acceso: { flex: 1, height: 64, borderRadius: 16 },
+  contenidoAcceso: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
 });
