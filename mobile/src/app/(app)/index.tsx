@@ -4,11 +4,11 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { alternarMontos, INICIO, useMontosOcultos } from '@/lib/montos';
 import { useCallback, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton } from 'react-native-paper';
+import { IconButton, Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Resumen } from '@/components/resumen';
 import { Sincronizacion } from '@/components/sincronizacion';
-import { Icono, TituloBloque } from '@/components/ui';
+import { Icono } from '@/components/ui';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // Inicio (primera pantalla): cómo va el mes, a quién contactar hoy y, junto al título «Resumen», «Nuevo presupuesto». La lista con sus pestañas por estado
@@ -61,12 +61,17 @@ export default function Inicio() {
         <Sincronizacion />
         {/* «Resumen» y, a la derecha, el ojo que oculta los montos del inicio. */}
         <View style={e.titulo}>
-          <TituloBloque titulo="Resumen" icono="tendencia" />
-          {/* El ojo como botón de Material (onda al tocar); misma lógica, tamaño y ícono que `BotonOjo`, que siguen usando las otras pantallas. */}
+          {/* «Resumen» en el título grande de Material 3, con su ícono en un círculo tonal. */}
+          <View style={e.izquierda}>
+            <View style={[e.iconoTitulo, { backgroundColor: `${t.acento}1F` }]}><Icono nombre="tendencia" tamano={20} color={t.acento} /></View>
+            <Text variant="titleLarge" accessibilityRole="header">Resumen</Text>
+          </View>
+          {/* El ojo como botón tonal de Material (onda al tocar); misma lógica que `BotonOjo`, que siguen usando las otras pantallas. */}
           <IconButton
+            mode="contained-tonal"
             icon={({ color }) => <Icono nombre={ocultos ? 'ojoCerrado' : 'ojo'} tamano={20} color={color} />}
             iconColor={t.acento}
-            containerColor={ocultos ? `${t.acento}26` : 'transparent'}
+            containerColor={ocultos ? `${t.acento}40` : `${t.acento}1F`}
             selected={ocultos}
             accessibilityState={{ selected: ocultos }}
             accessibilityLabel={ocultos ? 'Montos ocultos. Tocar para mostrarlos' : 'Ocultar los montos'}
@@ -88,8 +93,7 @@ export default function Inicio() {
 
 const e = StyleSheet.create({
   izquierda: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  nuevo: { minHeight: 34, flexDirection: 'row', alignItems: 'center', gap: espacio.xs, borderRadius: 17, paddingHorizontal: espacio.m },
-  textoNuevo: { fontSize: 14, fontWeight: '600' },
+  iconoTitulo: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   titulo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
   ojo: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, margin: 0 },
 });

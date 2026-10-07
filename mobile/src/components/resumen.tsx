@@ -1,12 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { INICIO, useDinero } from '@/lib/montos';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, DataTable } from 'react-native-paper';
+import { Card, DataTable, Text } from 'react-native-paper';
 import Animated, { Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
-import { Icono, Seccion, Texto, type NombreIcono } from '@/components/ui';
+import { Icono, type NombreIcono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { porcentaje, puntos, variacion, type Variacion } from '@/lib/variacion';
 import { useRefrescar } from '@/lib/refrescar';
@@ -59,24 +59,24 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
     // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
     <Animated.View key={ronda} entering={FadeIn.duration(200)} style={e.bloque}>
       <View style={e.grilla}>
-          <Dato indice={0} icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
-          <Dato indice={1} icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
-          <Dato indice={2} icono="listo" tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-          <Dato indice={3} icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
-        </View>
+        <Dato indice={0} icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
+        <Dato indice={1} icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
+        <Dato indice={2} icono="listo" tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+        <Dato indice={3} icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
+      </View>
 
-      <Seccion titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
+      <SeccionMaterial titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
         <Grafico meses={d.meses} moneda={moneda} />
-      </Seccion>
+      </SeccionMaterial>
 
-      <Seccion titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
+      <SeccionMaterial titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
         {hoy.length ? (
-          <Card mode="elevated" style={e.tarjeta} contentStyle={e.lista}>
+          <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.lista}>
             <DataTable>
-              <DataTable.Header style={[e.encabezado, { backgroundColor: t.campo, borderBottomColor: t.borde }]}>
-                <DataTable.Title style={[e.flex, e.titulo]} textStyle={[e.textoEncabezado, { color: t.suave }]}>Cliente</DataTable.Title>
-                <DataTable.Title style={[e.colEnviado, e.titulo]} textStyle={[e.textoEncabezado, { color: t.suave }]}>Enviado</DataTable.Title>
-                <DataTable.Title numeric style={[e.colMonto, e.titulo]} textStyle={[e.textoEncabezado, { color: t.suave }]}>Monto</DataTable.Title>
+              <DataTable.Header style={{ borderBottomColor: t.borde }}>
+                <DataTable.Title style={e.flex}>Cliente</DataTable.Title>
+                <DataTable.Title style={e.colEnviado}>Enviado</DataTable.Title>
+                <DataTable.Title numeric style={e.colMonto}>Monto</DataTable.Title>
               </DataTable.Header>
               {hoy.map((q, i) => (
                 <DataTable.Row
@@ -87,25 +87,42 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
                   style={[e.fila, { borderBottomColor: t.borde }, i === hoy.length - 1 ? e.ultima : null]}
                 >
                   <DataTable.Cell style={e.flex}>
-                    <Texto fuerte numberOfLines={2}>{q.customer.name}</Texto>
+                    <Text variant="bodyLarge" numberOfLines={2} style={e.nombre}>{q.customer.name}</Text>
                   </DataTable.Cell>
                   <DataTable.Cell style={e.colEnviado}>
-                    <Texto suave>{q.days_since_sent === 0 ? 'hoy' : `hace ${q.days_since_sent} d`}</Texto>
+                    <Text variant="bodyMedium" style={{ color: t.suave }}>{q.days_since_sent === 0 ? 'hoy' : `hace ${q.days_since_sent} d`}</Text>
                   </DataTable.Cell>
                   <DataTable.Cell numeric style={e.colMonto}>
-                    <Texto numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.numero}>{montoDe(q.total, q.currency)}</Texto>
+                    <Text variant="bodyLarge" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={e.numero}>{montoDe(q.total, q.currency)}</Text>
                   </DataTable.Cell>
                 </DataTable.Row>
               ))}
             </DataTable>
           </Card>
         ) : (
-          <Card mode="elevated" style={e.tarjeta} contentStyle={e.relleno}>
-            <Texto suave>Nadie por contactar hoy. Los presupuestos enviados con fecha de contacto aparecen aquí cuando les toca.</Texto>
+          <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.relleno}>
+            <Text variant="bodyMedium" style={{ color: t.suave }}>Nadie por contactar hoy. Los presupuestos enviados con fecha de contacto aparecen aquí cuando les toca.</Text>
           </Card>
         )}
-      </Seccion>
+      </SeccionMaterial>
     </Animated.View>
+  );
+}
+
+// Título de sección de Material 3: el ícono en un círculo tonal, el nombre en «título medio» y la línea que explica para qué sirve.
+function SeccionMaterial({ titulo, icono, descripcion, children }: { titulo: string; icono: NombreIcono; descripcion?: string; children: ReactNode }) {
+  const t = useTema();
+  return (
+    <View style={e.seccion}>
+      <View style={e.cabeceraSeccion}>
+        <View style={[e.iconoSeccion, { backgroundColor: `${t.acento}1F` }]}><Icono nombre={icono} tamano={18} color={t.acento} /></View>
+        <View style={e.flex}>
+          <Text variant="titleMedium" accessibilityRole="header">{titulo}</Text>
+          {descripcion ? <Text variant="bodySmall" style={{ color: t.suave }}>{descripcion}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
   );
 }
 
@@ -129,7 +146,7 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   const max = Math.max(1, ...meses.flatMap((m) => [m.quoted_amount, m.accepted_amount]));
   const ALTO = 64;
   return (
-    <Card mode="elevated" style={e.tarjeta} contentStyle={e.relleno}>
+    <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.relleno}>
       <View style={e.barras} accessibilityLabel={`Presupuestado y aceptado por mes. ${meses.map((m) => `${NOMBRES[Number(m.month.slice(5)) - 1]}: ${clp(m.quoted_amount)} presupuestado, ${clp(m.accepted_amount)} aceptado`).join('. ')}`}>
         {meses.map((m, i) => (
           <View key={m.month} style={e.mes}>
@@ -137,13 +154,13 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
               <Barra alto={Math.max(3, (m.quoted_amount / max) * ALTO)} color={t.serie1} orden={i * 2} />
               <Barra alto={Math.max(3, (m.accepted_amount / max) * ALTO)} color={t.serie2} orden={i * 2 + 1} />
             </View>
-            <Texto variante="chico" suave>{NOMBRES[Number(m.month.slice(5)) - 1]}</Texto>
+            <Text variant="labelSmall" style={{ color: t.suave }}>{NOMBRES[Number(m.month.slice(5)) - 1]}</Text>
           </View>
         ))}
       </View>
       <View style={e.leyenda}>
-        <View style={e.item}><View style={[e.punto, { backgroundColor: t.serie1 }]} /><Texto variante="chico" suave>Presupuestado</Texto></View>
-        <View style={e.item}><View style={[e.punto, { backgroundColor: t.serie2 }]} /><Texto variante="chico" suave>Aceptado</Texto></View>
+        <View style={e.item}><View style={[e.punto, { backgroundColor: t.serie1 }]} /><Text variant="bodySmall" style={{ color: t.suave }}>Presupuestado</Text></View>
+        <View style={e.item}><View style={[e.punto, { backgroundColor: t.serie2 }]} /><Text variant="bodySmall" style={{ color: t.suave }}>Aceptado</Text></View>
       </View>
     </Card>
   );
@@ -152,45 +169,45 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
 function Dato({ indice, icono, tono, titulo, valor, nota, variacion }: { indice: number; icono: NombreIcono; tono: 'kpi1' | 'kpi2' | 'kpi3' | 'kpi4'; titulo: string; valor: string; nota: string; variacion?: Variacion | null }) {
   const t = useTema();
   const tinta = t[`${tono}Tinta`];
-  // Tarjeta neutra: el color va en el icono y las palabras; la cifra, en el color de texto (blanco en oscuro) para que mande ella.
+  // Tarjeta tonal de Material 3: el fondo es el tono suave del indicador; el ícono va en un círculo del color de la superficie, y la cifra
+  // en «titular», en el color de texto para que mande ella.
   return (
     // Las cuatro tarjetas entran una tras otra (60 ms de diferencia) subiendo un poco.
     <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={e.dato}>
-      <Card mode="elevated" style={e.tarjetaDato} contentStyle={e.contenidoDato}>
+      <Card mode="contained" style={[e.tarjetaDato, { backgroundColor: t[`${tono}Fondo`] }]} contentStyle={e.contenidoDato}>
         <View style={e.cabeza}>
-          <View style={[e.icono, { backgroundColor: t[`${tono}Fondo`] }]}><Icono nombre={icono} tamano={18} color={tinta} /></View>
-          <Texto variante="chico" fuerte numberOfLines={2} style={[e.flex, { color: tinta }]}>{titulo}</Texto>
+          <View style={[e.icono, { backgroundColor: t.tarjeta }]}><Icono nombre={icono} tamano={18} color={tinta} /></View>
+          <Text variant="labelLarge" numberOfLines={2} style={[e.flex, { color: tinta }]}>{titulo}</Text>
         </View>
-        <Texto variante="titulo" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Texto>
-        <Texto variante="chico" numberOfLines={1} style={{ color: tinta }}>{nota}</Texto>
+        <Text variant="headlineMedium" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={e.numero}>{valor}</Text>
+        <Text variant="bodySmall" numberOfLines={1} style={{ color: tinta }}>{nota}</Text>
         {/* Frente al mes anterior: las flechas ▲▼ dicen si sube o baja. */}
-        {variacion ? <Texto variante="chico" fuerte numberOfLines={1} style={{ color: tinta }}>{variacion.texto}</Texto> : null}
+        {variacion ? <Text variant="labelMedium" numberOfLines={1} style={{ color: tinta }}>{variacion.texto}</Text> : null}
       </Card>
     </Animated.View>
   );
 }
 
 const e = StyleSheet.create({
-  bloque: { gap: espacio.l, paddingBottom: espacio.l },
+  bloque: { gap: espacio.xl, paddingBottom: espacio.l },
   grilla: { flexDirection: 'row', flexWrap: 'wrap', gap: espacio.m },
-  // Mismas medidas que la `Tarjeta` de la app (radio, relleno y separación); Material pone la elevación y la onda al tocar.
   dato: { flexGrow: 1, flexBasis: '45%' },
   tarjetaDato: { flex: 1, borderRadius: radio.l },
-  contenidoDato: { padding: espacio.l, gap: 2 },
-  tarjeta: { borderRadius: radio.l },
-  relleno: { padding: espacio.l, gap: espacio.m },
+  contenidoDato: { padding: espacio.l, gap: espacio.xs },
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
   icono: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   numero: { fontVariant: ['tabular-nums'] },
+  tarjeta: { borderRadius: radio.l },
+  relleno: { padding: espacio.l, gap: espacio.m },
+  seccion: { gap: espacio.m },
+  cabeceraSeccion: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
+  iconoSeccion: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   lista: { borderRadius: radio.l, overflow: 'hidden' },
   fila: { minHeight: 60, paddingHorizontal: espacio.l, borderBottomWidth: StyleSheet.hairlineWidth },
-  flex: { flex: 1 },
-  encabezado: { minHeight: 36, paddingHorizontal: espacio.l, borderBottomWidth: StyleSheet.hairlineWidth },
-  // Cabecera de 36 de alto, como antes (Paper trae 48): menos relleno y una línea de texto más baja.
-  titulo: { paddingVertical: espacio.s },
-  textoEncabezado: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
   ultima: { borderBottomWidth: 0 },
-  // La separación de 12 entre columnas (Paper no la trae): en la cabecera y en las filas.
+  nombre: { fontWeight: '500' },
+  flex: { flex: 1 },
+  // La separación de 12 entre columnas (la tabla de Paper no la trae): en la cabecera y en las filas.
   colEnviado: { width: 76, marginLeft: espacio.m },
   colMonto: { width: 96, marginLeft: espacio.m },
   barras: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
