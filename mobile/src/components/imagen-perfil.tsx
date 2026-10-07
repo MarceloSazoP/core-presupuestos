@@ -3,11 +3,12 @@ import { avisar } from '@/lib/toast';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Keyboard, StyleSheet, Switch, View } from 'react-native';
+import { Alert, Keyboard, StyleSheet, View } from 'react-native';
+import { Switch, Text } from 'react-native-paper';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { api, fuenteDeArchivo, mensajeDe, subir } from '@/api/client';
 import type { Usuario } from '@/api/types';
-import { Boton, Texto } from '@/components/ui';
+import { BotonM } from '@/components/material';
 import { prepararLogo } from '@/lib/foto';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
@@ -91,30 +92,30 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
   return (
     <View style={e.seccion}>
       <View style={e.filaSwitch}>
-        <Texto variante="subtitulo" style={e.textoSwitch}>{titulo}</Texto>
-        <Switch accessibilityLabel={`${titulo}: ${activo ? 'activado' : 'desactivado'}`} value={activo} disabled={cambiando} onValueChange={(v) => void usar(v)} trackColor={{ true: t.acento }} />
+        <Text variant="titleMedium" style={e.textoSwitch}>{titulo}</Text>
+        <Switch accessibilityLabel={`${titulo}: ${activo ? 'activado' : 'desactivado'}`} value={activo} disabled={cambiando} onValueChange={(v) => void usar(v)} color={t.acento} />
       </View>
       {activo ? (
         <>
-          <Texto variante="chico" suave>{ayuda}</Texto>
+          <Text variant="bodySmall" style={{ color: t.suave }}>{ayuda}</Text>
           <View style={[e.vista, { backgroundColor: tiene ? '#FFFFFF' : t.campo, borderColor: t.borde }]}>
             {tiene ? (
               <Image source={fuenteDeArchivo(`/me/${ruta}?v=${id ?? 'sin-id'}`)} contentFit="contain" accessibilityLabel={titulo} style={e.imagen} />
             ) : (
-              <Texto variante="chico" suave>{vacio}</Texto>
+              <Text variant="bodySmall" style={{ color: t.suave }}>{vacio}</Text>
             )}
             {/* Destello verde al cambiar: solo se ve un instante y no recibe toques */}
             <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, e.destello, { backgroundColor: `${t.ok}40`, borderColor: t.ok }, estiloDestello]}>
               <View style={[e.etiqueta, { backgroundColor: t.ok }]}>
-                <Texto variante="chico" fuerte color="sobreAcento">{mensaje} ✓</Texto>
+                <Text variant="labelMedium" style={{ color: t.sobreAcento }}>{mensaje} ✓</Text>
               </View>
             </Animated.View>
           </View>
-          <Boton titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} icono="galeria" colorIcono={t.acento} variante="secundario" onPress={() => void elegir()} cargando={ocupado} />
-          {tiene ? <Boton titulo={`Quitar ${nombre}`} icono="papelera" colorIcono={t.error} variante="secundario" onPress={quitar} disabled={ocupado} /> : null}
+          <BotonM titulo={tiene ? `Cambiar ${nombre}` : `Elegir ${nombre}`} icono="galeria" colorIcono={t.acento} variante="contorno" onPress={() => void elegir()} cargando={ocupado} />
+          {tiene ? <BotonM titulo={`Quitar ${nombre}`} icono="papelera" colorIcono={t.error} variante="contorno" onPress={quitar} disabled={ocupado} /> : null}
         </>
       ) : (
-        <Texto variante="chico" suave>{`Apagado: ${nombre} no sale en tus presupuestos. Enciéndelo para subir la imagen.`}</Texto>
+        <Text variant="bodySmall" style={{ color: t.suave }}>{`Apagado: ${nombre} no sale en tus presupuestos. Enciéndelo para subir la imagen.`}</Text>
       )}
     </View>
   );

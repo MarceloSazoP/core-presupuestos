@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
 import { EliminarCuenta } from '@/components/eliminar-cuenta';
-import { Boton, Seccion, Texto } from '@/components/ui';
+import { Text } from 'react-native-paper';
+import { BotonM, SeccionM } from '@/components/material';
 import { avisar } from '@/lib/toast';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
@@ -56,22 +57,22 @@ export default function MiCuenta() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <Seccion titulo="Entrar en otro teléfono" icono="qr" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
-        <Boton titulo="Enviar QR de recuperación a mi correo" icono="qr" icono2="correo" colorIcono={t.acento} variante="secundario" onPress={() => void enviarQr()} cargando={enviandoQr} />
-        <Texto variante="chico" suave>Sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número. Pedir uno nuevo deja sin efecto el anterior.</Texto>
-      </Seccion>
+      <SeccionM titulo="Entrar en otro teléfono" icono="qr" descripcion={`Ingresas con ${usuario?.phone ?? ''} y ${usuario?.email ?? ''}. Esos datos no se cambian aquí.`}>
+        <BotonM titulo="Enviar QR de recuperación a mi correo" icono="qr" colorIcono={t.acento} variante="contorno" onPress={() => void enviarQr()} cargando={enviandoQr} />
+        <Text variant="bodySmall" style={{ color: t.suave }}>Sirve para volver a entrar si pierdes o cambias de teléfono, aunque no recuerdes el número. Pedir uno nuevo deja sin efecto el anterior.</Text>
+      </SeccionM>
 
-      <Seccion titulo="Tus datos" icono="exportar" descripcion="Te llevas una copia de todo lo tuyo.">
-        <Boton titulo="Exportar mi data" icono="exportar" colorIcono={t.acento} variante="secundario" onPress={confirmarExportar} cargando={exportando} />
-      </Seccion>
+      <SeccionM titulo="Tus datos" icono="exportar" descripcion="Te llevas una copia de todo lo tuyo.">
+        <BotonM titulo="Exportar mi data" icono="exportar" colorIcono={t.acento} variante="contorno" onPress={confirmarExportar} cargando={exportando} />
+      </SeccionM>
 
-      <Seccion titulo="Sesión" icono="salir">
-        <Boton titulo="Cerrar sesión" icono="salir" colorIcono={t.error} variante="secundario" onPress={confirmarSalida} />
-      </Seccion>
+      <SeccionM titulo="Sesión" icono="salir">
+        <BotonM titulo="Cerrar sesión" icono="salir" colorIcono={t.error} variante="contorno" onPress={confirmarSalida} />
+      </SeccionM>
 
-      <Seccion titulo="Zona de peligro" icono="alerta" descripcion="Eliminar la cuenta borra todo lo tuyo para siempre y no se puede deshacer.">
-        <Boton titulo="Eliminar mi cuenta" icono="papelera" variante="peligro" onPress={() => setEliminando(true)} />
-      </Seccion>
+      <SeccionM titulo="Zona de peligro" icono="alerta" descripcion="Eliminar la cuenta borra todo lo tuyo para siempre y no se puede deshacer.">
+        <BotonM titulo="Eliminar mi cuenta" icono="papelera" variante="peligro" onPress={() => setEliminando(true)} />
+      </SeccionM>
       {eliminando ? <EliminarCuenta alCerrar={() => setEliminando(false)} /> : null}
     </ScrollView>
   );

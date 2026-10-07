@@ -1,10 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { List } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { ElegirPais } from '@/components/elegir-pais';
-import { Icono, Presionable, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { SeccionM, TarjetaM } from '@/components/material';
+import { Icono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { bandera } from '@/lib/paises';
 import { avisar } from '@/lib/toast';
@@ -32,17 +34,24 @@ export default function PaisDeLaCuenta() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <Seccion titulo="País" icono="globo" descripcion="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian.">
-        <Tarjeta style={e.tarjeta}>
-          <Presionable accessibilityRole="button" accessibilityLabel={`País: ${pais.name}. Cambiar`} onPress={() => setEligiendo(true)} estilo={e.fila}>
-            <View style={e.flex}>
-              <Texto fuerte>{bandera(pais.country)} {pais.name}</Texto>
-              <Texto variante="chico" suave>{pais.currency} · {pais.vat_label} {pais.vat_rate} %</Texto>
-            </View>
-            <Icono nombre="despliegue" tamano={12} color={t.suave} />
-          </Presionable>
-        </Tarjeta>
-      </Seccion>
+      <SeccionM titulo="País" icono="globo" descripcion="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian.">
+        <TarjetaM sinRelleno>
+          <List.Item
+            title={`${bandera(pais.country)} ${pais.name}`}
+            titleStyle={e.titulo}
+            description={`${pais.currency} · ${pais.vat_label} ${pais.vat_rate} %`}
+            onPress={() => setEligiendo(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`País: ${pais.name}. Cambiar`}
+            style={e.fila}
+            right={() => (
+              <View style={e.derecha}>
+                <Icono nombre="despliegue" tamano={12} color={t.suave} />
+              </View>
+            )}
+          />
+        </TarjetaM>
+      </SeccionM>
       {eligiendo ? <ElegirPais titulo="País" nota="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian." detalle={(p) => `${p.currency} · ${p.vat_label} ${p.vat_rate} %`} actual={pais.country} alElegir={(c) => void cambiar(c)} alCerrar={() => setEligiendo(false)} /> : null}
     </ScrollView>
   );
@@ -50,7 +59,7 @@ export default function PaisDeLaCuenta() {
 
 const e = StyleSheet.create({
   contenido: { padding: espacio.l, paddingBottom: espacio.xxl * 2, gap: espacio.xl },
-  tarjeta: { padding: 0 },
-  fila: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l },
-  flex: { flex: 1 },
+  fila: { minHeight: 64, justifyContent: 'center', paddingHorizontal: espacio.l },
+  titulo: { fontWeight: '600' },
+  derecha: { justifyContent: 'center' },
 });

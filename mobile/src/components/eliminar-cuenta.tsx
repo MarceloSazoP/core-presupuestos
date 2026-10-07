@@ -1,8 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { HelperText, Text, TextInput } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
-import { Boton, Campo, Icono, Presionable, Texto } from '@/components/ui';
+import { BotonM } from '@/components/material';
+import { Icono, Texto } from '@/components/ui';
 import { olvidarAcceso } from '@/lib/ultimo-acceso';
 import { avisar } from '@/lib/toast';
 import { useSesion } from '@/session';
@@ -67,33 +69,48 @@ export function EliminarCuenta({ alCerrar }: { alCerrar: () => void }) {
           <View style={[e.aviso, { backgroundColor: `${t.error}14`, borderColor: `${t.error}55` }]}>
             <Icono nombre="alerta" tamano={22} color={t.error} />
             <View style={e.flex}>
-              <Texto fuerte color="error">Esto no se puede deshacer</Texto>
-              <Texto variante="chico" suave>Se elimina todo lo tuyo para siempre. Si quieres una copia, primero toca «Exportar mi data».</Texto>
+              <Text variant="titleSmall" style={{ color: t.error }}>Esto no se puede deshacer</Text>
+              <Text variant="bodySmall" style={{ color: t.suave }}>Se elimina todo lo tuyo para siempre. Si quieres una copia, primero toca «Exportar mi data».</Text>
             </View>
           </View>
           <View style={e.lista}>
             {pierde.map((p) => (
               <View key={p} style={e.item}>
                 <Icono nombre="cerrar" tamano={14} color={t.error} />
-                <Texto style={e.flex}>{p}</Texto>
+                <Text variant="bodyMedium" style={e.flex}>{p}</Text>
               </View>
             ))}
           </View>
 
           {destino === null ? (
             <>
-              <Texto variante="chico" suave>Para confirmar, te enviaremos un código de 6 dígitos al correo de tu cuenta.</Texto>
-              <Boton titulo="Enviar código a mi correo" icono="correo" colorIcono={t.acento} variante="secundario" onPress={() => void pedirCodigo()} cargando={enviando} />
+              <Text variant="bodySmall" style={{ color: t.suave }}>Para confirmar, te enviaremos un código de 6 dígitos al correo de tu cuenta.</Text>
+              <BotonM titulo="Enviar código a mi correo" icono="correo" colorIcono={t.acento} variante="contorno" onPress={() => void pedirCodigo()} cargando={enviando} />
             </>
           ) : (
             <>
-              <Texto>Enviamos un código a <Texto fuerte>{destino}</Texto>. Vale 10 minutos.</Texto>
-              <Campo etiqueta="Código del correo" icono="correo" value={codigo} onChangeText={(v) => { setCodigo(v.replace(/\D/g, '').slice(0, 6)); setError(null); }} keyboardType="number-pad" maxLength={6} textContentType="oneTimeCode" autoComplete="sms-otp" autoFocus error={error} placeholder="6 dígitos" />
-              <Presionable accessibilityRole="button" accessibilityState={{ disabled: codigo.length !== 6 || eliminando }} disabled={codigo.length !== 6 || eliminando} onPress={() => void eliminar()} estilo={[e.eliminar, { backgroundColor: t.error, opacity: codigo.length === 6 && !eliminando ? 1 : 0.4 }]}>
-                <Icono nombre="papelera" tamano={18} color="#FFFFFF" />
-                <Texto fuerte style={e.textoEliminar}>{eliminando ? 'Eliminando…' : 'Eliminar definitivamente'}</Texto>
-              </Presionable>
-              <Boton titulo="Reenviar el código" variante="texto" onPress={() => void pedirCodigo()} cargando={enviando} disabled={eliminando} />
+              <Text variant="bodyMedium">Enviamos un código a <Text variant="bodyMedium" style={e.fuerte}>{destino}</Text>. Vale 10 minutos.</Text>
+              <View>
+                {/* Campo de Material con la etiqueta sobre el borde; el teclado es numérico y el sistema puede pegar el código del correo. */}
+                <TextInput
+                  mode="outlined"
+                  label="Código del correo"
+                  value={codigo}
+                  onChangeText={(v) => { setCodigo(v.replace(/\D/g, '').slice(0, 6)); setError(null); }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  textContentType="oneTimeCode"
+                  autoComplete="sms-otp"
+                  autoFocus
+                  error={!!error}
+                  placeholder="6 dígitos"
+                  left={<TextInput.Icon icon={({ size, color }) => <Icono nombre="correo" tamano={size} color={color} />} />}
+                  outlineStyle={e.borde}
+                />
+                {error ? <HelperText type="error" visible accessibilityRole="alert">{error}</HelperText> : null}
+              </View>
+              <BotonM titulo={eliminando ? 'Eliminando…' : 'Eliminar definitivamente'} icono="papelera" variante="peligro" disabled={codigo.length !== 6 || eliminando} onPress={() => void eliminar()} />
+              <BotonM titulo="Reenviar el código" variante="texto" onPress={() => void pedirCodigo()} cargando={enviando} disabled={eliminando} />
             </>
           )}
         </ScrollView>
@@ -111,6 +128,6 @@ const e = StyleSheet.create({
   aviso: { flexDirection: 'row', alignItems: 'flex-start', gap: espacio.m, borderWidth: 1, borderRadius: radio.m, borderCurve: 'continuous', padding: espacio.m },
   lista: { gap: espacio.s },
   item: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  eliminar: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: espacio.s, borderRadius: radio.m, borderCurve: 'continuous', paddingHorizontal: espacio.l },
-  textoEliminar: { color: '#FFFFFF' },
+  fuerte: { fontWeight: '700' },
+  borde: { borderRadius: radio.m },
 });

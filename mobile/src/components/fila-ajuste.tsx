@@ -1,32 +1,56 @@
-import type { ReactNode } from 'react';
+import { Children, Fragment, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Icono, Presionable, Tarjeta, Texto, type NombreIcono } from '@/components/ui';
-import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
+import { Divider, List, Text } from 'react-native-paper';
+import { TarjetaM } from '@/components/material';
+import { Icono, type NombreIcono } from '@/components/ui';
+import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
-// El menú de Configurar con el aspecto de Ajustes de iPhone: grupos de filas en una tarjeta, cada una con su ícono blanco sobre un cuadrado
-// de color, el nombre, un valor a la derecha si lo hay y la flecha «>» que indica que abre una ventana.
+// El menú de Configurar con listas de Material 3: grupos de filas en una tarjeta elevada, separadas por una línea. Cada fila lleva su ícono
+// en un círculo tonal de su color, el nombre, un valor a la derecha si lo hay y la flecha que indica que abre una ventana.
 export function GrupoAjustes({ children }: { children: ReactNode }) {
-  return <Tarjeta style={e.grupo}>{children}</Tarjeta>;
+  const filas = Children.toArray(children);
+  return (
+    <TarjetaM sinRelleno>
+      {filas.map((fila, i) => (
+        <Fragment key={i}>
+          {i > 0 ? <Divider /> : null}
+          {fila}
+        </Fragment>
+      ))}
+    </TarjetaM>
+  );
 }
 
-export function FilaAjuste({ icono, color, titulo, valor, alTocar, primera }: { icono: NombreIcono; color: string; titulo: string; valor?: string; alTocar: () => void; primera?: boolean }) {
+// `primera` ya no hace falta (el grupo pone las líneas), pero se acepta para no cambiar a quien la usa.
+export function FilaAjuste({ icono, color, titulo, valor, alTocar }: { icono: NombreIcono; color: string; titulo: string; valor?: string; alTocar: () => void; primera?: boolean }) {
   const t = useTema();
   return (
-    <Presionable accessibilityRole="button" accessibilityLabel={valor ? `${titulo}: ${valor}` : titulo} onPress={alTocar} estilo={[e.fila, !primera && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: t.borde }]}>
-      <View style={[e.icono, { backgroundColor: color }]}>
-        <Icono nombre={icono} tamano={18} color="#FFFFFF" />
-      </View>
-      <Texto style={e.titulo}>{titulo}</Texto>
-      {valor ? <Texto suave numberOfLines={1} style={e.valor}>{valor}</Texto> : null}
-      <Icono nombre="siguiente" tamano={14} color={t.suave} />
-    </Presionable>
+    <List.Item
+      title={titulo}
+      titleStyle={e.titulo}
+      onPress={alTocar}
+      accessibilityRole="button"
+      accessibilityLabel={valor ? `${titulo}: ${valor}` : titulo}
+      style={e.fila}
+      left={() => (
+        <View style={[e.icono, { backgroundColor: `${color}26` }]}>
+          <Icono nombre={icono} tamano={20} color={color} />
+        </View>
+      )}
+      right={() => (
+        <View style={e.derecha}>
+          {valor ? <Text variant="bodyMedium" numberOfLines={1} style={[e.valor, { color: t.suave }]}>{valor}</Text> : null}
+          <Icono nombre="siguiente" tamano={14} color={t.suave} />
+        </View>
+      )}
+    />
   );
 }
 
 const e = StyleSheet.create({
-  grupo: { padding: 0, gap: 0, overflow: 'hidden' },
-  fila: { minHeight: MIN_TOQUE + 6, flexDirection: 'row', alignItems: 'center', gap: espacio.m, paddingHorizontal: espacio.l },
-  icono: { width: 32, height: 32, borderRadius: radio.s - 2, borderCurve: 'continuous', alignItems: 'center', justifyContent: 'center' },
-  titulo: { flex: 1 },
-  valor: { flexShrink: 1, maxWidth: '45%' },
+  fila: { minHeight: MIN_TOQUE + 8, justifyContent: 'center', paddingLeft: espacio.l, paddingRight: espacio.l },
+  titulo: { fontSize: 16 },
+  icono: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  derecha: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, maxWidth: '55%' },
+  valor: { flexShrink: 1 },
 });

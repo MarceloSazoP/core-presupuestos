@@ -5,7 +5,8 @@ import { api, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { CampoModal } from '@/components/campo-modal';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { Boton, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { Text } from 'react-native-paper';
+import { BotonM, SeccionM, TarjetaM } from '@/components/material';
 import { usePais } from '@/lib/pais-actual';
 import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
@@ -69,15 +70,15 @@ export default function MisDatos() {
 
   return (
     <ScrollView contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
-      <Seccion titulo="Tus datos en los presupuestos" icono="cliente" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
-        <Tarjeta>
+      <SeccionM titulo="Tus datos en los presupuestos" icono="cliente" descripcion="Salen en el PDF, en el enlace que ve tu cliente y en el correo que le envías.">
+        <TarjetaM>
           <CampoModal etiqueta="Nombre o negocio" titulo="Nombre o negocio" agregar="Agregar nombre" icono="cliente" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="name" />
           <CampoTelefono codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono de contacto" value={telefono} onChangeText={setTelefono} error={errores.telefono} ayuda="Si lo dejas vacío se usa el de tu cuenta." />
           <CampoModal etiqueta="Correo de contacto" titulo="Correo de contacto" agregar="Agregar correo" icono="correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} placeholder="email@email.com" ayuda="Si lo dejas vacío se usa el de tu cuenta." />
-          {aviso ? <Texto variante="chico" color={aviso.error ? 'error' : 'ok'} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Texto> : null}
-          <Boton titulo="Guardar datos" icono="guardar" onPress={guardar} cargando={guardando} />
-        </Tarjeta>
-      </Seccion>
+          {aviso ? <Text variant="bodySmall" style={{ color: aviso.error ? t.error : t.ok }} accessibilityRole={aviso.error ? 'alert' : undefined}>{aviso.texto}</Text> : null}
+          <BotonM titulo="Guardar datos" icono="guardar" onPress={() => void guardar()} cargando={guardando} />
+        </TarjetaM>
+      </SeccionM>
     </ScrollView>
   );
 }

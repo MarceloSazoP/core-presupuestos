@@ -1,11 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { INICIO, useDinero } from '@/lib/montos';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, DataTable, Text } from 'react-native-paper';
 import Animated, { Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
+import { SeccionM } from '@/components/material';
 import { Icono, type NombreIcono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
 import { porcentaje, puntos, variacion, type Variacion } from '@/lib/variacion';
@@ -65,11 +66,11 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
         <Dato indice={3} icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
       </View>
 
-      <SeccionMaterial titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
+      <SeccionM titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
         <Grafico meses={d.meses} moneda={moneda} />
-      </SeccionMaterial>
+      </SeccionM>
 
-      <SeccionMaterial titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
+      <SeccionM titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
         {hoy.length ? (
           <Card mode="elevated" elevation={2} style={e.tarjeta} contentStyle={e.lista}>
             <DataTable>
@@ -104,25 +105,8 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
             <Text variant="bodyMedium" style={{ color: t.suave }}>Nadie por contactar hoy. Los presupuestos enviados con fecha de contacto aparecen aquí cuando les toca.</Text>
           </Card>
         )}
-      </SeccionMaterial>
+      </SeccionM>
     </Animated.View>
-  );
-}
-
-// Título de sección de Material 3: el ícono en un círculo tonal, el nombre en «título medio» y la línea que explica para qué sirve.
-function SeccionMaterial({ titulo, icono, descripcion, children }: { titulo: string; icono: NombreIcono; descripcion?: string; children: ReactNode }) {
-  const t = useTema();
-  return (
-    <View style={e.seccion}>
-      <View style={e.cabeceraSeccion}>
-        <View style={[e.iconoSeccion, { backgroundColor: `${t.acento}1F` }]}><Icono nombre={icono} tamano={18} color={t.acento} /></View>
-        <View style={e.flex}>
-          <Text variant="titleMedium" accessibilityRole="header">{titulo}</Text>
-          {descripcion ? <Text variant="bodySmall" style={{ color: t.suave }}>{descripcion}</Text> : null}
-        </View>
-      </View>
-      {children}
-    </View>
   );
 }
 
@@ -199,9 +183,6 @@ const e = StyleSheet.create({
   numero: { fontVariant: ['tabular-nums'] },
   tarjeta: { borderRadius: radio.l },
   relleno: { padding: espacio.l, gap: espacio.m },
-  seccion: { gap: espacio.m },
-  cabeceraSeccion: { flexDirection: 'row', alignItems: 'center', gap: espacio.m },
-  iconoSeccion: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   lista: { borderRadius: radio.l, overflow: 'hidden' },
   fila: { minHeight: 60, paddingHorizontal: espacio.l, borderBottomWidth: StyleSheet.hairlineWidth },
   ultima: { borderBottomWidth: 0 },
