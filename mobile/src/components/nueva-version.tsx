@@ -3,9 +3,10 @@ import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { api, ApiError, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { useDialogo } from '@/components/dialogo';
 import { BotonM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { guardarCodigo } from '@/lib/codigos';
@@ -16,6 +17,7 @@ import { espacio, radio, useTema } from '@/theme';
 // nueva es otro presupuesto, con sus ítems y condiciones copiados, su propio código y su propio número. Requiere conexión.
 export function NuevaVersion({ q }: { q: Presupuesto }) {
   const t = useTema();
+  const { dialogo, decidir } = useDialogo();
   const [trabajando, setTrabajando] = useState(false);
   const siguiente = (q.version ?? 1) + 1;
   const abrir = (id: string) => router.push({ pathname: '/presupuesto/[id]', params: { id } });
@@ -39,7 +41,7 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
   }
 
   const confirmar = () =>
-    Alert.alert(`¿Crear la versión ${siguiente}?`, 'Se copia este presupuesto con sus ítems, tareas y condiciones para que lo corrijas. Tendrá su propio código y su propio número, y dirá que es la versión ' + siguiente + '. El rechazado queda como está.', [
+    decidir(`¿Crear la versión ${siguiente}?`, 'Se copia este presupuesto con sus ítems, tareas y condiciones para que lo corrijas. Tendrá su propio código y su propio número, y dirá que es la versión ' + siguiente + '. El rechazado queda como está.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: `Crear versión ${siguiente}`, onPress: () => void rehacer() },
     ]);
@@ -61,6 +63,7 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
           <BotonM titulo={`Crear versión ${siguiente}`} onPress={confirmar} cargando={trabajando} />
         </>
       )}
+      {dialogo}
     </View>
   );
 }

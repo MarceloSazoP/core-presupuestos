@@ -1,4 +1,5 @@
-import { Alert, Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
+import { useDialogo } from '@/components/dialogo';
 import { Icono, Texto } from '@/components/ui';
 import { descartarFallidas, fallidas, reintentarFallidas, useCola, vaciar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -8,12 +9,13 @@ import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 export function Sincronizacion() {
   const t = useTema();
   const { pendientes, fallidas: conError } = useCola();
+  const { dialogo, decidir } = useDialogo();
   if (!pendientes && !conError) return null;
 
   async function tocar() {
     if (!conError) return void vaciar();
     const motivos = [...new Set((await fallidas()).map((o) => o.last_error ?? 'Error'))].join('\n');
-    Alert.alert('Algo no se pudo enviar', `${motivos}\n\nPuedes reintentar o descartar esos cambios.`, [
+    decidir('Algo no se pudo enviar', `${motivos}\n\nPuedes reintentar o descartar esos cambios.`, [
       { text: 'Más tarde', style: 'cancel' },
       { text: 'Descartar', style: 'destructive', onPress: () => void descartarFallidas() },
       { text: 'Reintentar', onPress: () => void reintentarFallidas() },
@@ -22,10 +24,13 @@ export function Sincronizacion() {
 
   const texto = conError ? `${conError} ${conError === 1 ? 'cambio requiere' : 'cambios requieren'} atención` : `${pendientes} ${pendientes === 1 ? 'cambio' : 'cambios'} sin enviar · toca para reintentar`;
   return (
-    <Pressable accessibilityRole="button" onPress={() => void tocar()} style={({ pressed }) => [e.barra, { backgroundColor: `${conError ? t.error : t.aviso}1A`, borderColor: `${conError ? t.error : t.aviso}66`, opacity: pressed ? 0.7 : 1 }]}>
-      <Icono nombre={conError ? 'alerta' : 'sincronizar'} tamano={16} color={conError ? t.error : t.aviso} />
-      <Texto variante="chico" color={conError ? 'error' : 'aviso'} fuerte style={e.texto}>{texto}</Texto>
-    </Pressable>
+    <>
+      <Pressable accessibilityRole="button" onPress={() => void tocar()} style={({ pressed }) => [e.barra, { backgroundColor: `${conError ? t.error : t.aviso}1A`, borderColor: `${conError ? t.error : t.aviso}66`, opacity: pressed ? 0.7 : 1 }]}>
+        <Icono nombre={conError ? 'alerta' : 'sincronizar'} tamano={16} color={conError ? t.error : t.aviso} />
+        <Texto variante="chico" color={conError ? 'error' : 'aviso'} fuerte style={e.texto}>{texto}</Texto>
+      </Pressable>
+      {dialogo}
+    </>
   );
 }
 

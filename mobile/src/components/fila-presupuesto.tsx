@@ -4,11 +4,12 @@ import { IconoDinero } from '@/components/icono-dinero';
 import { LISTA, useDinero } from '@/lib/montos';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { Surface, Text } from 'react-native-paper';
 import { Pressable as Toque } from 'react-native-gesture-handler';
 import Animated, { cancelAnimation, Easing, Extrapolation, interpolate, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import type { ResumenPresupuesto } from '@/api/types';
+import { useDialogo } from '@/components/dialogo';
 import { Icono, TRANSICION_PRESION } from '@/components/ui';
 import { diaCorto } from '@/lib/fechas';
 import { elegirEstado } from '@/lib/elegir-estado';
@@ -62,8 +63,9 @@ export function FilaPresupuesto({
     onCambiarEstado?.(q, s);
   };
 
+  const { dialogo, decidir } = useDialogo();
   const confirmar = () => {
-    Alert.alert(`¿Eliminar el presupuesto de ${q.customer.name}?`, 'Se borran también sus fotos, notas de voz y notas. No se puede deshacer.', [
+    decidir(`¿Eliminar el presupuesto de ${q.customer.name}?`, 'Se borran también sus fotos, notas de voz y notas. No se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Eliminar', style: 'destructive', onPress: () => onEliminar?.(q) },
     ]);
@@ -144,7 +146,7 @@ export function FilaPresupuesto({
             <View style={e.abajo}>
               {/* El estado es una etiqueta tonal de su color (Material). Si se puede cambiar, es un botón que abre la hoja nativa «Pasar a». */}
               {posibles.length > 0 ? (
-                <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar)} style={[e.estado, { backgroundColor: `${t[estado.tono]}1F` }]}>
+                <Toque accessibilityRole="button" accessibilityLabel={`${estado.texto}. Cambiar estado`} hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }} onPress={() => elegirEstado(q, cambiar, decidir)} style={[e.estado, { backgroundColor: `${t[estado.tono]}1F` }]}>
                   <View style={[e.punto, { backgroundColor: t[estado.tono] }]} />
                   <Text variant="labelMedium" style={{ color: t[estado.tono] }}>{estado.texto}</Text>
                   <Icono nombre="despliegue" tamano={12} color={t[estado.tono]} />
@@ -168,7 +170,12 @@ export function FilaPresupuesto({
       </Animated.View>
     </Toque>
   );
-  return fila;
+  return (
+    <>
+      {fila}
+      {dialogo}
+    </>
+  );
 }
 
 const e = StyleSheet.create({

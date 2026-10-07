@@ -2,10 +2,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { api, ApiError, mensajeDe } from '@/api/client';
 import type { Usuario } from '@/api/types';
 import { BarraListo } from '@/components/barra-listo';
+import { useDialogo } from '@/components/dialogo';
 import { Boton, Campo, Texto } from '@/components/ui';
 import { tokenDeRecuperacion } from '@/lib/recuperacion';
 import { useSesion } from '@/session';
@@ -17,6 +18,7 @@ export default function Recuperar() {
   const t = useTema();
   const { iniciar } = useSesion();
   const [permiso, pedirPermiso] = useCameraPermissions();
+  const { dialogo, decidir } = useDialogo();
   const [escribiendo, setEscribiendo] = useState(false);
   const [codigo, setCodigo] = useState('');
   const [entrando, setEntrando] = useState(false);
@@ -28,7 +30,7 @@ export default function Recuperar() {
     ocupado.current = true;
     const token = tokenDeRecuperacion(leido);
     if (!token) {
-      Alert.alert('Ese no es el QR de recuperación', 'Usa el QR que te llegó por correo al registrarte (o el último que te enviamos).', [{ text: 'Entendido', onPress: () => (ocupado.current = false) }]);
+      decidir('Ese no es el QR de recuperación', 'Usa el QR que te llegó por correo al registrarte (o el último que te enviamos).', [{ text: 'Entendido', onPress: () => (ocupado.current = false) }]);
       return;
     }
     setEntrando(true);
@@ -41,7 +43,7 @@ export default function Recuperar() {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       const invalido = err instanceof ApiError && err.status === 401;
       setAviso(invalido ? 'Ese QR ya se usó o no es válido.' : null);
-      Alert.alert(
+      decidir(
         invalido ? 'Ese QR ya no sirve' : 'No se pudo entrar',
         invalido ? 'Se usa una sola vez. Busca en tu correo el último que te enviamos, o entra con tu teléfono y pide uno nuevo en Configurar.' : mensajeDe(err),
         [{ text: 'Entendido', onPress: () => (ocupado.current = false) }],
@@ -61,6 +63,7 @@ export default function Recuperar() {
         {permiso?.canAskAgain !== false ? <Boton titulo="Mejor leo el QR con la cámara" variante="texto" onPress={() => setEscribiendo(false)} /> : null}
         <Boton titulo="Volver" variante="texto" onPress={() => router.back()} />
         <BarraListo />
+        {dialogo}
       </View>
     );
   }
@@ -89,6 +92,7 @@ export default function Recuperar() {
         <Boton titulo="Escribir el código" variante="secundario" onPress={() => setEscribiendo(true)} disabled={entrando} />
         <Boton titulo="Volver" variante="texto" onPress={() => router.back()} disabled={entrando} />
       </View>
+      {dialogo}
     </View>
   );
 }

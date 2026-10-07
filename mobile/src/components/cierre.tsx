@@ -10,11 +10,12 @@ import { simboloUnidad } from '@/lib/unidades';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { Alert, Linking, Share, StyleSheet, View } from 'react-native';
+import { Linking, Share, StyleSheet, View } from 'react-native';
 import { Switch } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
+import { useDialogo } from '@/components/dialogo';
 import { BotonM, PastillaM, SeccionM, TarjetaM, TextoM } from '@/components/material';
 import { Icono, Presionable } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
@@ -28,6 +29,7 @@ const MAX_ITEMS = 100;
 
 export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: () => Promise<void>; alTerminar?: () => void }) {
   const t = useTema();
+  const { dialogo, decidir } = useDialogo();
   const contador = useRef(0);
   // Ítem o tarea abierto en la hoja: `nueva` si todavía no está en la lista (se agrega al guardar).
   const [abierta, setAbierta] = useState<{ fila: Fila; nueva: boolean } | null>(null);
@@ -111,7 +113,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   }
 
   const pedirTerminar = () =>
-    Alert.alert('¿Terminar el presupuesto?', 'Se le asigna su número y se genera el PDF. Después ya no se puede editar.', [
+    decidir('¿Terminar el presupuesto?', 'Se le asigna su número y se genera el PDF. Después ya no se puede editar.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Terminar', onPress: () => void correr('terminar') },
     ]);
@@ -237,12 +239,14 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
           alCerrar={() => setAbierta(null)}
         />
       ) : null}
+      {dialogo}
     </>
   );
 }
 
 // Presupuesto terminado: enviarlo. El PDF y el enlace público los generó el servidor al terminar.
 export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
+  const { dialogo, decidir } = useDialogo();
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const enviado = q.commercial_status !== 'NONE';
@@ -259,7 +263,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
   }
 
   const confirmar = (titulo: string, ok: string, alConfirmar: () => void) =>
-    Alert.alert(titulo, undefined, [{ text: 'No', style: 'cancel' }, { text: ok, onPress: alConfirmar }]);
+    decidir(titulo, undefined, [{ text: 'No', style: 'cancel' }, { text: ok, onPress: alConfirmar }]);
 
   const mensaje = `Hola ${q.customer.name}, te comparto tu presupuesto ${q.number}: ${q.public_url}`;
 
@@ -293,6 +297,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
       <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" onPress={() => void whatsapp()} />
       {q.customer.email ? <BotonM titulo="Enviar por correo" icono="correo" variante="secundario" onPress={correo} cargando={ocupado} disabled={ocupado} /> : <TextoM variante="chico" suave>El cliente no tiene correo guardado.</TextoM>}
       {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+      {dialogo}
     </TarjetaM>
   );
 }

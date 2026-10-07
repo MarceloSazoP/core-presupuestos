@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { api, mensajeDe } from '@/api/client';
+import { useDialogo } from '@/components/dialogo';
 import { EliminarCuenta } from '@/components/eliminar-cuenta';
 import { Text } from 'react-native-paper';
 import { BotonM, SeccionM } from '@/components/material';
@@ -13,6 +14,7 @@ import { espacio, useTema } from '@/theme';
 export default function MiCuenta() {
   const t = useTema();
   const { usuario, salir } = useSesion();
+  const { dialogo, decidir } = useDialogo();
   const [enviandoQr, setEnviandoQr] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
@@ -32,7 +34,7 @@ export default function MiCuenta() {
 
   // Exportar: un Excel con todos tus datos, al correo de la cuenta.
   const confirmarExportar = () =>
-    Alert.alert('Exportar mi data', 'Te enviaremos al correo de tu cuenta un Excel con tus clientes, presupuestos, ítems, visitas y seguimientos. Las fotos, notas de voz y PDF no van en el archivo.', [
+    decidir('Exportar mi data', 'Te enviaremos al correo de tu cuenta un Excel con tus clientes, presupuestos, ítems, visitas y seguimientos. Las fotos, notas de voz y PDF no van en el archivo.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Enviar a mi correo', onPress: () => void exportar() },
     ]);
@@ -50,7 +52,7 @@ export default function MiCuenta() {
   }
 
   const confirmarSalida = () =>
-    Alert.alert('Cerrar sesión', `Saldrás de la cuenta de ${usuario?.name ?? 'tu usuario'}. Tus presupuestos quedan guardados.`, [
+    decidir('Cerrar sesión', `Saldrás de la cuenta de ${usuario?.name ?? 'tu usuario'}. Tus presupuestos quedan guardados.`, [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Cerrar sesión', style: 'destructive', onPress: () => void salir() },
     ]);
@@ -74,6 +76,7 @@ export default function MiCuenta() {
         <BotonM titulo="Eliminar mi cuenta" icono="papelera" variante="peligro" onPress={() => setEliminando(true)} />
       </SeccionM>
       {eliminando ? <EliminarCuenta alCerrar={() => setEliminando(false)} /> : null}
+      {dialogo}
     </ScrollView>
   );
 }

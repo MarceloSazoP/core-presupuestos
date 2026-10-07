@@ -3,11 +3,12 @@ import { avisar } from '@/lib/toast';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Alert, Keyboard, StyleSheet, View } from 'react-native';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { Switch, Text } from 'react-native-paper';
 import Animated, { useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated';
 import { api, fuenteDeArchivo, mensajeDe, subir } from '@/api/client';
 import type { Usuario } from '@/api/types';
+import { useDialogo } from '@/components/dialogo';
 import { BotonM } from '@/components/material';
 import { prepararLogo } from '@/lib/foto';
 import { useSesion } from '@/session';
@@ -22,6 +23,7 @@ type Props = { ruta: 'logo' | 'signature'; titulo: string; ayuda: string; vacio:
 export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
   const t = useTema();
   const { usuario, actualizar } = useSesion();
+  const { dialogo, decidir } = useDialogo();
   const [ocupado, setOcupado] = useState(false);
   const [cambiando, setCambiando] = useState(false);
   const [mensaje, setMensaje] = useState('Actualizado');
@@ -71,7 +73,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
   }
 
   const quitar = () =>
-    Alert.alert(`¿Quitar ${nombre}?`, 'Los presupuestos que ya enviaste la conservan; los nuevos saldrán sin ella.', [
+    decidir(`¿Quitar ${nombre}?`, 'Los presupuestos que ya enviaste la conservan; los nuevos saldrán sin ella.', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Quitar',
@@ -117,6 +119,7 @@ export function ImagenPerfil({ ruta, titulo, ayuda, vacio, nombre }: Props) {
       ) : (
         <Text variant="bodySmall" style={{ color: t.suave }}>{`Apagado: ${nombre} no sale en tus presupuestos. Enciéndelo para subir la imagen.`}</Text>
       )}
+      {dialogo}
     </View>
   );
 }

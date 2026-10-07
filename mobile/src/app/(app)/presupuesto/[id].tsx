@@ -9,12 +9,13 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { simboloUnidad } from '@/lib/unidades';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, IconButton } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
 import { EditarCliente, TituloCliente } from '@/components/contacto-cliente';
+import { useDialogo } from '@/components/dialogo';
 import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
@@ -34,6 +35,7 @@ const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
 // presupuesto desde el computador (CLAUDE.md §16). Se muestra con letras grandes y se copia o comparte con un toque.
 export default function Detalle() {
   const t = useTema();
+  const { dialogo, decidir } = useDialogo();
   const { id, nuevo } = useLocalSearchParams<{ id: string; nuevo?: string }>();
   const montoDe = useDinero(delPresupuesto(id));
   const [q, setQ] = useState<Presupuesto | null>(null);
@@ -94,7 +96,7 @@ export default function Detalle() {
 
   const cerrado = q.doc_status === 'FINALIZED';
   const eliminarEste = () =>
-    Alert.alert(`¿Eliminar el presupuesto de ${q.customer.name}?`, 'Se borran también sus fotos, notas de voz y notas. No se puede deshacer.', [
+    decidir(`¿Eliminar el presupuesto de ${q.customer.name}?`, 'Se borran también sus fotos, notas de voz y notas. No se puede deshacer.', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Eliminar',
@@ -237,6 +239,7 @@ export default function Detalle() {
         </>
       )}
       </PartesDeslizables>
+      {dialogo}
     </ScrollConBarra>
   );
 }

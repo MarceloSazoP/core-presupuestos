@@ -8,9 +8,10 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, Linking, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Linking, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { fuenteDeArchivo, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { useDialogo, type Decidir } from '@/components/dialogo';
 import { BotonM, NotaM, SeccionM, TarjetaM, TextoM } from '@/components/material';
 import { Icono, Presionable, TECLADO_ID, type NombreIcono } from '@/components/ui';
 import { prepararFoto } from '@/lib/foto';
@@ -25,8 +26,8 @@ const MAX_VOCES = 5;
 const MAX_MEDIDAS = 50;
 const MAX_VOZ_SEGUNDOS = 300;
 
-const sinPermiso = (que: string) =>
-  Alert.alert(`Sin permiso para ${que}`, 'Actívalo en Ajustes para poder usarlo en la visita.', [
+const sinPermiso = (decidir: Decidir, que: string) =>
+  decidir(`Sin permiso para ${que}`, 'Actívalo en Ajustes para poder usarlo en la visita.', [
     { text: 'Ahora no', style: 'cancel' },
     { text: 'Abrir Ajustes', onPress: () => void Linking.openSettings() },
   ]);
@@ -205,6 +206,7 @@ function Medidas({ q, cambiar }: Props) {
 // ── Fotos ─────────────────────────────────────────────────────────────────────────────────────
 function Fotos({ q, cambiar }: Props) {
   const t = useTema();
+  const { dialogo, decidir } = useDialogo();
   const [preparando, setPreparando] = useState(0);
   const fotos = q.survey.photos;
   const quedan = MAX_FOTOS - fotos.length;
@@ -214,7 +216,7 @@ function Fotos({ q, cambiar }: Props) {
     if (quedan <= 0) return avisar.aviso('Máximo de fotos', `Cada presupuesto admite hasta ${MAX_FOTOS} fotos.`);
     if (origen === 'camara') {
       const p = await ImagePicker.requestCameraPermissionsAsync();
-      if (!p.granted) return sinPermiso('usar la cámara');
+      if (!p.granted) return sinPermiso(decidir, 'usar la cámara');
     }
     const r = origen === 'camara'
       ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 1 })
@@ -242,7 +244,7 @@ function Fotos({ q, cambiar }: Props) {
   }
 
   const quitar = (id: string) =>
-    Alert.alert('¿Quitar esta foto?', 'Se elimina del presupuesto.', [
+    decidir('¿Quitar esta foto?', 'Se elimina del presupuesto.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Quitar', style: 'destructive', onPress: () => void quitarFoto(id).catch((err) => avisar.error('No se pudo quitar', mensajeDe(err))) },
     ]);
@@ -276,6 +278,7 @@ function Fotos({ q, cambiar }: Props) {
         <BotonM titulo="Tomar foto" icono="camara" variante="secundario" onPress={() => void agregar('camara')} style={e.mitad} />
         <BotonM titulo="Galería" icono="galeria" variante="secundario" onPress={() => void agregar('galeria')} style={e.mitad} />
       </View>
+      {dialogo}
     </View>
   );
 }
@@ -285,6 +288,7 @@ const Espacio = () => <View style={{ width: espacio.s }} />;
 // ── Voz ───────────────────────────────────────────────────────────────────────────────────────
 function Voz({ q, cambiar }: Props) {
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY); // .m4a (AAC) en iOS y Android
+  const { dialogo, decidir } = useDialogo();
   const estado = useAudioRecorderState(recorder);
   const [guardando, setGuardando] = useState(false);
   const corte = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -293,7 +297,7 @@ function Voz({ q, cambiar }: Props) {
   async function empezar() {
     if (notas.length >= MAX_VOCES) return avisar.aviso('Máximo de notas', `Cada presupuesto admite hasta ${MAX_VOCES} notas de voz.`);
     const p = await requestRecordingPermissionsAsync();
-    if (!p.granted) return sinPermiso('usar el micrófono');
+    if (!p.granted) return sinPermiso(decidir, 'usar el micrófono');
     await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
     await recorder.prepareToRecordAsync();
     recorder.record();
@@ -336,12 +340,14 @@ function Voz({ q, cambiar }: Props) {
         }} />
       ))}
       <BotonM titulo={grabando ? `Detener · ${mmss(segundos)}` : 'Grabar nota de voz'} icono={grabando ? 'detener' : 'microfono'} variante={grabando ? 'primario' : 'secundario'} cargando={guardando} onPress={() => void (grabando ? detener() : empezar())} />
+      {dialogo}
     </View>
   );
 }
 
 function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_notes'][number]; alBorrar: () => Promise<void> }) {
   const t = useTema();
+  const { dialogo, decidir } = useDialogo();
   const fuente = useMemo(() => (nota.local_uri ? { uri: nota.local_uri } : fuenteDeArchivo(nota.url)), [nota.url, nota.local_uri]); // estable: un objeto nuevo en cada render reiniciaría el reproductor
   const player = useAudioPlayer(fuente);
   const { playing } = useAudioPlayerStatus(player);
@@ -354,7 +360,7 @@ function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_note
   }
 
   const quitar = () =>
-    Alert.alert('¿Quitar esta nota de voz?', 'Se elimina del presupuesto.', [
+    decidir('¿Quitar esta nota de voz?', 'Se elimina del presupuesto.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Quitar', style: 'destructive', onPress: () => void alBorrar().catch((err) => avisar.error('No se pudo quitar', mensajeDe(err))) },
     ]);
@@ -371,6 +377,7 @@ function NotaDeVoz({ nota, alBorrar }: { nota: Presupuesto['survey']['voice_note
       <Pressable accessibilityRole="button" accessibilityLabel="Quitar nota de voz" onPress={quitar} hitSlop={4} style={({ pressed }) => [e.quitar, { opacity: pressed ? 0.5 : 1 }]}>
         <Icono nombre="cerrar" tamano={18} color={t.suave} />
       </Pressable>
+      {dialogo}
     </View>
   );
 }
