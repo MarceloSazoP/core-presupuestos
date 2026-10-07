@@ -6,12 +6,13 @@ import { avisar } from '@/lib/toast';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Button } from 'react-native-paper';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { BarraListo } from '@/components/barra-listo';
 import { CampoTelefono } from '@/components/campo-telefono';
-import { Boton, Seccion, Tarjeta, Texto } from '@/components/ui';
+import { BotonM, SeccionM, TarjetaM, TextoM } from '@/components/material';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar, guardarBorrador } from '@/sync/cola';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
@@ -99,33 +100,34 @@ export default function Nuevo() {
       <View style={e.cabecera}>
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarre, { backgroundColor: t.suave }]} />
         <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={cancelar} hitSlop={8} style={e.lado}>
-            <Texto color="acento">Cancelar</Texto>
-          </Pressable>
+          {/* Barra de la hoja con botones de texto de Material (onda al tocar). */}
+          <Button mode="text" onPress={cancelar} textColor={t.acento} accessibilityLabel="Cancelar" style={e.lado} contentStyle={e.ladoContenido} labelStyle={e.textoLado}>
+            Cancelar
+          </Button>
           <TituloConIcono texto="Nuevo presupuesto" icono={{ ios: 'doc.badge.plus', android: 'note_add', web: 'note_add' }} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Guardar el presupuesto para continuar después" onPress={() => void crear(false)} disabled={cargando} hitSlop={8} style={[e.lado, e.derecha]}>
-            <Texto color="acento" fuerte>Guardar</Texto>
-          </Pressable>
+          <Button mode="text" onPress={() => void crear(false)} disabled={cargando} textColor={t.acento} accessibilityLabel="Guardar el presupuesto para continuar después" style={e.lado} contentStyle={e.ladoContenido} labelStyle={[e.textoLado, e.fuerte]}>
+            Guardar
+          </Button>
         </View>
       </View>
     <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ flex: 1 }} contentContainerStyle={e.contenido}>
-      <Seccion titulo="Cliente" icono="cliente">
-        <Tarjeta>
+      <SeccionM titulo="Cliente" icono="cliente">
+        <TarjetaM>
           <CampoModal etiqueta="Nombre" titulo="Nombre del cliente" agregar="Agregar nombre" icono="cliente" valor={nombre} alCambiar={setNombre} error={errores.nombre} multiline={false} autoCapitalize="words" autoComplete="off" />
           <CampoTelefono ref={refTelefono} codigo={codigo} alCodigo={setCodigo} etiqueta="Teléfono" value={telefono} onChangeText={setTelefono} error={errores.telefono} />
           <CampoModal etiqueta="Correo (opcional)" titulo="Correo del cliente" agregar="Agregar correo" icono="correo" valor={correo} alCambiar={setCorreo} error={errores.correo} multiline={false} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} ayuda="Con correo, el PDF se envía solo al terminar." />
-        </Tarjeta>
-      </Seccion>
-      <Seccion titulo="El trabajo" icono="trabajo" descripcion="Opcional: puedes completarlo después.">
-        <Tarjeta>
+        </TarjetaM>
+      </SeccionM>
+      <SeccionM titulo="El trabajo" icono="trabajo" descripcion="Opcional: puedes completarlo después.">
+        <TarjetaM>
           <CampoModal etiqueta="Servicio" titulo="Servicio" agregar="Agregar servicio" icono="trabajo" maxPalabras={69} valor={servicio} alCambiar={setServicio} placeholder="Por ejemplo: instalar 4 enchufes en el living" />
           <DireccionMapa etiqueta="Dirección del trabajo" direccion={direccion} latitude={punto.latitude} longitude={punto.longitude} alCambiar={(d) => { setDireccion(d.direccion); setPunto({ latitude: d.latitude, longitude: d.longitude }); }} />
-        </Tarjeta>
-      </Seccion>
+        </TarjetaM>
+      </SeccionM>
       <View style={e.acciones}>
-        {aviso ? <Texto variante="chico" color="error" accessibilityRole="alert">{aviso}</Texto> : null}
-        <Boton titulo="Crear presupuesto" icono="mas" onPress={() => void crear()} cargando={cargando} />
-        <Boton titulo="Cancelar" variante="texto" onPress={cancelar} disabled={cargando} />
+        {aviso ? <TextoM variante="chico" color="error" accessibilityRole="alert">{aviso}</TextoM> : null}
+        <BotonM titulo="Crear presupuesto" icono="mas" onPress={() => void crear()} cargando={cargando} />
+        <BotonM titulo="Cancelar" variante="texto" onPress={cancelar} disabled={cargando} />
       </View>
     </ScrollView>
     <BarraListo />
@@ -145,8 +147,10 @@ const e = StyleSheet.create({
   cabecera: { paddingTop: espacio.s, paddingHorizontal: espacio.l, gap: espacio.s },
   agarre: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, opacity: 0.5 },
   barra: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  lado: { minWidth: 88, minHeight: MIN_TOQUE, justifyContent: 'center' },
-  derecha: { alignItems: 'flex-end' },
+  lado: { minWidth: 88, borderRadius: 999 },
+  ladoContenido: { minHeight: MIN_TOQUE },
+  textoLado: { fontSize: 16, marginHorizontal: 12 },
+  fuerte: { fontWeight: '700' },
   contenido: { padding: espacio.l, paddingBottom: espacio.xxl, gap: espacio.xl },
   acciones: { gap: espacio.m, paddingTop: espacio.s },
 });
