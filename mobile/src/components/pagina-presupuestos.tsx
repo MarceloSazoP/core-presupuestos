@@ -1,17 +1,15 @@
 import { FlashList } from '@shopify/flash-list';
 import { PartesDeslizables } from '@/components/partes-deslizables';
 import { avisar } from '@/lib/toast';
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text, useTheme } from 'react-native-paper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ActivityIndicator, Text } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
-import { formaPanel } from '@/components/barra-flotante';
+import { OjoTonal } from '@/components/boton-ojo';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
-import { BotonM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import type { EstadoElegible } from '@/lib/estados';
 import { LISTA, useDinero } from '@/lib/montos';
@@ -24,20 +22,17 @@ import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, lee
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, useTema } from '@/theme';
 
-// El panel de abajo: el botón de Material (52) con espacio.m arriba y abajo, más la franja del indicador de inicio o de los botones de Android.
-const ALTO_BOTON = 52;
-
-export default function ListaPresupuestos() {
+// La página de Presupuestos (index.tsx la pone junto a la de Inicio, bajo la misma barra): las pestañas por estado y la lista.
+// - `alInicio`: deslizar hacia la derecha desde la primera pestaña vuelve a Inicio (la página anterior).
+// - `abajo`: lo que tapa el panel de «Nuevo presupuesto»; la lista termina sobre él.
+export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; abajo: number }) {
   const t = useTema();
-  const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
   const montoDe = useDinero(LISTA);
   const [lista, setLista] = useState<ResumenPresupuesto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refrescando, setRefrescando] = useState(false);
 
-  const { pestana: pedida } = useLocalSearchParams<{ pestana?: string }>(); // el menú del inicio abre directo en su estado
-  const [pestana, setPestana] = useState<Pestana>(PESTANAS.some((x) => x.id === pedida) ? (pedida as Pestana) : 'pendientes');
+  const [pestana, setPestana] = useState<Pestana>('pendientes');
   const { pendientes } = useCola();
   const colaVacia = pendientes === 0;
 
@@ -84,7 +79,6 @@ export default function ListaPresupuestos() {
     }
   }, []);
 
-  // Siempre se abre en «Pendientes» (o en la pestaña que pida quien navega aquí): ya no se recuerda la última que se vio.
   const elegirPestana = setPestana;
   const cuentas = contar(lista ?? []);
   const visibles = (lista ?? []).filter((q) => pestanaDe(q) === pestana);
@@ -93,7 +87,7 @@ export default function ListaPresupuestos() {
   for (const q of visibles) if (q.total > 0) sumas.set(q.currency ?? 'CLP', (sumas.get(q.currency ?? 'CLP') ?? 0) + q.total);
   const enTotal = [...sumas].map(([moneda, n]) => montoDe(n, moneda)).join(' + ');
 
-  useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza
+  useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza (aunque se esté en Inicio)
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
   useRefrescar(() => void cargar()); // y cuando cambia algo en la web
 
@@ -110,8 +104,7 @@ export default function ListaPresupuestos() {
   const aInicio = (paso: number) => {
     if (paso > 0) return; // hacia la izquierda desde la última pestaña: no hay más
     void Haptics.selectionAsync();
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
+    alInicio();
   };
 
   return (
@@ -128,8 +121,7 @@ export default function ListaPresupuestos() {
         keyExtractor={(q) => q.id}
         // Las filas forman una sola tarjeta: cada una sabe si es la primera o la última. Su margen a los lados lo pone la fila (es donde cae su sombra).
         renderItem={({ item, index }) => <FilaPresupuesto q={item} primero={index === 0} ultimo={index === visibles.length - 1} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ paddingTop: espacio.l, paddingBottom: insets.bottom + ALTO_BOTON + espacio.m * 2 + espacio.s }}
+        contentContainerStyle={{ paddingTop: espacio.l, paddingBottom: abajo + espacio.s }}
         refreshing={refrescando}
         onRefresh={async () => {
           setRefrescando(true);
@@ -140,19 +132,23 @@ export default function ListaPresupuestos() {
           <View style={e.cabecera}>
             <Sincronizacion />
             {error ? <Text variant="bodySmall" style={{ color: t.error }} accessibilityRole="alert">{error}</Text> : null}
-            {/* Una línea con cuántos hay y cuánto suman; en Pendientes, cómo se elimina uno. */}
+            {/* Una línea con cuántos hay y cuánto suman (en Pendientes, cómo se elimina uno) y, al lado, el ojo que oculta los montos de la
+                lista: igual que «Resumen» y su ojo en Inicio. La barra de arriba queda igual en las dos páginas. */}
             {visibles.length > 0 ? (
               <View style={e.resumen}>
-                <Text variant="bodyMedium" style={{ color: t.suave }}>
-                  <Text style={[e.fuerte, { color: t.texto }]}>{datos.resumen(visibles.length)}</Text>
-                  {enTotal ? (
-                    <>
-                      {' · '}
-                      <Text style={e.cifra}>{enTotal}</Text> en total
-                    </>
-                  ) : null}
-                </Text>
-                {datos.ayuda ? <Text variant="bodySmall" style={{ color: t.suave }}>{datos.ayuda}</Text> : null}
+                <View style={e.resumenTextos}>
+                  <Text variant="bodyMedium" style={{ color: t.suave }}>
+                    <Text style={[e.fuerte, { color: t.texto }]}>{datos.resumen(visibles.length)}</Text>
+                    {enTotal ? (
+                      <>
+                        {' · '}
+                        <Text style={e.cifra}>{enTotal}</Text> en total
+                      </>
+                    ) : null}
+                  </Text>
+                  {datos.ayuda ? <Text variant="bodySmall" style={{ color: t.suave }}>{datos.ayuda}</Text> : null}
+                </View>
+                <OjoTonal clave={LISTA} />
               </View>
             ) : null}
           </View>
@@ -180,11 +176,6 @@ export default function ListaPresupuestos() {
         }
       />
       </PartesDeslizables>
-      {/* Acción principal en la zona del pulgar (tercio inferior), en un panel propio como la barra del presupuesto: la superficie de nivel 2
-          con la sombra hacia arriba, hasta el borde de la pantalla. La lista pasa por debajo sin mezclarse con el botón. */}
-      <View style={[e.panel, formaPanel(t.oscuro), { backgroundColor: colors.elevation.level2, paddingBottom: insets.bottom + espacio.m }]}>
-        <BotonM titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
-      </View>
     </View>
   );
 }
@@ -192,7 +183,8 @@ export default function ListaPresupuestos() {
 const e = StyleSheet.create({
   // Lo de arriba de la lista. Abajo deja espacio.xs: la primera fila trae otros espacio.s para su sombra.
   cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.xs },
-  resumen: { gap: 2, paddingHorizontal: espacio.xs },
+  resumen: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingLeft: espacio.xs },
+  resumenTextos: { flex: 1, gap: 2 },
   fuerte: { fontWeight: '600' },
   cifra: { fontVariant: ['tabular-nums'] },
   cargando: { marginTop: espacio.xxl },
@@ -200,5 +192,4 @@ const e = StyleSheet.create({
   vacioIcono: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: espacio.xs },
   centrado: { textAlign: 'center' },
   explicacion: { maxWidth: 300 },
-  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: espacio.m, paddingHorizontal: espacio.l },
 });

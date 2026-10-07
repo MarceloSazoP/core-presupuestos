@@ -115,7 +115,7 @@ export default function Detalle() {
           void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           avisar.exito('Presupuesto eliminado');
           if (router.canGoBack()) router.back();
-          else router.replace('/presupuestos');
+          else router.replace({ pathname: '/', params: { pagina: 'presupuestos' } });
         },
       },
     ]);

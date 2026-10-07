@@ -1,99 +1,93 @@
-import * as Haptics from 'expo-haptics';
-import { router, useFocusEffect } from 'expo-router';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { alternarMontos, INICIO, useMontosOcultos } from '@/lib/montos';
-import { useCallback, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { IconButton, Text } from 'react-native-paper';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { BackHandler, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useTheme } from 'react-native-paper';
+import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Resumen } from '@/components/resumen';
-import { Sincronizacion } from '@/components/sincronizacion';
-import { Icono } from '@/components/ui';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { formaPanel } from '@/components/barra-flotante';
+import { BotonM } from '@/components/material';
+import { MenuInicio } from '@/components/menu-inicio';
+import { PaginaInicio } from '@/components/pagina-inicio';
+import { PaginaPresupuestos } from '@/components/pagina-presupuestos';
+import { SelectorSeccion } from '@/components/selector-seccion';
+import { espacio, useTema } from '@/theme';
 
-// Inicio (primera pantalla): cómo va el mes, a quién contactar hoy y, junto al título «Resumen», «Nuevo presupuesto». La lista con sus pestañas por estado
-// se abre desde el ícono de la barra de arriba (presupuestos.tsx).
-export default function Inicio() {
+// La pantalla principal: Inicio y Presupuestos son dos páginas de la misma pantalla, lado a lado, bajo una sola barra fija (el selector
+// [Inicio | Presupuestos] y el ☰) y sobre un solo panel con «Nuevo presupuesto». Al pasar de una a otra solo se desliza el contenido; la
+// barra y el panel no se mueven, y el resaltado del selector viaja con la misma posición que las páginas. Diseño elegido en el lienzo
+// «Barra fija y Nuevo presupuesto». Igual en iPhone y Android.
+//
+// Se pasa de página deslizando (desde Inicio hacia la izquierda; desde la primera pestaña de Presupuestos hacia la derecha) o tocando el
+// selector. En Android, «atrás» en Presupuestos vuelve a Inicio. `?pagina=presupuestos` abre directo en Presupuestos.
+const ALTO_BOTON = 52; // el botón principal de Material
+const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1); // movimiento en pantalla (animate-expo)
+
+export default function Principal() {
   const t = useTema();
-  const ocultos = useMontosOcultos(INICIO);
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const [actualizar, setActualizar] = useState(0); // al cambiar, el resumen se vuelve a pedir
-  const [refrescando, setRefrescando] = useState(false);
-  // Cada vez que se llega a Inicio (deslizando, con el título o al volver) el resumen entra de nuevo con sus animaciones.
-  const [ronda, setRonda] = useState(0);
-  const primera = useRef(true);
+  const ancho = useWindowDimensions().width;
+  const { pagina: pedida } = useLocalSearchParams<{ pagina?: string }>();
+  const [pagina, setPagina] = useState(pedida === 'presupuestos' ? 1 : 0);
+  const progreso = useSharedValue(pagina); // 0 = Inicio, 1 = Presupuestos; mueve las páginas y el selector
+
+  // Tras deslizar, la página sigue con un resorte sin rebote (el dedo ya la empujó); al tocar el selector, con la curva de movimiento en
+  // pantalla. Con «reducir movimiento», cambia de golpe.
+  const ir = useCallback(
+    (destino: number, conGesto = false) => {
+      setPagina(destino);
+      progreso.set(
+        conGesto
+          ? withSpring(destino, { duration: 380, dampingRatio: 1, reduceMotion: ReduceMotion.System })
+          : withTiming(destino, { duration: 380, easing: EASE_IN_OUT, reduceMotion: ReduceMotion.System }),
+      );
+    },
+    [progreso],
+  );
+
   useFocusEffect(
     useCallback(() => {
-      if (primera.current) primera.current = false; // la primera vez ya anima al abrirse
-      else setRonda((r) => r + 1);
-    }, []),
+      if (pagina === 0) return;
+      const s = BackHandler.addEventListener('hardwareBackPress', () => {
+        ir(0);
+        return true;
+      });
+      return () => s.remove();
+    }, [pagina, ir]),
   );
-  // Deslizar hacia la izquierda en el inicio lleva a la lista de presupuestos (como pasar a la página siguiente). Pide un gesto claramente
-  // horizontal para no pelear con el desplazamiento vertical ni con «deslizar para actualizar».
-  const alLista = Gesture.Pan()
-    .runOnJS(true)
-    .activeOffsetX([-24, 24])
-    .failOffsetY([-16, 16])
-    .onEnd((ev) => {
-      if (ev.translationX + ev.velocityX * 0.15 < -70) {
-        void Haptics.selectionAsync();
-        router.push('/presupuestos');
-      }
-    });
+
+  const estiloPaginas = useAnimatedStyle(() => ({ transform: [{ translateX: -progreso.get() * ancho }] }));
+  const abajo = insets.bottom + ALTO_BOTON + espacio.m * 2; // lo que tapa el panel de abajo
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.fondo }}>
-      <GestureDetector gesture={alLista}>
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={{ padding: espacio.l, gap: espacio.l, paddingBottom: insets.bottom + espacio.xxl }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refrescando}
-            onRefresh={() => {
-              setRefrescando(true);
-              setActualizar((n) => n + 1);
-              setTimeout(() => setRefrescando(false), 600);
-            }}
-          />
-        }
-      >
-        <Sincronizacion />
-        {/* «Resumen» y, a la derecha, el ojo que oculta los montos del inicio. */}
-        <View style={e.titulo}>
-          {/* «Resumen» en el título grande de Material 3, con su ícono en un círculo tonal. */}
-          <View style={e.izquierda}>
-            <View style={[e.iconoTitulo, { backgroundColor: `${t.acento}1F` }]}><Icono nombre="tendencia" tamano={20} color={t.acento} /></View>
-            <Text variant="titleLarge" accessibilityRole="header">Resumen</Text>
-          </View>
-          {/* El ojo como botón tonal de Material (onda al tocar); misma lógica que `BotonOjo`, que siguen usando las otras pantallas. */}
-          <IconButton
-            mode="contained-tonal"
-            icon={({ color }) => <Icono nombre={ocultos ? 'ojoCerrado' : 'ojo'} tamano={20} color={color} />}
-            iconColor={t.acento}
-            containerColor={ocultos ? `${t.acento}40` : `${t.acento}1F`}
-            selected={ocultos}
-            accessibilityState={{ selected: ocultos }}
-            accessibilityLabel={ocultos ? 'Montos ocultos. Tocar para mostrarlos' : 'Ocultar los montos'}
-            hitSlop={8}
-            onPress={() => {
-              void Haptics.selectionAsync();
-              alternarMontos(INICIO);
-            }}
-            style={e.ojo}
-          />
+    <View style={[e.pantalla, { backgroundColor: t.fondo }]}>
+      <Stack.Screen
+        options={{
+          headerTitleAlign: 'center',
+          headerTitle: () => <SelectorSeccion progreso={progreso} pagina={pagina} alElegir={(p) => ir(p)} />,
+          headerRight: () => <MenuInicio />,
+        }}
+      />
+      <Animated.View style={[e.paginas, { width: ancho * 2 }, estiloPaginas]}>
+        {/* La página que no se ve queda fuera de la pantalla y oculta para el lector de pantalla. */}
+        <View style={{ width: ancho }} accessibilityElementsHidden={pagina !== 0} importantForAccessibility={pagina === 0 ? 'auto' : 'no-hide-descendants'}>
+          <PaginaInicio activa={pagina === 0} alPresupuestos={() => ir(1, true)} abajo={abajo} />
         </View>
-        {/* al deslizar para actualizar, cambia la clave y se vuelve a pedir */}
-        <Resumen key={actualizar} ronda={ronda} />
-      </ScrollView>
-      </GestureDetector>
+        <View style={{ width: ancho }} accessibilityElementsHidden={pagina !== 1} importantForAccessibility={pagina === 1 ? 'auto' : 'no-hide-descendants'}>
+          <PaginaPresupuestos alInicio={() => ir(0, true)} abajo={abajo} />
+        </View>
+      </Animated.View>
+      {/* Acción principal en la zona del pulgar, en un panel propio como la barra del presupuesto: la superficie de nivel 2 con la sombra
+          hacia arriba, hasta el borde de la pantalla. Las dos páginas pasan por debajo sin mezclarse con el botón. */}
+      <View style={[e.panel, formaPanel(t.oscuro), { backgroundColor: colors.elevation.level2, paddingBottom: insets.bottom + espacio.m }]}>
+        <BotonM titulo="Nuevo presupuesto" icono="mas" onPress={() => router.push('/nuevo')} />
+      </View>
     </View>
   );
 }
 
 const e = StyleSheet.create({
-  izquierda: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },
-  iconoTitulo: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  titulo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: espacio.m },
-  ojo: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, margin: 0 },
+  pantalla: { flex: 1, overflow: 'hidden' },
+  paginas: { flex: 1, flexDirection: 'row' },
+  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: espacio.m, paddingHorizontal: espacio.l },
 });

@@ -1,5 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { Pressable, StyleSheet } from 'react-native';
+import { IconButton } from 'react-native-paper';
 import { Icono } from '@/components/ui';
 import { alternarMontos, useMontosOcultos } from '@/lib/montos';
 import { MIN_TOQUE, useTema } from '@/theme';
@@ -28,6 +29,31 @@ export function BotonOjo({ clave, color, chico }: { clave: string; color?: strin
   );
 }
 
+// El ojo como botón tonal de Material (onda al tocar), junto a un título o un total: el de «Resumen» en Inicio y el del total de la lista
+// de Presupuestos. Misma lógica que `BotonOjo`; oculto, el tono es más fuerte.
+export function OjoTonal({ clave }: { clave: string }) {
+  const t = useTema();
+  const oculto = useMontosOcultos(clave);
+  return (
+    <IconButton
+      mode="contained-tonal"
+      icon={({ color }) => <Icono nombre={oculto ? 'ojoCerrado' : 'ojo'} tamano={20} color={color} />}
+      iconColor={t.acento}
+      containerColor={oculto ? `${t.acento}40` : `${t.acento}1F`}
+      selected={oculto}
+      accessibilityState={{ selected: oculto }}
+      accessibilityLabel={oculto ? 'Montos ocultos. Tocar para mostrarlos' : 'Ocultar los montos'}
+      hitSlop={8}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        alternarMontos(clave);
+      }}
+      style={e.tonal}
+    />
+  );
+}
+
 const e = StyleSheet.create({
   ojo: { alignItems: 'center', justifyContent: 'center' },
+  tonal: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, margin: 0 },
 });

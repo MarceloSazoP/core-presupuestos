@@ -1,8 +1,4 @@
 import { router, Stack } from 'expo-router';
-import { LISTA } from '@/lib/montos';
-import { BotonOjo } from '@/components/boton-ojo';
-import { MenuInicio } from '@/components/menu-inicio';
-import { TituloIr } from '@/components/titulo-ir';
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import { TituloConIcono } from '@/components/titulo-con-icono';
@@ -10,9 +6,6 @@ import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPen
 import { deNotificacion } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
 import { iniciarCola, vaciar } from '@/sync/cola';
-
-const INICIO_PANTALLA = { texto: 'Inicio', icono: { ios: 'house.fill', android: 'home', web: 'home' } } as const;
-const PRESUPUESTOS_PANTALLA = { texto: 'Presupuestos', icono: { ios: 'doc.text.fill', android: 'description', web: 'description' } } as const;
 
 // Pila nativa de Expo Router (UINavigationController en iOS): título grande, gesto de volver y modal del sistema.
 export default function AppLayout() {
@@ -32,20 +25,9 @@ export default function AppLayout() {
     <>
       {Platform.OS !== 'web' ? <AbrirAlTocarAviso /> : null}
       <Stack screenOptions={{ headerShadowVisible: false }}>
-      <Stack.Screen
-        name="index"
-        options={{
-          title: 'Inicio',
-          // El título lleva a Presupuestos (el selector [Inicio | Presupuestos]); a la derecha, el ☰ con los avisos y configurar.
-          headerTitle: () => <TituloIr sentido="adelante" actual={INICIO_PANTALLA} destino={PRESUPUESTOS_PANTALLA} alIr={() => router.push('/presupuestos')} />,
-          headerRight: () => <MenuInicio />,
-        }}
-      />
-      {/* título normal: las pestañas quedan fijas debajo */}
+      {/* Inicio y Presupuestos: una sola pantalla con la barra fija; su selector y el ☰ los pone la pantalla (index.tsx). */}
+      <Stack.Screen name="index" options={{ title: 'Inicio' }} />
       <Stack.Screen name="avisos" options={{ title: 'Avisos', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Avisos" icono={{ ios: 'bell.fill', android: 'notifications', web: 'notifications' }} /> }} />
-      {/* Presupuestos: el selector [Inicio | Presupuestos] reemplaza al botón de volver (son secciones del mismo nivel); el gesto de
-          volver de iPhone y «atrás» de Android siguen llevando a Inicio. */}
-      <Stack.Screen name="presupuestos" options={{ title: 'Presupuestos', headerBackVisible: false, headerRight: () => <BotonOjo clave={LISTA} />, headerTitle: () => <TituloIr sentido="atras" actual={PRESUPUESTOS_PANTALLA} destino={INICIO_PANTALLA} alIr={() => (router.canGoBack() ? router.back() : router.replace('/'))} /> }} />
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
