@@ -12,8 +12,8 @@ import { INICIO } from '@/lib/montos';
 import { espacio, useTema } from '@/theme';
 
 // La página de Inicio (index.tsx la pone junto a la de Presupuestos, bajo la misma barra): cómo va el mes y a quién contactar hoy.
-// - `activa`: si es la página que se ve. Cada vez que se llega a ella (deslizando, con el selector o al volver de otra pantalla) el resumen
-//   entra de nuevo con sus animaciones.
+// - `activa`: si es la página que se ve. Cada vez que se llega a ella (deslizando, con el selector o al volver de otra pantalla) las barras
+//   del gráfico vuelven a crecer; los números quedan quietos.
 // - `alPresupuestos`: deslizar hacia la izquierda pasa a Presupuestos (la página siguiente).
 // - `abajo`: lo que tapa el panel de «Nuevo presupuesto»; el contenido termina sobre él.
 export function PaginaInicio({ activa, alPresupuestos, abajo }: { activa: boolean; alPresupuestos: () => void; abajo: number }) {

@@ -3,7 +3,7 @@ import { INICIO, useDinero } from '@/lib/montos';
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Card, DataTable, Text } from 'react-native-paper';
-import Animated, { Easing, FadeIn, FadeInDown, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { api } from '@/api/client';
 import type { Indicadores, Tablero } from '@/api/types';
 import { SeccionM } from '@/components/material';
@@ -30,7 +30,8 @@ function ultimosMeses() {
 
 // Resumen de arriba de la lista: cómo va el mes (cuatro números) y a quién hay que contactar hoy. Sin conexión muestra el último
 // resumen guardado; si nunca hubo uno, no muestra nada (la lista de abajo sigue sirviendo).
-// `ronda`: cada vez que cambia (al volver a Inicio) el bloque se vuelve a montar y sus animaciones se repiten; los datos no se pierden.
+// `ronda`: cada vez que cambia (al volver a Inicio) el gráfico se vuelve a montar y sus barras crecen de nuevo; los datos no se pierden.
+// Lo demás (los cuatro números y los clientes por contactar) queda quieto: repetir su entrada en cada vuelta cansaba.
 export function Resumen({ ronda = 0 }: { ronda?: number }) {
   const t = useTema();
   const moneda = usePais().currency; // los indicadores son del usuario: en la moneda de su país
@@ -59,16 +60,16 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
 
   return (
     // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
-    <Animated.View key={ronda} entering={FadeIn.duration(200)} style={e.bloque}>
+    <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
       <View style={e.grilla}>
-        <Dato indice={0} icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
-        <Dato indice={1} icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
-        <Dato indice={2} icono="listo" tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-        <Dato indice={3} icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
+        <Dato icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
+        <Dato icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
+        <Dato icono="listo" tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+        <Dato icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
       </View>
 
       <SeccionM titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
-        <Grafico meses={d.meses} moneda={moneda} />
+        <Grafico key={ronda} meses={d.meses} moneda={moneda} />
       </SeccionM>
 
       <SeccionM titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
@@ -151,14 +152,13 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   );
 }
 
-function Dato({ indice, icono, tono, titulo, valor, nota, variacion }: { indice: number; icono: NombreIcono; tono: 'kpi1' | 'kpi2' | 'kpi3' | 'kpi4'; titulo: string; valor: string; nota: string; variacion?: Variacion | null }) {
+function Dato({ icono, tono, titulo, valor, nota, variacion }: { icono: NombreIcono; tono: 'kpi1' | 'kpi2' | 'kpi3' | 'kpi4'; titulo: string; valor: string; nota: string; variacion?: Variacion | null }) {
   const t = useTema();
   const tinta = t[`${tono}Tinta`];
   // Tarjeta tonal de Material 3: el fondo es el tono suave del indicador; el ícono va en un círculo del color de la superficie, y la cifra
   // en «titular», en el color de texto para que mande ella.
   return (
-    // Las cuatro tarjetas entran una tras otra (60 ms de diferencia) subiendo un poco.
-    <Animated.View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} entering={FadeInDown.delay(indice * 60).duration(280).easing(EASE_OUT).reduceMotion(ReduceMotion.System)} style={e.dato}>
+    <View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} style={e.dato}>
       <Card mode="contained" style={[e.tarjetaDato, { backgroundColor: t[`${tono}Fondo`] }]} contentStyle={e.contenidoDato}>
         <View style={e.cabeza}>
           <View style={[e.icono, { backgroundColor: t.tarjeta }]}><Icono nombre={icono} tamano={18} color={tinta} /></View>
@@ -169,7 +169,7 @@ function Dato({ indice, icono, tono, titulo, valor, nota, variacion }: { indice:
         {/* Frente al mes anterior: las flechas ▲▼ dicen si sube o baja. */}
         {variacion ? <Text variant="labelMedium" numberOfLines={1} style={{ color: tinta }}>{variacion.texto}</Text> : null}
       </Card>
-    </Animated.View>
+    </View>
   );
 }
 
