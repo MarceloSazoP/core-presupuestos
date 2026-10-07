@@ -1,7 +1,8 @@
 import * as Haptics from 'expo-haptics';
 import { avisar } from '@/lib/toast';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text, TouchableRipple } from 'react-native-paper';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
@@ -17,33 +18,36 @@ import { espacio, useTema } from '@/theme';
 // después. Se ven en el título de la pantalla (TituloCliente) y se corrigen en una hoja (EditarCliente). Funciona sin conexión: se
 // guarda en el teléfono y viaja por la cola.
 
-// Título de la barra: el nombre y, debajo, teléfono y correo. Tocarlo abre la hoja para corregirlos.
+// Título de la barra: el nombre y, debajo, teléfono y correo. Tocarlo abre la hoja para corregirlos. Con Material 3: el sello en un
+// círculo tonal, el nombre en «título medio», el contacto en «cuerpo chico» y la onda al tocar.
 export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () => void }) {
   const t = useTema();
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`${q.customer.name}, ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Corregir los datos del cliente`} onPress={alEditar} hitSlop={6} style={e.titulo}>
+    <TouchableRipple accessibilityRole="button" accessibilityLabel={`${q.customer.name}, ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Corregir los datos del cliente`} onPress={alEditar} hitSlop={6} borderless style={e.toque}>
+      <View style={e.titulo}>
       {/* El presupuesto (documento) a la izquierda; a su lado, el cliente con su ícono, y debajo teléfono y correo. */}
-      <View style={[e.sello, { backgroundColor: `${t.acento}1A` }]}>
-        <Icono nombre="documento" tamano={18} color={t.acento} />
-      </View>
-      <View style={e.datos}>
-        <View style={e.dato}>
-          <Icono nombre="cliente" tamano={15} color={t.acento} />
-          <TextoM fuerte numberOfLines={1} style={e.flexTexto}>{q.customer.name}</TextoM>
-          <Icono nombre="lapiz" tamano={14} color={t.acento} />
+        <View style={[e.sello, { backgroundColor: `${t.acento}1F` }]}>
+          <Icono nombre="documento" tamano={18} color={t.acento} />
         </View>
-        <View style={e.contacto}>
+        <View style={e.datos}>
           <View style={e.dato}>
-            <Icono nombre="llamar" tamano={13} color={t.acento} />
-            <TextoM variante="chico" suave numberOfLines={1}>{q.customer.phone}</TextoM>
+            <Icono nombre="cliente" tamano={15} color={t.acento} />
+            <Text variant="titleMedium" numberOfLines={1} style={[e.flexTexto, { color: t.texto }]}>{q.customer.name}</Text>
+            <Icono nombre="lapiz" tamano={14} color={t.acento} />
           </View>
-          <View style={[e.dato, e.correo]}>
-            <Icono nombre="correo" tamano={13} color={t.acento} />
-            <TextoM variante="chico" suave numberOfLines={1} style={e.flexTexto}>{q.customer.email ?? 'Sin correo'}</TextoM>
+          <View style={e.contacto}>
+            <View style={e.dato}>
+              <Icono nombre="llamar" tamano={13} color={t.acento} />
+              <Text variant="bodySmall" numberOfLines={1} style={{ color: t.suave }}>{q.customer.phone}</Text>
+            </View>
+            <View style={[e.dato, e.correo]}>
+              <Icono nombre="correo" tamano={13} color={t.acento} />
+              <Text variant="bodySmall" numberOfLines={1} style={[e.flexTexto, { color: t.suave }]}>{q.customer.email ?? 'Sin correo'}</Text>
+            </View>
           </View>
         </View>
       </View>
-    </Pressable>
+    </TouchableRipple>
   );
 }
 
@@ -94,7 +98,8 @@ export function EditarCliente({ q, cambiar, alCerrar }: { q: Presupuesto; cambia
 }
 
 const e = StyleSheet.create({
-  titulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, maxWidth: 270 },
+  toque: { borderRadius: 12, maxWidth: 270 },
+  titulo: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingVertical: 2, paddingRight: espacio.xs },
   sello: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   datos: { flexShrink: 1, gap: 1 },
   contacto: { flexDirection: 'row', alignItems: 'center', gap: espacio.s },

@@ -11,6 +11,7 @@ import { aplicarTema, leerPreferenciaTema } from '@/lib/preferencia-tema';
 import { useTema } from '@/theme';
 import { ajustesPaper, temaPaper } from '@/theme-paper';
 import { SesionProvider, useSesion } from '@/session';
+import { TituloConIcono } from '@/components/titulo-con-icono';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -45,7 +46,7 @@ function Navegador() {
       </Stack.Protected>
       <Stack.Protected guard={estado === 'fuera'}>
         <Stack.Screen name="ingresar" />
-        <Stack.Screen name="recuperar" options={{ headerShown: true, title: 'Entrar con el QR', presentation: 'modal', headerBackTitle: 'Atrás' }} />
+        <Stack.Screen name="recuperar" options={{ headerShown: true, title: 'Entrar con el QR', presentation: 'modal', headerBackTitle: 'Atrás', headerTitle: () => <TituloConIcono texto="Entrar con el QR" icono={{ ios: 'qrcode', android: 'qr_code_2', web: 'qr_code_2' }} /> }} />
       </Stack.Protected>
     </Stack>
   );

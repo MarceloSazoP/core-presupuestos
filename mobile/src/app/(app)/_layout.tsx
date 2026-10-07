@@ -59,7 +59,7 @@ export default function AppLayout() {
       {/* la pantalla trae su propia cabecera con «Cancelar» */}
       <Stack.Screen name="nuevo" options={{ presentation: 'modal', headerShown: false }} />
       <Stack.Screen name="codigo" options={{ presentation: 'formSheet', headerShown: false, sheetAllowedDetents: [0.7, 1], sheetGrabberVisible: true, sheetCornerRadius: 24 }} />
-      <Stack.Screen name="escanear" options={{ presentation: 'modal', title: 'Ver en la web', headerBackTitle: 'Atrás' }} />
+      <Stack.Screen name="escanear" options={{ presentation: 'modal', title: 'Ver en la web', headerBackTitle: 'Atrás', headerTitle: () => <TituloConIcono texto="Ver en la web" icono={{ ios: 'qrcode.viewfinder', android: 'qr_code_scanner', web: 'qr_code_scanner' }} /> }} />
       <Stack.Screen name="configurar" options={{ title: 'Configurar', headerBackTitle: 'Atrás', headerTitle: () => <TituloConIcono texto="Configurar" icono={{ ios: 'gearshape.fill', android: 'settings', web: 'settings' }} /> }} />
       <Stack.Screen name="configurar-datos" options={{ title: 'Mis datos', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Mis datos" icono={{ ios: 'person.fill', android: 'person', web: 'person' }} /> }} />
       <Stack.Screen name="configurar-imagenes" options={{ title: 'Logo y firma', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Logo y firma" icono={{ ios: 'photo.on.rectangle', android: 'photo_library', web: 'photo_library' }} /> }} />

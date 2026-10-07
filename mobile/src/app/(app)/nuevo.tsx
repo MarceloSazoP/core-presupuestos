@@ -105,7 +105,7 @@ export default function Nuevo() {
           <Button mode="text" onPress={cancelar} textColor={t.acento} accessibilityLabel="Cancelar" style={e.lado} contentStyle={e.ladoContenido} labelStyle={e.textoLado}>
             Cancelar
           </Button>
-          <TituloConIcono texto="Nuevo presupuesto" icono={{ ios: 'doc.badge.plus', android: 'note_add', web: 'note_add' }} />
+          <TituloConIcono compacto texto="Nuevo presupuesto" icono={{ ios: 'doc.badge.plus', android: 'note_add', web: 'note_add' }} />
           <Button mode="text" onPress={() => void crear(false)} disabled={cargando} textColor={t.acento} accessibilityLabel="Guardar el presupuesto para continuar después" style={e.lado} contentStyle={e.ladoContenido} labelStyle={[e.textoLado, e.fuerte]}>
             Guardar
           </Button>
