@@ -52,20 +52,20 @@ export function PastillaM({ texto, tono }: { texto: string; tono: 'aviso' | 'ok'
   );
 }
 
-// «De la visita» en Material: una superficie tonal con el amarillo del talonario (lo que es solo del profesional y no sale en el PDF),
-// el título de sección en el tono del sello y la etiqueta «Solo para ti».
+// «De la visita» en Material: una tarjeta elevada como las demás (sin el fondo amarillo de antes, que hacía ruido), con el título de sección,
+// su ícono en el círculo tonal del acento y la etiqueta gris «Solo para ti · no sale en el PDF», que marca lo que es solo del profesional.
 export function NotaM({ titulo, icono, children }: { titulo: string; icono?: NombreIcono; children: ReactNode }) {
   const t = useTema();
   return (
-    <Card mode="contained" style={[e.nota, { backgroundColor: t.notaFondo, borderColor: t.notaBorde }]} contentStyle={e.lista}>
+    <Card mode="elevated" elevation={1} style={[e.tarjeta, bordeElevado(t)]} contentStyle={e.lista}>
       <View style={e.contenidoNota}>
         <View style={e.cabecera}>
-          {icono ? <View style={[e.iconoSeccion, { backgroundColor: `${t.notaSello}1F` }]}><Icono nombre={icono} tamano={18} color={t.notaSello} /></View> : null}
-          <Text variant="titleMedium" accessibilityRole="header" style={[e.flex, { color: t.notaSello }]}>{titulo}</Text>
+          {icono ? <View style={[e.iconoSeccion, { backgroundColor: `${t.acento}1F` }]}><Icono nombre={icono} tamano={18} color={t.acento} /></View> : null}
+          <Text variant="titleMedium" accessibilityRole="header" style={e.flex}>{titulo}</Text>
         </View>
-        <View style={[e.sello, { backgroundColor: `${t.notaSello}1A` }]}>
-          <Icono nombre="candado" tamano={13} color={t.notaSello} />
-          <Text variant="labelMedium" style={{ color: t.notaSello }}>Solo para ti · no sale en el PDF</Text>
+        <View style={[e.sello, { backgroundColor: `${t.suave}1F` }]}>
+          <Icono nombre="candado" tamano={13} color={t.suave} />
+          <Text variant="labelMedium" style={{ color: t.suave }}>Solo para ti · no sale en el PDF</Text>
         </View>
         {children}
       </View>
@@ -225,7 +225,6 @@ const e = StyleSheet.create({
   fuerte: { fontWeight: '600' },
   pastilla: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', minHeight: 28, borderRadius: 14, paddingHorizontal: 12 },
   punto: { width: 8, height: 8, borderRadius: 4 },
-  nota: { borderRadius: radio.l, borderWidth: StyleSheet.hairlineWidth },
   contenidoNota: { padding: espacio.l, gap: espacio.l },
   sello: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   campo: { gap: 0 },
