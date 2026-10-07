@@ -11,7 +11,9 @@ export const tema = createTheme({
   cssVariables: { colorSchemeSelector: "data-theme" },
   colorSchemes: {
     light: { palette: { background: { default: "#f5f6f9" } } },
-    dark: { palette: { background: { default: "#090a0d", paper: "#14161b" } } },
+    // En oscuro el color principal es naranjo (no azul): botones, enlaces, casillas y la grilla de ítems lo toman de aquí. Sobre él
+    // MUI pone texto oscuro (más contraste que el blanco).
+    dark: { palette: { primary: { main: "#ff8f4d" }, background: { default: "#090a0d", paper: "#14161b" } } },
   },
   typography: { fontFamily: roboto.style.fontFamily },
   components: {
