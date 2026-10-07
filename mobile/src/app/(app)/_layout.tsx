@@ -1,24 +1,21 @@
 import { router, Stack } from 'expo-router';
 import { LISTA } from '@/lib/montos';
 import { BotonOjo } from '@/components/boton-ojo';
+import { MenuInicio } from '@/components/menu-inicio';
 import { TituloIr } from '@/components/titulo-ir';
 import { useEffect } from 'react';
-import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { AppState, Platform } from 'react-native';
 import { TituloConIcono } from '@/components/titulo-con-icono';
-import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPendientes, useAvisos } from '@/lib/avisos';
-import { deNotificacion, sinLeer } from '@/lib/avisos-datos';
+import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPendientes } from '@/lib/avisos';
+import { deNotificacion } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
 import { iniciarCola, vaciar } from '@/sync/cola';
-import { MIN_TOQUE, useTema } from '@/theme';
 
 const INICIO_PANTALLA = { texto: 'Inicio', icono: { ios: 'house.fill', android: 'home', web: 'home' } } as const;
 const PRESUPUESTOS_PANTALLA = { texto: 'Presupuestos', icono: { ios: 'doc.text.fill', android: 'description', web: 'description' } } as const;
 
 // Pila nativa de Expo Router (UINavigationController en iOS): título grande, gesto de volver y modal del sistema.
 export default function AppLayout() {
-  const t = useTema();
-
   useEffect(() => {
     iniciarCola(); // al abrir la app
     void iniciarAvisos(); // la bandeja de avisos del teléfono
@@ -39,18 +36,9 @@ export default function AppLayout() {
         name="index"
         options={{
           title: 'Inicio',
-          // El título lleva a Presupuestos («Inicio → Presupuestos»); a la izquierda, configurar; a la derecha, los avisos.
+          // El título lleva a Presupuestos (el selector [Inicio | Presupuestos]); a la derecha, el ☰ con los avisos y configurar.
           headerTitle: () => <TituloIr sentido="adelante" actual={INICIO_PANTALLA} destino={PRESUPUESTOS_PANTALLA} alIr={() => router.push('/presupuestos')} />,
-          headerLeft: () => (
-            <Pressable accessibilityRole="button" accessibilityLabel="Configurar" onPress={() => router.push('/configurar')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-              <SymbolView name="gearshape" size={22} tintColor={t.acento} fallback={<View />} />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <View style={{ flexDirection: 'row' }}>
-              <CampanaAvisos />
-            </View>
-          ),
+          headerRight: () => <MenuInicio />,
         }}
       />
       {/* título normal: las pestañas quedan fijas debajo */}
@@ -87,24 +75,3 @@ function AbrirAlTocarAviso() {
   }, [aviso, quoteId]);
   return null;
 }
-
-// La campana de la barra: abre los avisos y muestra cuántos hay sin leer.
-function CampanaAvisos() {
-  const t = useTema();
-  const sin = sinLeer(useAvisos());
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={sin ? `Avisos, ${sin} sin leer` : 'Avisos'} onPress={() => router.push('/avisos')} hitSlop={8} style={{ minHeight: MIN_TOQUE, minWidth: MIN_TOQUE, alignItems: 'center', justifyContent: 'center' }}>
-      <SymbolView name={{ ios: 'bell', android: 'notifications', web: 'notifications' }} size={22} tintColor={t.acento} fallback={<View />} />
-      {sin ? (
-        <View style={[e.insignia, { backgroundColor: t.error }]}>
-          <Text style={e.insigniaTexto}>{sin > 9 ? '9+' : sin}</Text>
-        </View>
-      ) : null}
-    </Pressable>
-  );
-}
-
-const e = StyleSheet.create({
-  insignia: { position: 'absolute', top: 6, right: 4, minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
-  insigniaTexto: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-});
