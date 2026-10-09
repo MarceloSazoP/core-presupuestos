@@ -1,13 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { DM_Sans, Source_Code_Pro } from "next/font/google";
 import "./globals.css";
 import { Avisos } from "./avisos";
 
-const plex = IBM_Plex_Sans({
-  variable: "--font-ibm-plex-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+// DM Sans: geométrica con calidez humanista (sustituto de la del diseño). Variable: un solo archivo para todos los pesos.
+const dmSans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
+// Source Code Pro: la letra del modo oscuro «neón». Sin precarga: solo la descarga quien usa ese modo.
+const sourceCodePro = Source_Code_Pro({ variable: "--font-source-code-pro", subsets: ["latin"], preload: false });
 
 export const metadata: Metadata = {
   title: "CORE Presupuestos",
@@ -22,14 +21,14 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f5f6f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#090a0d" },
+    { media: "(prefers-color-scheme: light)", color: "#e0dde2" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${plex.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="es" className={`${dmSans.variable} ${sourceCodePro.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         {/* Aplica el tema guardado antes de pintar, para evitar el parpadeo. */}
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("tema");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}` }} />
