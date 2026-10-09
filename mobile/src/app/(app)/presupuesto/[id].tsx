@@ -14,7 +14,7 @@ import { ActivityIndicator } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { Cierre, Envio } from '@/components/cierre';
-import { EditarCliente, TituloCliente } from '@/components/contacto-cliente';
+import { EditarCliente, TarjetaCliente, TituloPresupuesto } from '@/components/contacto-cliente';
 import { useDialogo } from '@/components/dialogo';
 import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
@@ -140,11 +140,11 @@ export default function Detalle() {
     <ScrollConBarra contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets style={{ backgroundColor: t.fondo }} contentContainerStyle={e.contenido}>
       <Stack.Screen
         options={{
-          title: q.customer.name,
+          title: 'Presupuesto',
           gestureEnabled: false, // el deslizar es para cambiar de parte: el gesto nativo de «volver» lo pisaba y dejaba la pantalla por error (se vuelve con el botón de la barra)
           // Volver es solo la flecha (sin «Atrás»): deja espacio al título.
           headerBackButtonDisplayMode: 'minimal',
-          headerTitle: () => <TituloCliente q={q} alEditar={() => setEditandoCliente(true)} />,
+          headerTitle: () => <TituloPresupuesto q={q} />,
           // A la derecha, el QR para abrirlo en la web y «⋯» con lo demás: los datos del cliente y, si está pendiente, eliminarlo (los
           // terminados no se eliminan, Contrato API §6; siempre con confirmación). Lo destructivo va en el menú, no a la vista.
           headerRight: () => (
@@ -161,6 +161,9 @@ export default function Detalle() {
       />
       <Sincronizacion />
       {editandoCliente ? <EditarCliente q={q} cambiar={cambiar} alCerrar={() => setEditandoCliente(false)} /> : null}
+
+      {/* El cliente: nombre y dirección; tocarla abre sus datos para llamarlo, escribirle o corregirlos. */}
+      <TarjetaCliente q={q} alTocar={() => setEditandoCliente(true)} />
 
       {/* En qué va (pendiente o su número, y la versión) está en el título de la barra; aquí solo, si es una versión nueva, a cuál reemplaza. */}
       {q.previous_number ? <TextoM variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</TextoM> : null}

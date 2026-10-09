@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { avisar } from '@/lib/toast';
 import { useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
-import { Avatar, Text, TouchableRipple } from 'react-native-paper';
+import { Avatar, Card, Text, TouchableRipple } from 'react-native-paper';
 import { mensajeDe } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
 import { CampoTelefono } from '@/components/campo-telefono';
@@ -14,42 +14,63 @@ import { separarTelefono } from '@/lib/paises';
 import { esCorreo, normalizarTelefono } from '@/lib/telefono';
 import { encolar } from '@/sync/cola';
 import { espacio, useTema } from '@/theme';
+import { bordeElevado } from '@/theme-paper';
 
 // Nombre, teléfono y correo del cliente, corregibles (Contrato API §6): el cliente suele equivocarse al dárselos y los confirma
-// después. Se ven en el título de la pantalla (TituloCliente) y se corrigen en una hoja (EditarCliente). Funciona sin conexión: se
-// guarda en el teléfono y viaja por la cola.
+// después. Se ven en la tarjeta del cliente arriba del presupuesto (TarjetaCliente) y se corrigen en una hoja (EditarCliente). Funciona
+// sin conexión: se guarda en el teléfono y viaja por la cola.
 
-// Título de la barra: el nombre del cliente con un lápiz (tocarlo abre la hoja para corregir nombre, teléfono y correo) y, debajo, en qué
-// va el presupuesto, en su color: «Pendiente», o su número y su estado comercial si ya se terminó, y la versión. El teléfono y el correo
-// no van aquí (no cabían): están en la hoja del cliente. En iPhone el título va centrado; en Android, a la izquierda.
-export function TituloCliente({ q, alEditar }: { q: Presupuesto; alEditar: () => void }) {
+// Título de la barra: «Presupuesto» y, debajo, en qué va, en su color: «Pendiente», o su número y su estado comercial si ya se terminó,
+// y la versión. El cliente no va aquí: tiene su tarjeta arriba del contenido. En iPhone el título va centrado; en Android, a la izquierda.
+export function TituloPresupuesto({ q }: { q: Presupuesto }) {
   const t = useTema();
   const cerrado = q.doc_status === 'FINALIZED';
   const comercial = ESTADOS.find((s) => s.id === q.commercial_status);
   const colorEstado = !cerrado ? t.aviso : comercial ? t[comercial.tono] : t.ok;
   const version = (q.version ?? 1) > 1 ? q.version : null;
   const estado = [cerrado ? (q.number ?? 'Cerrado') : 'Pendiente', cerrado ? (comercial?.texto ?? 'Cerrado') : null, version ? `v${version}` : null].filter(Boolean).join(' · ');
-  const centrado = Platform.OS === 'ios';
   return (
-    <TouchableRipple
-      accessibilityRole="button"
-      accessibilityLabel={`${q.customer.name}. ${estado}. Datos del cliente: ${q.customer.phone}, ${q.customer.email ?? 'sin correo'}. Editar`}
-      onPress={alEditar}
-      hitSlop={6}
-      borderless
-      style={e.toque}
-    >
-      <View style={[e.titulo, centrado ? e.centro : null]}>
-        <View style={e.dato}>
-          <Text variant="titleMedium" numberOfLines={1} style={[e.flexTexto, e.nombre, { color: t.texto }]}>{q.customer.name}</Text>
-          <Icono nombre="lapiz" tamano={14} color={t.acento} />
-        </View>
-        <View style={e.dato}>
-          <View style={[e.punto, { backgroundColor: colorEstado }]} />
-          <Text variant="labelMedium" numberOfLines={1} style={[e.flexTexto, { color: colorEstado }]}>{estado}</Text>
-        </View>
+    <View accessible accessibilityRole="header" accessibilityLabel={`Presupuesto. ${estado}`} style={[e.titulo, Platform.OS === 'ios' ? e.centro : null]}>
+      <Text variant="titleMedium" numberOfLines={1} style={[e.nombre, { color: t.texto }]}>Presupuesto</Text>
+      <View style={e.dato}>
+        <View style={[e.punto, { backgroundColor: colorEstado }]} />
+        <Text variant="labelMedium" numberOfLines={1} style={[e.flexTexto, { color: colorEstado }]}>{estado}</Text>
       </View>
-    </TouchableRipple>
+    </View>
+  );
+}
+
+// La tarjeta del cliente arriba del presupuesto (tarjeta elevada de Material): sus iniciales, el nombre y la dirección. Tocarla abre sus
+// datos («Datos del cliente»: llamar, WhatsApp, correo y corregir nombre, teléfono y correo).
+export function TarjetaCliente({ q, alTocar }: { q: Presupuesto; alTocar: () => void }) {
+  const t = useTema();
+  const direccion = q.customer.address || q.address;
+  return (
+    <Card
+      mode="elevated"
+      elevation={1}
+      onPress={alTocar}
+      accessibilityRole="button"
+      accessibilityLabel={`Cliente: ${q.customer.name}. ${direccion ?? 'Sin dirección'}. Ver y editar sus datos`}
+      style={[e.tarjetaCliente, bordeElevado(t)]}
+    >
+      <Card.Title
+        title={q.customer.name}
+        subtitle={direccion || 'Sin dirección'}
+        titleVariant="titleMedium"
+        subtitleVariant="bodyMedium"
+        titleStyle={e.nombre}
+        subtitleStyle={{ color: t.suave }}
+        subtitleNumberOfLines={2}
+        left={(props) => <Avatar.Text {...props} label={iniciales(q.customer.name)} color={t.acento} style={{ backgroundColor: `${t.acento}1F` }} />}
+        right={() => (
+          <View style={e.flechaCliente}>
+            <Icono nombre="siguiente" tamano={18} color={t.suave} />
+          </View>
+        )}
+        style={e.filaCliente}
+      />
+    </Card>
   );
 }
 
@@ -150,8 +171,10 @@ function Acceso({ icono, texto, etiqueta, deshabilitado, alTocar }: { icono: Nom
 }
 
 const e = StyleSheet.create({
-  toque: { borderRadius: 12, maxWidth: 230 },
-  titulo: { gap: 1, paddingHorizontal: espacio.s, paddingVertical: 2 },
+  titulo: { gap: 1, maxWidth: 230, paddingHorizontal: espacio.s, paddingVertical: 2 },
+  tarjetaCliente: { borderRadius: 20 },
+  filaCliente: { minHeight: 72, paddingVertical: espacio.s },
+  flechaCliente: { paddingRight: espacio.l },
   centro: { alignItems: 'center' },
   dato: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   nombre: { fontWeight: '600' },
