@@ -12,5 +12,10 @@ BEGIN
   END LOOP;
 END $$;
 
--- Reasignar la búsqueda de rutas para que el backend encuentre las tablas sin prefijo de schema
-ALTER DATABASE postgres SET search_path = "core-presupuestos", public;
+-- Ruta de búsqueda para que el backend encuentre las tablas sin prefijo de schema: en la base actual (cualquiera sea su nombre;
+-- en Supabase es «postgres») para las conexiones nuevas, y en esta misma conexión para las que ya están abiertas.
+DO $$
+BEGIN
+  EXECUTE format('ALTER DATABASE %I SET search_path = "core-presupuestos", public', current_database());
+END $$;
+SET search_path = "core-presupuestos", public;
