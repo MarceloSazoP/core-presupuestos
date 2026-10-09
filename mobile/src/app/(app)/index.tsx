@@ -1,24 +1,22 @@
-import { Image } from 'expo-image';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { BackHandler, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Text, TouchableRipple } from 'react-native-paper';
 import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MenuInicio } from '@/components/menu-inicio';
+import { MenuLateral } from '@/components/menu-lateral';
 import { PaginaInicio } from '@/components/pagina-inicio';
 import { PaginaPresupuestos } from '@/components/pagina-presupuestos';
-import { SelectorSeccion } from '@/components/selector-seccion';
+import { TituloConIcono } from '@/components/titulo-con-icono';
 import { Icono } from '@/components/ui';
-import { espacio, MIN_TOQUE, useTema } from '@/theme';
+import { espacio, useTema } from '@/theme';
 
-// La pantalla principal: Inicio y Presupuestos son dos páginas de la misma pantalla, lado a lado, bajo una sola barra fija (el selector
-// [Inicio | Presupuestos] al centro, la marca de CORE Presupuestos a la izquierda y el ☰ a la derecha) y con un solo botón redondo de «Nuevo presupuesto» abajo a la derecha. Al pasar de una a otra solo se
-// desliza el contenido; la barra y el botón no se mueven, y el resaltado del selector viaja con la misma posición que las páginas. Diseño
-// elegido en el lienzo «Barra fija y Nuevo presupuesto». Igual en iPhone y Android.
+// La pantalla principal: Inicio y Presupuestos son dos páginas de la misma pantalla, lado a lado, bajo una sola barra fija (el ☰ del menú
+// lateral a la izquierda y el nombre de la sección) y con un solo botón redondo de «Nuevo presupuesto» abajo a la derecha. Al pasar de una
+// a otra solo se desliza el contenido; la barra y el botón no se mueven. Igual en iPhone y Android.
 //
-// Se pasa de página deslizando (desde Inicio hacia la izquierda; desde la primera pestaña de Presupuestos hacia la derecha) o tocando el
-// selector. En Android, «atrás» en Presupuestos vuelve a Inicio. `?pagina=presupuestos` abre directo en Presupuestos.
+// Se pasa de página desde el menú lateral o deslizando (desde Inicio hacia la izquierda; desde la primera pestaña de Presupuestos hacia la
+// derecha). En Android, «atrás» en Presupuestos vuelve a Inicio. `?pagina=presupuestos` abre directo en Presupuestos.
 const BOTON = 64; // el botón redondo de «Nuevo presupuesto»
 const EASE_IN_OUT = Easing.bezier(0.77, 0, 0.175, 1); // movimiento en pantalla (animate-expo)
 
@@ -28,9 +26,9 @@ export default function Principal() {
   const ancho = useWindowDimensions().width;
   const { pagina: pedida } = useLocalSearchParams<{ pagina?: string }>();
   const [pagina, setPagina] = useState(pedida === 'presupuestos' ? 1 : 0);
-  const progreso = useSharedValue(pagina); // 0 = Inicio, 1 = Presupuestos; mueve las páginas y el selector
+  const progreso = useSharedValue(pagina); // 0 = Inicio, 1 = Presupuestos; mueve las páginas
 
-  // Tras deslizar, la página sigue con un resorte sin rebote (el dedo ya la empujó); al tocar el selector, con la curva de movimiento en
+  // Tras deslizar, la página sigue con un resorte sin rebote (el dedo ya la empujó); al elegirla en el menú, con la curva de movimiento en
   // pantalla. Con «reducir movimiento», cambia de golpe.
   const ir = useCallback(
     (destino: number, conGesto = false) => {
@@ -62,10 +60,14 @@ export default function Principal() {
     <View style={[e.pantalla, { backgroundColor: t.fondo }]}>
       <Stack.Screen
         options={{
-          headerTitleAlign: 'center',
-          headerLeft: () => <Marca />,
-          headerTitle: () => <SelectorSeccion progreso={progreso} pagina={pagina} alElegir={(p) => ir(p)} />,
-          headerRight: () => <MenuInicio />,
+          title: pagina === 0 ? 'Inicio' : 'Presupuestos',
+          headerLeft: () => <MenuLateral pagina={pagina} alIrPagina={(p) => ir(p)} />,
+          headerTitle: () =>
+            pagina === 0 ? (
+              <TituloConIcono texto="Inicio" icono={{ ios: 'house.fill', android: 'home', web: 'home' }} />
+            ) : (
+              <TituloConIcono texto="Presupuestos" icono={{ ios: 'doc.text.fill', android: 'description', web: 'description' }} />
+            ),
         }}
       />
       <Animated.View style={[e.paginas, { width: ancho * 2 }, estiloPaginas]}>
@@ -91,20 +93,7 @@ export default function Principal() {
   );
 }
 
-// La marca de CORE Presupuestos a la izquierda de la barra (la versión clara u oscura según el tema), en un botón redondo del mismo ancho
-// que el ☰ de la derecha: con los dos lados iguales, el selector queda justo al centro en iPhone y en Android. Tocarla abre «Información».
-function Marca() {
-  const t = useTema();
-  return (
-    <TouchableRipple accessibilityRole="button" accessibilityLabel="CORE Presupuestos. Ver información" rippleColor={`${t.acento}29`} onPress={() => router.push('/configurar-informacion')} style={e.marca}>
-      <Image source={t.oscuro ? require('../../../assets/images/marca-carga-dark.png') : require('../../../assets/images/marca-carga.png')} style={e.logo} contentFit="contain" />
-    </TouchableRipple>
-  );
-}
-
 const e = StyleSheet.create({
-  marca: { width: MIN_TOQUE, height: MIN_TOQUE, borderRadius: MIN_TOQUE / 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  logo: { width: 32, height: 29 }, // la marca mide 576 × 520
   pantalla: { flex: 1, overflow: 'hidden' },
   paginas: { flex: 1, flexDirection: 'row' },
   flotante: { position: 'absolute', right: espacio.l, width: BOTON, height: BOTON, borderRadius: BOTON / 2 },
