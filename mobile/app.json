@@ -2,7 +2,7 @@
   "expo": {
     "name": "CorePresupuesto",
     "slug": "balam",
-    "version": "1.8.0",
+    "version": "1.8.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "corepresupuesto",
