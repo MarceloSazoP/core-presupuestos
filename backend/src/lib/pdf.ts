@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { unitSymbol } from '../modules/quotes/units';
-import { formatoMonto, ZONA_POR_DEFECTO } from './paises';
+import { formatoMonto, tasaLegible, ZONA_POR_DEFECTO } from './paises';
 import type { Snapshot } from './snapshot';
 
 type Pdfmake = {
@@ -132,7 +132,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
         stack: [
           totalRow('Subtotal', dinero(s.subtotal)),
           ...(s.discount > 0 ? [totalRow('Descuento', `-${dinero(s.discount)}`)] : []),
-          ...(s.include_vat ? [totalRow(`${s.vat_label ?? 'IVA'} (${s.vat_rate ?? 19}%)`, dinero(s.vat ?? 0))] : []),
+          ...(s.include_vat ? [totalRow(`${s.vat_label ?? 'IVA'} (${tasaLegible(s.vat_rate ?? 19)}%)`, dinero(s.vat ?? 0))] : []),
           totalRow('TOTAL', dinero(s.total), true),
         ],
       },

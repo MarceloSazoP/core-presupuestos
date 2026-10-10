@@ -35,6 +35,13 @@ const FORMATOS: Record<string, (primero: string) => number[]> = {
   '+507': () => [4, 4],
   '+502': () => [4, 4],
   '+34': (d) => (d === '6' || d === '7' ? [3, 3, 3] : [2, 3, 2, 2]),
+  '+58': () => [3, 3, 4],
+  '+504': () => [4, 4],
+  '+503': () => [4, 4],
+  '+505': () => [4, 4],
+  '+53': () => [4, 4],
+  '+1': () => [3, 3, 4],
+  '+240': () => [3, 3, 3],
 };
 
 // Da forma visual al número que escribe la persona. Uno que empieza con «+» es de otro país y se deja como se escribió; sin formato
@@ -59,5 +66,6 @@ export function formatearTelefono(texto: string, prefijo: string): string {
 const PLANTILLAS: Record<string, string> = {
   '+56': '9 XXXX XXXX', '+51': '9XX XXX XXX', '+57': '3XX XXX XXXX', '+52': 'XX XXXX XXXX', '+54': '9 XX XXXX XXXX', '+598': '9X XXX XXX', '+595': '9XX XXX XXX',
   '+591': 'XXXXXXXX', '+593': '9X XXX XXXX', '+506': 'XXXX XXXX', '+507': 'XXXX XXXX', '+502': 'XXXX XXXX', '+34': 'XXX XXX XXX',
+  '+58': '4XX XXX XXXX', '+504': 'XXXX XXXX', '+503': 'XXXX XXXX', '+505': 'XXXX XXXX', '+53': '5XXX XXXX', '+1': 'XXX XXX XXXX', '+240': 'XXX XXX XXX',
 };
 export const plantillaTelefono = (prefijo: string) => PLANTILLAS[prefijo] ?? 'XXXXXXXX';

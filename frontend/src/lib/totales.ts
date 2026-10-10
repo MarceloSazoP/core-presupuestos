@@ -14,6 +14,6 @@ export const TASA_IVA = 19; // Chile: la de los presupuestos anteriores a los va
 export function calcularTotales(items: Item[], descuento: number, conIva = false, tasa = TASA_IVA) {
   const subtotal = items.reduce((suma, i) => suma + totalLinea(i.tipo === 'tarea' ? 1 : i.cantidad, i.precioUnitario), 0);
   const neto = subtotal - descuento;
-  const iva = conIva && neto > 0 ? Number((BigInt(neto) * BigInt(tasa) + BigInt(50)) / BigInt(100)) : 0;
+  const iva = conIva && neto > 0 ? Number((BigInt(neto) * BigInt(Math.round(tasa * 100)) + BigInt(5000)) / BigInt(10000)) : 0; // tasa en centésimas: 11,5 %
   return { subtotal, descuento, iva, total: neto + iva };
 }

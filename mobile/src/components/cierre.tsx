@@ -19,6 +19,7 @@ import { FilaVisita, GrupoVisita } from '@/components/fila-visita';
 import { BotonM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
+import { tasaLegible } from '@/lib/paises';
 import { AvisoSinSenal } from '@/components/sincronizacion';
 import { borradorVigente, claveBorradorCierre } from '@/lib/borrador-cierre';
 import { useSinSenal } from '@/lib/conexion';
@@ -90,6 +91,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   const clp = (n: number) => montoDe(n, moneda); // los montos de este presupuesto, en su moneda (o puntos si están ocultos)
   const impuesto = q.vat_label ?? 'IVA';
   const tasa = q.vat_rate ?? 19;
+  const tasaTexto = tasaLegible(tasa); // 11,5 en Puerto Rico
   const desc = pct === null ? q.discount : montoDeDescuento(subtotal, pct); // el servidor guarda el monto; aquí se elige en porcentaje
   const { iva, total } = totalesDe(subtotal, desc, conIva, tasa);
   const detalle = conIva || desc > 0; // con impuesto o descuento, el cuadro desglosa; si no, dice solo «Total»
@@ -142,7 +144,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
     ]);
 
   const abrirCondiciones = () => setCondiciones(true);
-  const conDesglose = `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasa} por ciento, ${clp(iva)}.` : ''}`;
+  const conDesglose = `Subtotal ${clp(subtotal)}.${desc > 0 ? ` Descuento${pct ? ` ${pct} por ciento` : ''} ${clp(desc)}.` : ''}${conIva ? ` ${impuesto} ${tasaTexto} por ciento, ${clp(iva)}.` : ''}`;
 
   return (
     <>
@@ -170,7 +172,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
               ) : null}
               {conIva ? (
                 <View style={e.filaDesglose}>
-                  <Text variant="bodyMedium" style={{ color: t.suave }}>{impuesto} {tasa} %</Text>
+                  <Text variant="bodyMedium" style={{ color: t.suave }}>{impuesto} {tasaTexto} %</Text>
                   <Text variant="bodyMedium" style={[e.monto, { color: t.suave }]}>{clp(iva)}</Text>
                 </View>
               ) : null}
@@ -181,8 +183,8 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
         </View>
         <Divider />
         <View style={e.filaIva}>
-          <Text variant="bodyLarge" style={e.textoIva}>Agregar {impuesto} ({tasa} %)</Text>
-          <Switch accessibilityLabel={`Agregar ${impuesto} (${tasa}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasa} %).` : 'El total queda sin impuesto.'); }} color={t.acento} />
+          <Text variant="bodyLarge" style={e.textoIva}>Agregar {impuesto} ({tasaTexto} %)</Text>
+          <Switch accessibilityLabel={`Agregar ${impuesto} (${tasaTexto}%)`} value={conIva} onValueChange={(on) => { setConIva(on); avisar.info(on ? `${impuesto} agregado` : `${impuesto} quitado`, on ? `El total ahora lleva ${impuesto} (${tasaTexto} %).` : 'El total queda sin impuesto.'); }} color={t.acento} />
         </View>
       </TarjetaM>
 

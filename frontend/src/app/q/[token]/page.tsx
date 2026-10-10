@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import { porcentajeDe } from "@/lib/descuento";
 import { cant, dinero } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
+import { tasaLegible } from "@/lib/paises";
 import { LogoProfesional } from "./logo-profesional";
 
 export const metadata: Metadata = { title: "Presupuesto · CORE Presupuestos", robots: { index: false, follow: false } };
@@ -161,7 +162,7 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             {q.include_vat ? (
               <Box sx={FILA_TOTAL}>
                 <dt>
-                  {q.vat_label} ({q.vat_rate}%)
+                  {q.vat_label} ({tasaLegible(q.vat_rate)}%)
                 </dt>
                 <Box component="dd" sx={{ m: 0 }}>
                   {clp(q.vat)}

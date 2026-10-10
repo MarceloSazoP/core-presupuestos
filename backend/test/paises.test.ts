@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import { migrate } from '../scripts/migrate';
 import { pool } from '../src/db';
-import { formatoMonto, PAISES, paisDelTelefono, zonaValida } from '../src/lib/paises';
+import { formatoMonto, PAISES, paisDelTelefono, tasaLegible, zonaValida } from '../src/lib/paises';
 import { PAISES as PAISES_APP } from '../../mobile/src/lib/paises';
 import { PAISES as PAISES_WEB } from '../../frontend/src/lib/paises';
 import { sumTotals, vatOf } from '../src/modules/quotes/totals';
@@ -10,11 +10,12 @@ import { assertTestDb, resetDb, startApp } from './helpers';
 
 // Varios países (Internacionalización.md §6): moneda, impuesto, teléfono y zona horaria.
 describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', () => {
-  it('la tabla es coherente y cada prefijo es de un solo país', () => {
-    assert.equal(PAISES.length, 13);
+  it('la tabla es coherente y cada prefijo (con su código de área, si comparte el +1) es de un solo país', () => {
+    assert.equal(PAISES.length, 21, 'todos los países de habla hispana');
     assert.equal(new Set(PAISES.map((p) => p.country)).size, PAISES.length);
-    assert.equal(new Set(PAISES.map((p) => p.calling_code)).size, PAISES.length);
-    for (const p of PAISES) assert.ok(p.vat_rate > 0 && p.vat_rate < 100 && /^\+\d{2,3}$/.test(p.calling_code) && p.currency.length === 3, p.country);
+    const prefijos = PAISES.flatMap((p) => p.area_codes?.map((a) => p.calling_code + a) ?? [p.calling_code]);
+    assert.equal(new Set(prefijos).size, prefijos.length);
+    for (const p of PAISES) assert.ok(p.vat_rate > 0 && p.vat_rate < 100 && Number.isInteger(p.vat_rate * 100) && /^\+\d{1,3}$/.test(p.calling_code) && p.currency.length === 3, p.country);
   });
 
   it('las tablas de la app móvil y de la web son idénticas a la del servidor', () => {
@@ -29,6 +30,9 @@ describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', ()
     assert.equal(formatoMonto(1234567, 'USD'), '$1,234,567', 'Ecuador y Panamá usan dólares con estilo de dólar');
     assert.equal(formatoMonto(1234567, 'CRC'), '₡1 234 567');
     assert.equal(formatoMonto(1234567, 'EUR'), '1.234.567 €', 'en España el símbolo va después');
+    assert.equal(formatoMonto(1234567, 'XAF'), '1.234.567 FCFA', 'en Guinea Ecuatorial también');
+    assert.equal(formatoMonto(1234567, 'VES'), 'Bs. 1.234.567');
+    assert.equal(formatoMonto(1234567, 'DOP'), 'RD$ 1,234,567');
     assert.equal(formatoMonto(999, 'COP'), '$999');
     assert.equal(formatoMonto(-5000, 'CLP'), '-$5.000');
     assert.equal(formatoMonto(100, 'XXX'), '$100', 'una moneda desconocida cae en la de Chile en vez de fallar');
@@ -41,6 +45,11 @@ describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', ()
     assert.equal(paisDelTelefono('+5491122334455')?.country, 'AR');
     assert.equal(paisDelTelefono('+34600111222')?.country, 'ES');
     assert.equal(paisDelTelefono('+4930123456'), undefined);
+    assert.equal(paisDelTelefono('+18095551234')?.country, 'DO', 'el +1 dominicano, por su código de área');
+    assert.equal(paisDelTelefono('+17875551234')?.country, 'PR');
+    assert.equal(paisDelTelefono('+12125551234'), undefined, 'otro +1 (Estados Unidos) no adivina');
+    assert.equal(paisDelTelefono('+584121234567')?.country, 'VE');
+    assert.equal(paisDelTelefono('+240222123456')?.country, 'GQ');
   });
 
   it('el impuesto usa la tasa del presupuesto y redondea .5 hacia arriba', () => {
@@ -49,6 +58,10 @@ describe('países: tabla, formato de montos, teléfonos e impuesto por tasa', ()
     assert.equal(vatOf(100000), 19000, 'sin tasa, la de Chile de antes');
     assert.equal(vatOf(50, 18), 9);
     assert.deepEqual(sumTotals([10000], 1000, true, 16), { subtotal: 10000, vat: 1440, total: 10440 });
+    assert.equal(vatOf(100000, 11.5), 11500, 'Puerto Rico: tasa con decimales');
+    assert.equal(vatOf(100, 11.5), 12, '11,5 se redondea hacia arriba');
+    assert.equal(tasaLegible(11.5), '11,5');
+    assert.equal(tasaLegible(19), '19');
     assert.equal(zonaValida('America/Lima'), true);
     assert.equal(zonaValida('Marte/Base'), false);
   });
@@ -78,13 +91,23 @@ describe('API: país y zona horaria del usuario, y presupuestos que guardan su p
   it('GET /countries es público y el país de un usuario nuevo sale de su teléfono', async () => {
     const lista = await app.api('GET', '/countries');
     assert.equal(lista.status, 200);
-    assert.equal(lista.json.length, 13);
+    assert.equal(lista.json.length, 21);
     assert.deepEqual(Object.keys(lista.json[0]).sort(), ['calling_code', 'country', 'currency', 'name', 'symbol', 'thousands', 'vat_label', 'vat_rate']);
     const peru = await app.login('+51987654321', 'p@test.pe', 'Pedro');
     const yo = (await app.api('GET', '/me', { token: peru.token })).json;
     assert.deepEqual([yo.country, yo.timezone], ['PE', 'America/Santiago']);
     const chile = await app.login('+56911111111', 'c@test.cl', 'Carla');
     assert.equal((await app.api('GET', '/me', { token: chile.token })).json.country, 'CL');
+  });
+
+  it('Puerto Rico: se reconoce por el código de área y su tasa con decimales se guarda y calcula', async () => {
+    const u = await app.login('+17875551234', 'pr@test.pr', 'Pablo');
+    assert.equal((await app.api('GET', '/me', { token: u.token })).json.country, 'PR');
+    const q = await crear(u.token);
+    assert.deepEqual([q.currency, q.vat_label, q.vat_rate], ['USD', 'IVU', 11.5], 'numeric vuelve como número');
+    await app.api('PUT', `/quotes/${q.id}/items`, { token: u.token, body: { items: [{ description: 'x', quantity: 1, unit_price: 100000 }] } });
+    const conIvu = (await app.api('PATCH', `/quotes/${q.id}`, { token: u.token, body: { include_vat: true } })).json;
+    assert.deepEqual([conIvu.vat, conIvu.total], [11500, 111500]);
   });
 
   it('PUT /me valida el país y la zona horaria', async () => {

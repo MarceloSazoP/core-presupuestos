@@ -4,6 +4,7 @@ import { IconoDinero } from '@/components/icono-dinero';
 import { BotonOjo } from '@/components/boton-ojo';
 import { delPresupuesto, useDinero } from '@/lib/montos';
 import { ScrollConBarra } from '@/components/barra-flotante';
+import { tasaLegible } from '@/lib/paises';
 import { avisar } from '@/lib/toast';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { simboloUnidad } from '@/lib/unidades';
@@ -215,7 +216,7 @@ export default function Detalle() {
                 ))}
                 {q.include_vat ? (
                   <View style={e.filaTotal}>
-                    <TextoM suave>{q.vat_label ?? 'IVA'} ({q.vat_rate ?? 19}%)</TextoM>
+                    <TextoM suave>{q.vat_label ?? 'IVA'} ({tasaLegible(q.vat_rate ?? 19)}%)</TextoM>
                     <TextoM suave style={e.monto}>{montoDe(q.vat, q.currency)}</TextoM>
                   </View>
                 ) : null}

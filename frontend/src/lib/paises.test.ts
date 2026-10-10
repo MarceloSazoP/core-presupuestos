@@ -24,4 +24,5 @@ test("el impuesto usa la tasa del presupuesto", () => {
   const items = [{ descripcion: "x", cantidad: 1, precioUnitario: 100000 }];
   assert.equal(calcularTotales(items, 0, true, 16).iva, 16000);
   assert.equal(calcularTotales(items, 0, true).iva, 19000);
+  assert.equal(calcularTotales(items, 0, true, 11.5).iva, 11500, "Puerto Rico: tasa con decimales");
 });

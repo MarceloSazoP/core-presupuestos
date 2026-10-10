@@ -4,7 +4,7 @@ import { Text, TouchableRipple } from 'react-native-paper';
 import { CampoM } from '@/components/material';
 import { Campo, Icono, Texto } from '@/components/ui';
 import { ElegirPais } from '@/components/elegir-pais';
-import { bandera, PAISES } from '@/lib/paises';
+import { bandera, PAISES, paisDelTelefono } from '@/lib/paises';
 import { formatearTelefono, plantillaTelefono } from '@/lib/telefono';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
@@ -14,7 +14,11 @@ import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 export function CampoTelefono({ codigo, alCodigo, material, ...props }: Omit<ComponentProps<typeof Campo>, 'izquierda' | 'keyboardType'> & { codigo: string; alCodigo: (codigo: string) => void; material?: boolean }) {
   const t = useTema();
   const [abierto, setAbierto] = useState(false);
-  const actual = PAISES.find((p) => p.calling_code === codigo);
+  // El +1 es de dos países de la lista (República Dominicana y Puerto Rico): la bandera sale del código de área ya escrito y, si
+  // todavía no lo dice, del país que se eligió en la lista.
+  const [elegido, setElegido] = useState<string>();
+  const delCodigo = PAISES.filter((p) => p.calling_code === codigo);
+  const actual = paisDelTelefono(codigo + (props.value ?? '').replace(/\D/g, '')) ?? delCodigo.find((p) => p.country === elegido) ?? delCodigo[0];
   const pais = `Código de país: ${actual?.name ?? codigo}, ${codigo}. Cambiar`;
   const { ref: _ref, icono: _icono, selectionColor: _s, placeholderTextColor: _p, cursorColor: _c, selectionHandleColor: _h, ...resto } = props;
   return (
@@ -69,6 +73,7 @@ export function CampoTelefono({ codigo, alCodigo, material, ...props }: Omit<Com
           actual={actual?.country ?? ''}
           alElegir={(c) => {
             const nuevo = PAISES.find((p) => p.country === c)!.calling_code;
+            setElegido(c);
             alCodigo(nuevo);
             props.onChangeText?.(formatearTelefono(props.value ?? '', nuevo)); // lo ya escrito toma el formato del nuevo país
             setAbierto(false);

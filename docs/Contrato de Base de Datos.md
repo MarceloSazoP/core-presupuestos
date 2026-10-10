@@ -813,3 +813,18 @@ CREATE INDEX recovery_tokens_vigentes ON recovery_tokens (user_id) WHERE used_at
 - Un usuario tiene **a lo sumo un token vigente** (sin `used_at` ni `revoked_at`): crear uno revoca los anteriores en la misma transacción.
 - Consumirlo es atómico: `UPDATE … SET used_at = now() WHERE token_hash = $1 AND used_at IS NULL AND revoked_at IS NULL RETURNING user_id`.
 - **Pruebas que acompañan:** ver `Recuperación de cuenta con QR.md` §5.
+
+---
+
+## 24. Migración `0019` (tasas de impuesto con decimales, decisión del 2026-10-10)
+
+Con todos los países de habla hispana entra Puerto Rico, cuyo IVU es 11,5 %: la tasa deja de ser un entero. Ver `Internacionalización.md` §2 y §3.3.
+
+```sql
+ALTER TABLE quotes ALTER COLUMN vat_rate TYPE numeric(5,2);
+```
+
+- Los presupuestos existentes no cambian (19 pasa a 19.00). El `CHECK (vat_rate BETWEEN 0 AND 100)` se mantiene.
+- El backend ya convierte `numeric` a número (`db.ts`), así que la API sigue entregando `vat_rate` como número (`11.5`).
+- El impuesto sigue siendo un entero: `round(neto × tasa / 100)` con `.5` hacia arriba, calculado en centésimas de la tasa para no depender de flotantes.
+- **Prueba que acompaña:** un presupuesto de Puerto Rico guarda 11,5 y su impuesto sobre 100.000 es 11.500.

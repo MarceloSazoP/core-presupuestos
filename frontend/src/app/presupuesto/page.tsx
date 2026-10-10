@@ -16,7 +16,7 @@ import Typography from "@mui/material/Typography";
 import { redirect } from "next/navigation";
 import { porcentajeDe } from "@/lib/descuento";
 import { dinero, cant } from "@/lib/formato";
-import { paisDe } from "@/lib/paises";
+import { paisDe, tasaLegible } from "@/lib/paises";
 import { simboloUnidad } from "@/lib/opciones";
 import { cargarPresupuesto, esFinalizado } from "@/lib/presupuesto";
 import { totalLinea } from "@/lib/totales";
@@ -202,7 +202,7 @@ export default async function PresupuestoPage() {
               {p.conIva ? (
                 <Box sx={{ display: "flex", justifyContent: "space-between", color: "text.secondary" }}>
                   <dt>
-                    {p.impuesto.nombre} ({p.impuesto.tasa}%)
+                    {p.impuesto.nombre} ({tasaLegible(p.impuesto.tasa)}%)
                   </dt>
                   <Box component="dd" sx={{ m: 0 }}>
                     {clp(iva)}

@@ -8,7 +8,7 @@ import { ElegirPais } from '@/components/elegir-pais';
 import { SeccionM, TarjetaM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { usePais } from '@/lib/pais-actual';
-import { bandera } from '@/lib/paises';
+import { bandera, tasaLegible } from '@/lib/paises';
 import { avisar } from '@/lib/toast';
 import { useSesion } from '@/session';
 import { espacio, useTema } from '@/theme';
@@ -39,7 +39,7 @@ export default function PaisDeLaCuenta() {
           <List.Item
             title={`${bandera(pais.country)} ${pais.name}`}
             titleStyle={e.titulo}
-            description={`${pais.currency} · ${pais.vat_label} ${pais.vat_rate} %`}
+            description={`${pais.currency} · ${pais.vat_label} ${tasaLegible(pais.vat_rate)} %`}
             onPress={() => setEligiendo(true)}
             accessibilityRole="button"
             accessibilityLabel={`País: ${pais.name}. Cambiar`}
@@ -52,7 +52,7 @@ export default function PaisDeLaCuenta() {
           />
         </TarjetaM>
       </SeccionM>
-      {eligiendo ? <ElegirPais titulo="País" nota="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian." detalle={(p) => `${p.currency} · ${p.vat_label} ${p.vat_rate} %`} actual={pais.country} alElegir={(c) => void cambiar(c)} alCerrar={() => setEligiendo(false)} /> : null}
+      {eligiendo ? <ElegirPais titulo="País" nota="Define la moneda y el impuesto de los presupuestos nuevos. Los que ya hiciste no cambian." detalle={(p) => `${p.currency} · ${p.vat_label} ${tasaLegible(p.vat_rate)} %`} actual={pais.country} alElegir={(c) => void cambiar(c)} alCerrar={() => setEligiendo(false)} /> : null}
     </ScrollView>
   );
 }

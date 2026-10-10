@@ -33,7 +33,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 import { montoDeDescuento, porcentajeDe } from "@/lib/descuento";
 import { dinero } from "@/lib/formato";
-import { paisDe } from "@/lib/paises";
+import { paisDe, tasaLegible } from "@/lib/paises";
 import { GARANTIAS, UNIDAD_POR_DEFECTO, VALIDEZ_DIAS } from "@/lib/opciones";
 import { calcularTotales } from "@/lib/totales";
 import { completarPresupuestoAction, type EstadoEdicion } from "../actions";
@@ -463,7 +463,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
               <Box component="dd" sx={{ m: 0, flex: 1 }}>
                 <FormControlLabel
                   control={<Checkbox id="iva" name="iva" value="1" checked={conIva} onChange={(e) => setConIva(e.target.checked)} />}
-                  label={`Agregar ${impuesto.nombre} (${impuesto.tasa}%)`}
+                  label={`Agregar ${impuesto.nombre} (${tasaLegible(impuesto.tasa)}%)`}
                   labelPlacement="start"
                   sx={{ m: 0, mr: -1.5, width: "calc(100% + 12px)", justifyContent: "space-between" }}
                 />
@@ -472,7 +472,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             {conIva ? (
               <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2, color: "text.secondary" }}>
                 <dt>
-                  {impuesto.nombre} ({impuesto.tasa}%)
+                  {impuesto.nombre} ({tasaLegible(impuesto.tasa)}%)
                 </dt>
                 <Box component="dd" sx={{ m: 0 }}>
                   {clp(totales.iva)}

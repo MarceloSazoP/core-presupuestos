@@ -10,7 +10,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState, useTransition } from "react";
-import { bandera, PAISES_ORDENADOS, separarTelefono } from "@/lib/paises";
+import { bandera, paisDe, PAISES, PAISES_ORDENADOS, paisDelTelefono, separarTelefono } from "@/lib/paises";
 import { formatearTelefono, plantillaTelefono } from "@/lib/telefono";
 import { corregirClienteAction } from "../actions";
 
@@ -27,7 +27,10 @@ const iniciales = (nombre: string) =>
 export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?: string; telefono: string; correo: string | null; prefijo?: string }) {
   const [editando, setEditando] = useState(false);
   const [nom, setNom] = useState(nombre ?? "");
-  const [cod, setCod] = useState(() => separarTelefono(telefono, prefijo ?? "+56").codigo); // el país del número (su prefijo)
+  // El país del número. La lista guarda el país y no el prefijo, porque el +1 es de dos países (República Dominicana y Puerto Rico).
+  const paisInicial = () => paisDelTelefono(telefono)?.country ?? PAISES.find((p) => p.calling_code === (prefijo ?? "+56"))?.country ?? "CL";
+  const [pais, setPais] = useState(paisInicial);
+  const cod = paisDe(pais).calling_code;
   const [tel, setTel] = useState(() => separarTelefono(telefono, prefijo ?? "+56").nacional);
   const [mail, setMail] = useState(correo ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +62,7 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
             setNom(nombre ?? "");
             const sep = separarTelefono(telefono, prefijo ?? "+56");
             setTel(sep.nacional);
-            setCod(sep.codigo);
+            setPais(paisInicial());
             setMail(correo ?? "");
             setError(null);
             setEditando(true);
@@ -81,16 +84,16 @@ export function ContactoCliente({ nombre, telefono, correo, prefijo }: { nombre?
         <TextField
           select
           label="País"
-          value={cod}
+          value={pais}
           onChange={(e) => {
-            setCod(e.target.value);
-            setTel(formatearTelefono(tel, e.target.value)); // lo ya escrito toma el formato del nuevo país
+            setPais(e.target.value);
+            setTel(formatearTelefono(tel, paisDe(e.target.value).calling_code)); // lo ya escrito toma el formato del nuevo país
           }}
           slotProps={{ select: { native: true } }}
           sx={{ width: "auto", flexShrink: 0, maxWidth: "45%" }}
         >
           {PAISES_ORDENADOS.map((p) => (
-            <option key={p.country} value={p.calling_code}>
+            <option key={p.country} value={p.country}>
               {bandera(p.country)} {p.name} {p.calling_code}
             </option>
           ))}

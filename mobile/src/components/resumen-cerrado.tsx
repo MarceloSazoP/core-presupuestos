@@ -14,6 +14,7 @@ import { useSinSenal } from '@/lib/conexion';
 import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, vencimiento } from '@/lib/fechas';
 import { delPresupuesto, useDinero } from '@/lib/montos';
+import { tasaLegible } from '@/lib/paises';
 import { abrirPdf } from '@/lib/pdf';
 import { avisar } from '@/lib/toast';
 import { espacio, type Color, useTema } from '@/theme';
@@ -33,7 +34,7 @@ export function ResumenCerrado({ q }: { q: Presupuesto }) {
   const vence = q.finalized_at && q.validity_days ? vencimiento(q.finalized_at, q.validity_days) : null;
   const vencido = !!vence?.vencido && abierto;
   const total = montoDe(q.total, q.currency);
-  const impuesto = q.include_vat ? `Incluye ${q.vat_label ?? 'IVA'} (${q.vat_rate ?? 19} %)` : null;
+  const impuesto = q.include_vat ? `Incluye ${q.vat_label ?? 'IVA'} (${tasaLegible(q.vat_rate ?? 19)} %)` : null;
   return (
     <TarjetaM>
       <View style={e.cabecera}>

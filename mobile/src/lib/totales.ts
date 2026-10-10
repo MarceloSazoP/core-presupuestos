@@ -5,6 +5,6 @@ export const TASA_IVA = 19; // Chile: la de los presupuestos anteriores a los va
 
 export function totalesDe(subtotal: number, descuento: number, conIva: boolean, tasa = TASA_IVA) {
   const neto = subtotal - descuento;
-  const iva = conIva && neto > 0 ? Math.floor((neto * tasa + 50) / 100) : 0;
+  const iva = conIva && neto > 0 ? Math.floor((neto * Math.round(tasa * 100) + 5000) / 10000) : 0; // tasa en centésimas: 11,5 %
   return { iva, total: Math.max(0, neto) + iva };
 }
