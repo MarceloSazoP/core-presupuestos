@@ -1,4 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import Image, { type StaticImageData } from "next/image";
+import appInicio from "./capturas/app-inicio.png";
+import appTerminado from "./capturas/app-terminado.png";
+import appVisita from "./capturas/app-visita.png";
+import clienteTelefono from "./capturas/cliente-telefono.png";
+import editorComputador from "./capturas/editor-computador.png";
 import { ConsultaForm } from "./consulta-form";
 import { HojaDemo } from "./hoja-demo";
 import { VinculoQr } from "./vinculo-qr";
@@ -9,7 +15,29 @@ export const metadata: Metadata = {
     "Anota lo que ves en la visita (notas, fotos, medidas y voz), prepara el presupuesto y envíalo al cliente en PDF. Para electricistas, gasfíteres, instaladores y técnicos independientes.",
 };
 
-export const viewport: Viewport = { themeColor: "#ffffff" };
+export const viewport: Viewport = { themeColor: "#15191e" }; // arriba va la barra oscura del anuncio
+
+// Las fotos son capturas reales del sistema (la app, el editor web y la vista del cliente) con datos de demostración.
+const PANTALLAS: { foto: StaticImageData; alt: string; titulo: string; detalle: string }[] = [
+  {
+    foto: appVisita,
+    alt: "La app en la visita: los botones Foto, Voz, Medida y Nota, lo que sale en el PDF (servicio y dirección) y lo que es solo para ti (notas y medidas)",
+    titulo: "Lo que viste, sin olvidar nada",
+    detalle: "Foto, voz, medida o nota, a un toque. Lo que sale en el PDF va separado de lo que es solo para ti. Funciona sin señal: se envía solo cuando vuelva.",
+  },
+  {
+    foto: appTerminado,
+    alt: "La app con un presupuesto enviado: su estado, el total, hasta cuándo vale y el próximo contacto, con los botones Ver PDF y Llamar",
+    titulo: "Listo para enviar",
+    detalle: "El total, hasta cuándo vale y cuándo volver a llamar, a la vista. El PDF y el envío por WhatsApp o correo, a un toque.",
+  },
+  {
+    foto: appInicio,
+    alt: "Inicio de la app: lo que espera respuesta, lo que falta terminar, lo aceptado del mes, el gráfico de los últimos seis meses y los clientes por contactar",
+    titulo: "Tu trabajo de un vistazo",
+    detalle: "Cuánto espera respuesta, qué te falta terminar, cuánto te aceptaron este mes y a qué clientes te toca llamar.",
+  },
+];
 
 const PASOS = [
   {
@@ -27,13 +55,20 @@ const PASOS = [
     detalle: "El PDF sale por correo, con tu logo y tus datos, y el aviso por WhatsApp va en el mismo paso.",
     muestra: ["PDF adjunto", "Correo", "WhatsApp"],
   },
+  {
+    titulo: "Haz seguimiento",
+    detalle: "Anota cuándo volver a llamar y ese día te llega un aviso. Marca si el cliente aceptó o rechazó; si lo rechazó, rehazlo como una versión nueva.",
+    muestra: ["Próximo contacto · en 3 días", "Aceptado", "Versión 2"],
+  },
 ];
 
 // Íconos rellenos de Material Icons (Apache 2.0), en tinta sobre su cuadro gris niebla.
 const ICONOS = {
   camara: "M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM9 2 7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z",
+  sinSenal: "M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 6.23 11.08 6 12 6c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 18.16 24 16.68 24 15c0-2.64-2.05-4.78-4.65-4.96zM3 5.27l2.75 2.74C2.56 8.15 0 10.77 0 14c0 3.31 2.69 6 6 6h11.73l2 2L21 20.73 4.27 4 3 5.27zM7.73 10l8 8H6c-2.21 0-4-1.79-4-4s1.79-4 4-4h1.73z",
   regla: "M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H3V8h2v4h2V8h2v4h2V8h2v4h2V8h2v4h2V8h2v8z",
   documento: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
+  clientes: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
   agenda: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z",
   boleta: "M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2v20z",
 };
@@ -53,6 +88,11 @@ const BENEFICIOS = [
     icono: ICONOS.camara,
   },
   {
+    titulo: "Funciona sin señal",
+    detalle: "En un subterráneo o en el campo sigues anotando. Lo que captures queda en el teléfono y se envía solo cuando vuelva la señal.",
+    icono: ICONOS.sinSenal,
+  },
+  {
     titulo: "Cada precio en su unidad",
     detalle: "m², m³, galón, saco, rollo, hora hombre y más de 40 unidades. El total de cada línea y el general se calculan solos.",
     icono: ICONOS.regla,
@@ -63,24 +103,94 @@ const BENEFICIOS = [
     icono: ICONOS.documento,
   },
   {
+    titulo: "Tus clientes, a mano",
+    detalle: "Se guardan solos al crear un presupuesto, o tráelos desde los contactos del teléfono. Cada uno con sus presupuestos.",
+    icono: ICONOS.clientes,
+  },
+  {
     titulo: "Que no se enfríe un presupuesto",
-    detalle: "Anota cuándo volver a llamar y marca si el cliente aceptó o rechazó.",
+    detalle: "Anota cuándo volver a llamar y ese día te llega un aviso. Marca si el cliente aceptó o rechazó.",
     icono: ICONOS.agenda,
-    pronto: true,
   },
 ];
 
+const PREGUNTAS = [
+  {
+    pregunta: "¿Es una boleta o una factura?",
+    respuesta: "No. Es un presupuesto comercial: sirve para cotizar un trabajo y que el cliente lo acepte. No reemplaza boletas ni facturas y no se informa al SII.",
+  },
+  {
+    pregunta: "¿Funciona sin señal?",
+    respuesta: "Sí. En terreno puedes crear el presupuesto y anotar notas, fotos, medidas y voz sin conexión; todo se envía solo cuando vuelve la señal. Para terminarlo y enviárselo al cliente sí necesitas internet.",
+  },
+  {
+    pregunta: "¿Mi cliente tiene que instalar algo?",
+    respuesta: "No. Le llega un enlace por WhatsApp o por correo y lo abre en su teléfono o en su computador. Puede ver el presupuesto y descargar el PDF, pero no modificarlo.",
+  },
+  {
+    pregunta: "¿Puedo terminarlo en el computador?",
+    respuesta: "Sí. Desde la app obtienes el código del presupuesto, o escaneas el QR de esta página, y lo abres en la web para completarlo con pantalla grande.",
+  },
+  {
+    pregunta: "¿Cuándo puedo descargar la app?",
+    respuesta: "Llega pronto a Android y, después, a iPhone. Mientras tanto, tus clientes ya pueden consultar aquí los presupuestos que les envíes.",
+  },
+];
+
+// Marco de teléfono para una captura de la app (bisel negro y esquinas de pantalla).
+function Telefono({ foto, alt }: { foto: StaticImageData; alt: string }) {
+  return (
+    <div className="rounded-[2.75rem] bg-black p-2.5 ring-1 ring-borde">
+      <Image src={foto} alt={alt} placeholder="blur" sizes="(min-width: 1024px) 17rem, (min-width: 640px) 40vw, 80vw" className="h-auto w-full rounded-[2.25rem]" />
+    </div>
+  );
+}
+
+// Marco de navegador para una captura de la web: la barra con sus tres puntos y la página.
+function Navegador({ foto, alt, direccion }: { foto: StaticImageData; alt: string; direccion: string }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-borde bg-white">
+      <div aria-hidden="true" className="flex items-center gap-1.5 border-b border-borde bg-niebla px-4 py-2.5">
+        <span className="size-2.5 rounded-full bg-borde" />
+        <span className="size-2.5 rounded-full bg-borde" />
+        <span className="size-2.5 rounded-full bg-borde" />
+        <span className="ml-3 truncate rounded-md bg-white px-3 py-0.5 text-xs text-muted">{direccion}</span>
+      </div>
+      <Image src={foto} alt={alt} placeholder="blur" sizes="(min-width: 1024px) 60vw, 100vw" className="h-auto w-full" />
+    </div>
+  );
+}
+
+const TITULO_SECCION = "text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]";
+
 export default function Landing() {
   return (
-    <main className="marca">
+    <main className="marca overflow-x-clip">
+      {/* Barra del anuncio (oscura, como la de Brex): lo que viene y un atajo a cómo funciona. */}
+      <p className="bg-[#15191e] px-4 py-2 text-center text-sm font-medium text-white">
+        Próximamente en Android y iPhone ·{" "}
+        <a href="#que-hace" className="text-ember underline-offset-4 hover:underline">
+          Mira cómo funciona
+        </a>
+      </p>
+
       <div>
-        <nav className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
-          <p className="flex items-center gap-2.5 text-lg font-bold tracking-tight">
+        <nav aria-label="Principal" className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
+          <p className="flex items-center gap-2.5 whitespace-nowrap text-lg font-bold tracking-tight">
             <span className="icono-marca size-8">
               <Icono d={ICONOS.boleta} className="size-[1.125rem]" />
             </span>
             CORE Presupuestos
           </p>
+          <div className="flex items-center gap-6 text-sm font-medium">
+            <a href="#que-hace" className="hidden hover:text-acento-texto md:inline">Qué hace</a>
+            <a href="#como-funciona" className="hidden hover:text-acento-texto md:inline">Cómo funciona</a>
+            <a href="#preguntas" className="hidden hover:text-acento-texto md:inline">Preguntas</a>
+            <a href="#consulta" className="boton min-h-10 px-4 text-sm">
+              <span className="sm:hidden">Consultar</span>
+              <span className="hidden sm:inline">Consultar presupuesto</span>
+            </a>
+          </div>
         </nav>
 
         <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_58%] xl:gap-x-[4%]">
@@ -92,7 +202,6 @@ export default function Landing() {
               Anota lo que ves en la visita (notas, fotos, medidas y voz) y entrega un presupuesto profesional en minutos.
               Hecho para electricistas, gasfíteres, instaladores y técnicos independientes.
             </p>
-            <p className="pastilla">Próximamente en Android y iPhone</p>
           </div>
 
           {/* Con pantalla ancha, la ficha flotante va a la izquierda de la hoja y la cubre solo en su margen (1,25 rem): nunca tapa texto de la hoja. */}
@@ -115,11 +224,34 @@ export default function Landing() {
         </section>
       </div>
 
-      {/* Las secciones se separan por espacio, no por franjas de color ni líneas. */}
-      <section id="como-funciona" className="bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <h2 className="max-w-2xl text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]">
-          Tres pasos. Ninguna libreta perdida.
-        </h2>
+      {/* Qué es y qué hace, con la app tal como se ve. */}
+      <section id="que-hace" className="scroll-mt-6 px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <div className="flex max-w-3xl flex-col gap-4">
+          <p className="text-sm font-semibold text-acento-texto">La app, en terreno</p>
+          <h2 className={TITULO_SECCION}>Todo lo de la visita, en tu teléfono.</h2>
+          <p className="text-lg leading-relaxed text-muted">
+            CORE Presupuestos es una app para quienes trabajan en terreno. Anotas lo que ves mientras estás con el cliente, armas el presupuesto
+            con sus ítems y precios, se lo envías en PDF y te recuerda cuándo volver a llamarlo. Sin libretas, sin fotos perdidas en la galería y
+            sin planillas.
+          </p>
+        </div>
+        <ul className="mt-12 grid gap-14 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          {PANTALLAS.map((p) => (
+            <li key={p.titulo} className="flex flex-col gap-6">
+              <div className="mx-auto w-full max-w-[17rem]">
+                <Telefono foto={p.foto} alt={p.alt} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-lg font-semibold">{p.titulo}</h3>
+                <p className="text-muted">{p.detalle}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section id="como-funciona" className="scroll-mt-6 bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <h2 className={`max-w-2xl ${TITULO_SECCION}`}>Cuatro pasos. Ninguna libreta perdida.</h2>
         <ol className="mt-10 flex flex-col gap-10">
           {PASOS.map((paso, i) => (
             <li key={paso.titulo} className="grid gap-4 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,24rem)] md:items-start md:gap-8">
@@ -142,25 +274,67 @@ export default function Landing() {
         </ol>
       </section>
 
+      {/* El resto del sistema: la web para terminarlo y lo que ve el cliente. */}
       <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <h2 className={`max-w-2xl ${TITULO_SECCION}`}>En el computador y en el teléfono de tu cliente.</h2>
+        <div className="mt-12 grid gap-14 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-16">
+          <figure className="flex flex-col gap-5">
+            <Navegador foto={editorComputador} direccion="Tu presupuesto en la web" alt="El editor web: lo anotado en la visita, el cliente, el servicio y el resumen con el total y el botón Terminar y enviar" />
+            <figcaption className="flex max-w-2xl flex-col gap-1.5">
+              <span className="text-lg font-semibold text-foreground">Termínalo en el computador</span>
+              <span className="text-muted">
+                Abre el presupuesto en la web con su código, o escaneando el QR desde la app, y complétalo con pantalla grande: ítems, descuento, IVA y condiciones.
+              </span>
+            </figcaption>
+          </figure>
+          <figure className="flex flex-col gap-5">
+            <div className="mx-auto w-full max-w-[17rem]">
+              <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y Descargar PDF" />
+            </div>
+            <figcaption className="flex flex-col gap-1.5">
+              <span className="text-lg font-semibold text-foreground">Así lo recibe tu cliente</span>
+              <span className="text-muted">Un enlace que abre en su teléfono, sin instalar nada: el detalle, el total y el PDF. Solo puede verlo, no editarlo.</span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section className="bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
-          <h2 className="text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]">Hecho para el oficio.</h2>
-          <ul className="flex max-w-3xl flex-col gap-10">
+          <h2 className={TITULO_SECCION}>Hecho para el oficio.</h2>
+          <ul className="grid gap-10 sm:grid-cols-2">
             {BENEFICIOS.map((b) => (
               <li key={b.titulo} className="flex gap-4">
-                <span className="icono-suave">
+                <span className="icono-suave bg-white">
                   <Icono d={b.icono} />
                 </span>
                 <div className="flex flex-col gap-1.5">
-                  <h3 className="flex flex-wrap items-center gap-3 text-[1.0625rem] font-semibold">
-                    {b.titulo}
-                    {b.pronto && <span className="estado estado-marca">Próximamente</span>}
-                  </h3>
+                  <h3 className="text-[1.0625rem] font-semibold">{b.titulo}</h3>
                   <p className="text-muted">{b.detalle}</p>
                 </div>
               </li>
             ))}
           </ul>
+        </div>
+      </section>
+
+      <section id="preguntas" className="scroll-mt-6 px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
+          <h2 className={TITULO_SECCION}>Preguntas frecuentes.</h2>
+          {/* <details> nativo: se abre con teclado y lector de pantalla sin código extra. */}
+          <div className="flex max-w-3xl flex-col divide-y divide-borde border-y border-borde">
+            {PREGUNTAS.map((p) => (
+              <details key={p.pregunta} className="group py-5">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-[1.0625rem] font-semibold [&::-webkit-details-marker]:hidden">
+                  {p.pregunta}
+                  <span aria-hidden="true" className="text-2xl font-normal leading-none text-muted transition-transform duration-200 group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="mt-2 max-w-2xl text-muted">{p.respuesta}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -177,9 +351,17 @@ export default function Landing() {
       </section>
 
       <footer className="bg-[#000710] px-4 py-12 text-sm text-[#b9bbc6] sm:px-6 lg:px-12">
-        <div className="flex flex-col justify-between gap-2 sm:flex-row">
-          <p className="font-semibold text-white">CORE Presupuestos</p>
-          <p>Presupuesto comercial: no es un documento tributario.</p>
+        <div className="flex flex-col justify-between gap-8 sm:flex-row">
+          <div className="flex max-w-sm flex-col gap-2">
+            <p className="font-semibold text-white">CORE Presupuestos</p>
+            <p>Presupuestos para profesionales independientes. Presupuesto comercial: no es un documento tributario.</p>
+          </div>
+          <nav aria-label="Pie de página" className="flex flex-col gap-2 sm:items-end">
+            <a href="#que-hace" className="hover:text-white">Qué hace</a>
+            <a href="#como-funciona" className="hover:text-white">Cómo funciona</a>
+            <a href="#preguntas" className="hover:text-white">Preguntas frecuentes</a>
+            <a href="#consulta" className="hover:text-white">Consultar un presupuesto</a>
+          </nav>
         </div>
       </footer>
     </main>
