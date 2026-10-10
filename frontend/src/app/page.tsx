@@ -4,7 +4,7 @@ import appInicio from "./capturas/app-inicio.png";
 import appTerminado from "./capturas/app-terminado.png";
 import appVisita from "./capturas/app-visita.png";
 import clienteTelefono from "./capturas/cliente-telefono.png";
-import editorComputador from "./capturas/editor-computador.png";
+import equipos from "./capturas/equipos.png";
 import { ConsultaForm } from "./consulta-form";
 import { HojaDemo } from "./hoja-demo";
 import { VinculoQr } from "./vinculo-qr";
@@ -146,21 +146,6 @@ function Telefono({ foto, alt }: { foto: StaticImageData; alt: string }) {
   );
 }
 
-// Marco de navegador para una captura de la web: la barra con sus tres puntos y la página.
-function Navegador({ foto, alt, direccion }: { foto: StaticImageData; alt: string; direccion: string }) {
-  return (
-    <div className="overflow-hidden rounded-xl border border-borde bg-white">
-      <div aria-hidden="true" className="flex items-center gap-1.5 border-b border-borde bg-niebla px-4 py-2.5">
-        <span className="size-2.5 rounded-full bg-borde" />
-        <span className="size-2.5 rounded-full bg-borde" />
-        <span className="size-2.5 rounded-full bg-borde" />
-        <span className="ml-3 truncate rounded-md bg-white px-3 py-0.5 text-xs text-muted">{direccion}</span>
-      </div>
-      <Image src={foto} alt={alt} placeholder="blur" sizes="(min-width: 1024px) 60vw, 100vw" className="h-auto w-full" />
-    </div>
-  );
-}
-
 const TITULO_SECCION = "text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]";
 
 export default function Landing() {
@@ -277,13 +262,21 @@ export default function Landing() {
       {/* El resto del sistema: la web para terminarlo y lo que ve el cliente. */}
       <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
         <h2 className={`max-w-2xl ${TITULO_SECCION}`}>En el computador y en el teléfono de tu cliente.</h2>
-        <div className="mt-12 grid gap-14 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-16">
+        {/* La foto de los equipos mide 1036 px: a 35 rem (560 px) sigue nítida incluso en pantallas de doble densidad. */}
+        <div className="mt-12 grid gap-14 lg:grid-cols-[minmax(0,35rem)_17rem] lg:items-start lg:gap-20">
           <figure className="flex flex-col gap-5">
-            <Navegador foto={editorComputador} direccion="Tu presupuesto en la web" alt="El editor web: lo anotado en la visita, el cliente, el servicio y el resumen con el total y el botón Terminar y enviar" />
+            <Image
+              src={equipos}
+              alt="La app en un teléfono, con el resumen de Inicio, y el mismo presupuesto abierto en la web en un notebook, con el total y Terminar y enviar"
+              placeholder="blur"
+              quality={90}
+              sizes="(min-width: 1024px) 35rem, 100vw"
+              className="h-auto w-full rounded-xl"
+            />
             <figcaption className="flex max-w-2xl flex-col gap-1.5">
-              <span className="text-lg font-semibold text-foreground">Termínalo en el computador</span>
+              <span className="text-lg font-semibold text-foreground">En terreno y en tu escritorio</span>
               <span className="text-muted">
-                Abre el presupuesto en la web con su código, o escaneando el QR desde la app, y complétalo con pantalla grande: ítems, descuento, IVA y condiciones.
+                El mismo presupuesto, al día en el teléfono y en el computador. Ábrelo en la web con su código, o escaneando el QR desde la app, y termínalo con pantalla grande: ítems, descuento, IVA y condiciones.
               </span>
             </figcaption>
           </figure>
