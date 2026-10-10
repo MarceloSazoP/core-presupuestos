@@ -54,6 +54,8 @@ const ICONOS = {
   caja: { ios: 'shippingbox.fill', android: 'inventory_2', web: 'inventory_2' },
   tarea: { ios: 'checklist', android: 'checklist', web: 'checklist' },
   cliente: { ios: 'person.fill', android: 'person', web: 'person' },
+  clientes: { ios: 'person.2.fill', android: 'group', web: 'group' },
+  contactos: { ios: 'person.crop.rectangle.stack', android: 'contacts', web: 'contacts' },
   dinero: { ios: 'banknote', android: 'payments', web: 'payments' },
   documentoNuevo: { ios: 'doc.badge.plus', android: 'note_add', web: 'note_add' },
   enviar: { ios: 'paperplane.fill', android: 'send', web: 'send' },

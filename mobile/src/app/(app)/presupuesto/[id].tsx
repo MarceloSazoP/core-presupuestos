@@ -101,6 +101,8 @@ export default function Detalle() {
   const masOpciones = () =>
     decidir(`Presupuesto de ${q.customer.name}`, undefined, [
       { text: 'Datos del cliente', onPress: () => setEditandoCliente(true) },
+      // Su ficha (sus otros presupuestos, llamar, uno nuevo para él), si el servidor ya lo conoce: uno creado sin señal aún no tiene id.
+      ...(q.customer.id ? [{ text: 'Ficha del cliente', onPress: () => router.push({ pathname: '/cliente/[id]', params: { id: q.customer.id } }) }] : []),
       ...(!cerrado ? [{ text: 'Eliminar presupuesto', style: 'destructive' as const, onPress: eliminarEste }] : []),
       { text: 'Cancelar', style: 'cancel' as const },
     ]);

@@ -13,18 +13,19 @@ import { sinLeer } from '@/lib/avisos-datos';
 import { espacio, MIN_TOQUE, useTema } from '@/theme';
 
 // El menú lateral de la pantalla principal (cajón de navegación modal de Material 3): el ☰ a la izquierda de la barra lo abre de
-// izquierda a derecha. Lleva Inicio y Presupuestos (las dos páginas de la pantalla) y, separados, Avisos y Configurar. Es un cajón y no
+// izquierda a derecha. Lleva Inicio y Presupuestos (las dos páginas de la pantalla) y, separados, Clientes, Avisos y Configurar. Es un cajón y no
 // un menú corto porque irá sumando secciones. Si hay avisos sin leer, el ☰ lleva la insignia roja con cuántos.
 //
 // Se cierra tocando fuera, deslizándolo hacia la izquierda o con «atrás» en Android. Va en un Modal transparente (como los diálogos):
 // queda sobre la barra nativa en iPhone y Android. Al elegir otra pantalla, primero se cierra y después se navega (en iOS al terminar de
 // irse el Modal, `onDismiss`, con un plazo de respaldo; en Android al instante).
-type Ruta = '/avisos' | '/configurar';
+type Ruta = '/clientes' | '/avisos' | '/configurar';
 type Icono = SymbolViewProps['name'];
 
-const ICONOS: Record<'inicio' | 'presupuestos' | 'avisos' | 'configurar' | 'menu', Icono> = {
+const ICONOS: Record<'inicio' | 'presupuestos' | 'clientes' | 'avisos' | 'configurar' | 'menu', Icono> = {
   inicio: { ios: 'house', android: 'home', web: 'home' },
   presupuestos: { ios: 'doc.text', android: 'description', web: 'description' },
+  clientes: { ios: 'person.2', android: 'group', web: 'group' },
   avisos: { ios: 'bell', android: 'notifications', web: 'notifications' },
   configurar: { ios: 'gearshape', android: 'settings', web: 'settings' },
   menu: { ios: 'line.3.horizontal', android: 'menu', web: 'menu' },
@@ -139,6 +140,7 @@ export function MenuLateral({ pagina, alIrPagina }: { pagina: number; alIrPagina
                 <Drawer.Item label="Presupuestos" icon={icono(ICONOS.presupuestos)} active={pagina === 1} onPress={() => irPagina(1)} />
               </Drawer.Section>
               <Drawer.Section showDivider={false}>
+                <Drawer.Item label="Clientes" icon={icono(ICONOS.clientes)} onPress={() => irA('/clientes')} />
                 <Drawer.Item
                   label="Avisos"
                   icon={icono(ICONOS.avisos)}

@@ -41,6 +41,9 @@ export default function AppLayout() {
       <Stack.Screen name="configurar-informacion" options={{ title: 'Información', headerTitle: () => <TituloConIcono texto="Información" icono={{ ios: 'info.circle.fill', android: 'info', web: 'info' }} /> }} />
       <Stack.Screen name="configurar-cuenta" options={{ title: 'Mi cuenta', headerBackTitle: 'Configurar', headerTitle: () => <TituloConIcono texto="Mi cuenta" icono={{ ios: 'person.crop.circle.fill', android: 'account_circle', web: 'account_circle' }} /> }} />
       <Stack.Screen name="presupuesto/[id]" options={{ title: 'Presupuesto', headerBackTitle: 'Atrás' }} />
+      <Stack.Screen name="clientes" options={{ title: 'Clientes', headerBackTitle: 'Inicio', headerTitle: () => <TituloConIcono texto="Clientes" icono={{ ios: 'person.2.fill', android: 'group', web: 'group' }} /> }} />
+      <Stack.Screen name="cliente/[id]" options={{ title: 'Cliente', headerBackTitle: 'Atrás', headerBackButtonDisplayMode: 'minimal' }} />
+      <Stack.Screen name="cliente-editar" options={{ title: 'Cliente', headerBackTitle: 'Atrás', headerBackButtonDisplayMode: 'minimal' }} />
       <Stack.Screen name="pdf" options={{ title: 'PDF', headerBackTitle: 'Atrás', headerBackButtonDisplayMode: 'minimal' }} />
       </Stack>
     </>
