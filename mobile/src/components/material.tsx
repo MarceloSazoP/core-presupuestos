@@ -26,12 +26,13 @@ export function TextoM({ variante = 'cuerpo', suave, fuerte, color, style, child
 
 // Título de sección: el ícono en un círculo tonal, el nombre en «título medio» y, si hace falta, la línea que explica para qué sirve.
 // `accion`: algo a la derecha del título (un botón).
-export function SeccionM({ titulo, icono, descripcion, accion, children, style }: { titulo: string; icono?: NombreIcono; descripcion?: string; accion?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function SeccionM({ titulo, icono, tono, descripcion, accion, children, style }: { titulo: string; icono?: NombreIcono; tono?: string; descripcion?: string; accion?: ReactNode; children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const t = useTema();
+  const color = tono ?? t.acento; // el color del ícono: por defecto el de las acciones; el Inicio usa el azul de sus datos
   return (
     <View style={[e.seccion, style]}>
       <View style={e.cabecera}>
-        {icono ? <View style={[e.iconoSeccion, { backgroundColor: `${t.acento}1F` }]}><Icono nombre={icono} tamano={18} color={t.acento} /></View> : null}
+        {icono ? <View style={[e.iconoSeccion, { backgroundColor: `${color}1F` }]}><Icono nombre={icono} tamano={18} color={color} /></View> : null}
         <View style={e.flex}>
           <Text variant="titleMedium" accessibilityRole="header">{titulo}</Text>
           {descripcion ? <Text variant="bodySmall" style={{ color: t.suave }}>{descripcion}</Text> : null}

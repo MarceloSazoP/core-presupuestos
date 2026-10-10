@@ -18,13 +18,13 @@ const claro = {
   naranja: '#F9890D', // naranja de la marca: solo para destacar (no para texto sobre blanco)
   sobreNaranja: '#1A1816',
   info: '#285CC2', // azul de dato: «Aceptado», información (6,2:1 sobre blanco)
-  serie1: '#0E3578', // gráfico: lo presupuestado (azul; es dato, no identidad)
-  serie2: '#E3A008', // gráfico: lo aceptado (amarillo; en blanco pierde contraste, por eso las barras llevan la leyenda)
-  // Las cuatro tarjetas del resumen: cada una con su tono (fondo suave + número en el tono oscuro; ≥ 7:1).
-  kpi1Fondo: '#E3EBFA', kpi1Tinta: '#0E3578', // azul: esperando respuesta
-  kpi2Fondo: '#FFEFC9', kpi2Tinta: '#7A4B00', // ámbar: por terminar o enviar
-  kpi3Fondo: '#DDF3E4', kpi3Tinta: '#14602B', // verde: aceptado
-  kpi4Fondo: '#EDE5FD', kpi4Tinta: '#5B21B6', // violeta: aceptación
+  // El Inicio usa una sola línea de color, el azul de la marca, en sus matices (los datos no compiten con el naranja de las acciones):
+  // las tarjetas del resumen en el azul más claro con la tinta en el más oscuro (11:1), y el gráfico en dos tonos del mismo azul,
+  // claro para lo presupuestado y oscuro para lo aceptado (las barras ≥ 3:1 sobre blanco, WCAG 1.4.11, y la leyenda los nombra).
+  datoFondo: '#EEF2FB',
+  datoTinta: '#0E3578',
+  serie1: '#6F8FD6', // gráfico: lo presupuestado (3,2:1 sobre la tarjeta)
+  serie2: '#0E3578', // gráfico: lo aceptado
   totalFondo: '#DDF3E4', totalTinta: '#14602B', // verde dólar: ícono y palabras del cuadro del total (tinta sobre blanco ≈ 7:1)
   aviso: '#8A5A00',
   ok: '#1A7F37',
@@ -48,12 +48,10 @@ const oscuro = {
   naranja: '#F9890D',
   sobreNaranja: '#0B1B3A',
   info: '#8FB4FF', // azul de dato en oscuro
-  serie1: '#7C9CFF', // gráfico: lo presupuestado (azul suave, 6,6:1 sobre la tarjeta)
-  serie2: '#F9890D', // gráfico: lo aceptado (naranja de la marca, 6,9:1; complementario del azul)
-  kpi1Fondo: '#17306A', kpi1Tinta: '#9DBBFF',
-  kpi2Fondo: '#3D2812', kpi2Tinta: '#FFB454',
-  kpi3Fondo: '#10382A', kpi3Tinta: '#7BE39B',
-  kpi4Fondo: '#2D2257', kpi4Tinta: '#CDBBFF',
+  datoFondo: '#16264D', // la misma línea azul en oscuro: tarjeta un poco más clara que la superficie y tinta clara (10:1)
+  datoTinta: '#B9CCFF',
+  serie1: '#4A69B3', // gráfico: lo presupuestado (3,2:1 sobre la tarjeta)
+  serie2: '#9DBBFF', // gráfico: lo aceptado (8,7:1)
   totalFondo: '#10382A', totalTinta: '#7BE39B', // lo mismo en oscuro
   aviso: '#E3B341',
   ok: '#56D364',

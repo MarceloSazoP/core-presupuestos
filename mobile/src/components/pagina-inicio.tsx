@@ -64,7 +64,7 @@ export function PaginaInicio({ activa, alPresupuestos, abajo }: { activa: boolea
         <View style={e.titulo}>
           {/* «Resumen» en el título grande de Material 3, con su ícono en un círculo tonal. */}
           <View style={e.izquierda}>
-            <View style={[e.iconoTitulo, { backgroundColor: `${t.acento}1F` }]}><Icono nombre="tendencia" tamano={20} color={t.acento} /></View>
+            <View style={[e.iconoTitulo, { backgroundColor: `${t.datoTinta}1F` }]}><Icono nombre="tendencia" tamano={20} color={t.datoTinta} /></View>
             <Text variant="titleLarge" accessibilityRole="header">Resumen</Text>
           </View>
           <OjoTonal clave={INICIO} />

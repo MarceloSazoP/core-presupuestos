@@ -62,17 +62,17 @@ export function Resumen({ ronda = 0 }: { ronda?: number }) {
     // Los datos llegan después de abrir: aparecen con un fundido corto (solo opacidad, así que sirve también con «reducir movimiento»).
     <Animated.View entering={FadeIn.duration(200)} style={e.bloque}>
       <View style={e.grilla}>
-        <Dato icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} tono="kpi1" />
-        <Dato icono="documento" tono="kpi2" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
-        <Dato icono="listo" tono="kpi3" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
-        <Dato icono="tendencia" tono="kpi4" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
+        <Dato icono="reloj" titulo="Esperando respuesta" valor={clp(k.waiting_amount)} nota={`${k.waiting_count} ${k.waiting_count === 1 ? 'enviado' : 'enviados'}, sin respuesta`} />
+        <Dato icono="documento" titulo="Por terminar o enviar" valor={String(k.todo_count)} nota={k.todo_count === 1 ? 'presupuesto pendiente' : 'presupuestos pendientes'} />
+        <Dato icono="listo" variacion={antes && variacion(porcentaje(k.accepted_amount, antes.accepted_amount), '%')} titulo="Aceptado este mes" valor={clp(k.accepted_amount)} nota={`${k.accepted_count} ${k.accepted_count === 1 ? 'aceptado' : 'aceptados'}`} />
+        <Dato icono="tendencia" variacion={antes && variacion(puntos(k.acceptance_rate, antes.acceptance_rate), 'puntos')} titulo="Aceptación del mes" valor={tasa} nota="de los que respondió el cliente" />
       </View>
 
-      <SeccionM titulo="Últimos 6 meses" icono="tendencia" descripcion="Lo presupuestado y lo aceptado, mes a mes.">
+      <SeccionM titulo="Últimos 6 meses" icono="tendencia" tono={t.datoTinta} descripcion="Lo presupuestado y lo aceptado, mes a mes.">
         <Grafico key={ronda} meses={d.meses} moneda={moneda} />
       </SeccionM>
 
-      <SeccionM titulo="Clientes por contactar" icono="llamar" descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
+      <SeccionM titulo="Clientes por contactar" icono="llamar" tono={t.datoTinta} descripcion={hoy.length ? `${tablero.counts.follow_up} ${tablero.counts.follow_up === 1 ? 'espera' : 'esperan'} tu llamada hoy o ya pasó la fecha.` : undefined}>
         {hoy.length ? (
           <Card mode="elevated" elevation={2} style={[e.tarjeta, bordeElevado(t)]} contentStyle={e.lista}>
             <DataTable>
@@ -152,14 +152,14 @@ function Grafico({ meses, moneda }: { meses: Indicadores[]; moneda: string }) {
   );
 }
 
-function Dato({ icono, tono, titulo, valor, nota, variacion }: { icono: NombreIcono; tono: 'kpi1' | 'kpi2' | 'kpi3' | 'kpi4'; titulo: string; valor: string; nota: string; variacion?: Variacion | null }) {
+function Dato({ icono, titulo, valor, nota, variacion }: { icono: NombreIcono; titulo: string; valor: string; nota: string; variacion?: Variacion | null }) {
   const t = useTema();
-  const tinta = t[`${tono}Tinta`];
-  // Tarjeta tonal de Material 3: el fondo es el tono suave del indicador; el ícono va en un círculo del color de la superficie, y la cifra
-  // en «titular», en el color de texto para que mande ella.
+  const tinta = t.datoTinta;
+  // Tarjeta tonal de Material 3, las cuatro en la misma línea azul: el fondo es el azul más claro; el ícono va en un círculo del color de
+  // la superficie, y la cifra en «titular», en el color de texto para que mande ella.
   return (
     <View accessible accessibilityLabel={`${titulo}: ${valor}. ${nota}.${variacion ? ` ${variacion.lectura}.` : ''}`} style={e.dato}>
-      <Card mode="contained" style={[e.tarjetaDato, { backgroundColor: t[`${tono}Fondo`] }]} contentStyle={e.contenidoDato}>
+      <Card mode="contained" style={[e.tarjetaDato, { backgroundColor: t.datoFondo }]} contentStyle={e.contenidoDato}>
         <View style={e.cabeza}>
           <View style={[e.icono, { backgroundColor: t.tarjeta }]}><Icono nombre={icono} tamano={18} color={tinta} /></View>
           <Text variant="labelLarge" numberOfLines={2} style={[e.flex, { color: tinta }]}>{titulo}</Text>
