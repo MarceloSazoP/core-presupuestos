@@ -4,8 +4,7 @@ import { AppError } from '../errors';
 
 // `html`: el cuerpo con formato. `cid` en el adjunto lo vuelve una imagen incrustada que el HTML cita (`<img src="cid:…">`): se ve dentro del correo, no como archivo.
 export type Correo = { to: string; subject: string; text: string; html?: string; attachment?: { filename: string; content: Buffer; contentType?: string; cid?: string } };
-export type QuoteMail = Correo & { attachment: { filename: string; content: Buffer; contentType?: string; cid?: string } };
-export type SendMail = (m: QuoteMail) => Promise<void>;
+export type SendMail = (m: Correo) => Promise<void>;
 
 let transporte: Transporter | null = null;
 const fail = (msg = 'No se pudo enviar el correo. Intenta de nuevo.') => new AppError(502, 'DELIVERY_FAILED', msg);

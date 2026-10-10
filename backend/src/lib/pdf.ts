@@ -33,7 +33,7 @@ function pdfmake(): Pdfmake {
 // Puntos de miles y coma decimal en las cantidades (las del dinero, por moneda, en `formatoMonto`).
 const miles = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 export const clp = (n: number) => formatoMonto(n, 'CLP');
-const qty = (n: number) => {
+export const qty = (n: number) => {
   const [int = '0', dec] = String(n).split('.');
   return miles(int) + (dec ? `,${dec}` : '');
 };
@@ -44,10 +44,12 @@ const issued = (s: Snapshot) => (s.issued_on ? dayMonthYear(s.issued_on) : new D
 const GENERADO_POR = 'Generado por CORE Presupuestos v1.0';
 
 export type Image = { data: Buffer; mime: string };
+const VERDE = '#1a7f37'; // el timbre «ACEPTADO»
 const dataUrl = (i: Image) => `data:${i.mime};base64,${i.data.toString('base64')}`;
 
 // Recibe el SNAPSHOT y las imágenes ya leídas; no toca la BD ni el disco (Arquitectura §3, PDF y QR).
-export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr?: Buffer; preview?: boolean } = {}): Promise<Buffer> {
+// `aceptado`: la fecha (DD-MM-AAAA) en que el cliente lo aceptó; el PDF lleva el timbre «ACEPTADO» (Contrato API §10).
+export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr?: Buffer; preview?: boolean; aceptado?: string } = {}): Promise<Buffer> {
   const dinero = (n: number) => formatoMonto(n, s.currency ?? 'CLP');
   const totalRow = (label: string, value: string, bold = false): Content => ({
     columns: [
@@ -62,6 +64,7 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
     // Pie discreto en cada página: quién generó el documento (no compite con el contenido del presupuesto).
     footer: { text: GENERADO_POR, alignment: 'center', fontSize: 7, color: '#9a9a9a', margin: [40, 12, 40, 0] },
     ...(img.preview && { watermark: { text: 'VISTA PREVIA', color: '#b42318', opacity: 0.1, bold: true } }),
+    ...(img.aceptado && { watermark: { text: 'ACEPTADO', color: VERDE, opacity: 0.12, bold: true } }),
     defaultStyle: { font: 'Roboto', fontSize: 10 },
     info: { title: `Presupuesto ${s.number}${(s.version ?? 1) > 1 ? ` · Versión ${s.version}` : ''}` },
     content: [
@@ -90,6 +93,20 @@ export function buildPdf(s: Snapshot, img: { logo?: Image; signature?: Image; qr
           },
         ],
       },
+      // El timbre: un recuadro verde a la derecha, bajo el encabezado, con la fecha de aceptación.
+      ...(img.aceptado
+        ? [{
+            columns: [
+              { text: '', width: '*' },
+              {
+                width: 'auto',
+                table: { body: [[{ stack: [{ text: 'ACEPTADO', fontSize: 16, bold: true, characterSpacing: 2 }, { text: `por el cliente el ${img.aceptado}`, fontSize: 8 }], color: VERDE, alignment: 'center', margin: [10, 4, 10, 4] }]] },
+                layout: { hLineWidth: () => 2, vLineWidth: () => 2, hLineColor: () => VERDE, vLineColor: () => VERDE },
+              },
+            ],
+            margin: [0, 12, 0, 0],
+          } as Content]
+        : []),
       { text: `Cliente: ${cortable(s.customer.name)}`, margin: [0, 18, 0, 4] },
       ...(s.service_address ? [{ text: `Dirección del servicio: ${s.service_address}`, margin: [0, 0, 0, 4] } as Content] : []),
       { text: `Servicio: ${cortable(s.service_description)}`, margin: [0, 0, 0, 14] },

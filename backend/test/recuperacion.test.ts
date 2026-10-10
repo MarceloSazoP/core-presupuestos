@@ -35,10 +35,10 @@ describe('API: recuperar la cuenta con el QR del correo', () => {
     assert.equal(app.mails.length, 1);
     const m = app.mails[0]!;
     assert.equal(m.to, 'ana@test.cl');
-    assert.equal(m.attachment.filename, 'qr-recuperacion.png');
-    assert.deepEqual(m.attachment.content.subarray(0, 4), PNG, 'el adjunto es un PNG');
-    assert.equal(m.attachment.contentType, 'image/png');
-    assert.equal(m.attachment.cid, 'qr-recuperacion', 'va incrustado en el cuerpo, no como archivo aparte');
+    assert.equal(m.attachment!.filename, 'qr-recuperacion.png');
+    assert.deepEqual(m.attachment!.content.subarray(0, 4), PNG, 'el adjunto es un PNG');
+    assert.equal(m.attachment!.contentType, 'image/png');
+    assert.equal(m.attachment!.cid, 'qr-recuperacion', 'va incrustado en el cuerpo, no como archivo aparte');
     assert.ok(m.html?.includes('src="cid:qr-recuperacion"'), 'el HTML muestra el QR listo para escanear');
     assert.ok(m.html?.includes(tokenDelCorreo(m.text)), 'y trae el código de texto');
     assert.ok(m.html?.includes('font-size:19px'), 'letra grande');

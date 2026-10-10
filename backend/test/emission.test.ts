@@ -189,7 +189,7 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.equal(r.json.total, 50000);
     const j = await (await fetch(`${app.base}/public/quotes/${await tokenOf(q.id)}`)).json();
     assert.deepEqual(j.items.map((i: { kind: string }) => i.kind), ['ITEM', 'TASK', 'TASK']);
-    const pdf = await fetch(`${app.base}/public/quotes/${await tokenOf(q.id)}/pdf`);
+    const pdf = await fetch(`${app.base}/quotes/${q.id}/pdf`, { headers: { Authorization: `Bearer ${a.token}` } });
     assert.equal(Buffer.from(await pdf.arrayBuffer()).subarray(0, 5).toString(), '%PDF-');
   });
 
@@ -202,13 +202,11 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.equal(r.headers.get('cache-control'), 'no-store');
     assert.equal(r.headers.get('x-robots-tag'), 'noindex');
     const j = await r.json();
-    assert.deepEqual(Object.keys(j).sort(), ['country', 'currency', 'customer', 'discount', 'finalized_at', 'include_vat', 'issued_on', 'items', 'number', 'observations', 'pdf_url', 'previous_number', 'professional', 'service_address', 'service_description', 'subtotal', 'timezone', 'total', 'valid_until', 'validity_days', 'vat', 'vat_label', 'vat_rate', 'version', 'warranty']);
+    assert.deepEqual(Object.keys(j).sort(), ['accepted_on', 'can_accept', 'country', 'currency', 'customer', 'discount', 'finalized_at', 'include_vat', 'issued_on', 'items', 'number', 'observations', 'previous_number', 'professional', 'service_address', 'service_description', 'subtotal', 'timezone', 'total', 'valid_until', 'validity_days', 'vat', 'vat_label', 'vat_rate', 'version', 'warranty']);
     const texto = JSON.stringify(j);
     for (const prohibido of ['NOTA INTERNA', a.user.id, q.id, 'juan@cliente.cl', '+56933333333', 'short_id', 'logo_file_id']) assert.ok(!texto.includes(prohibido), prohibido);
-    assert.equal(j.pdf_url, `/public/quotes/${token}/pdf`);
-    const pdf = await fetch(`${app.base}/public/quotes/${token}/pdf`);
-    assert.equal(pdf.headers.get('content-type'), 'application/pdf');
-    assert.equal(Buffer.from(await pdf.arrayBuffer()).subarray(0, 5).toString(), '%PDF-');
+    assert.deepEqual([j.accepted_on, j.can_accept], [null, true]);
+    assert.equal((await fetch(`${app.base}/public/quotes/${token}/pdf`)).status, 404, 'el PDF oficial no se entrega por la vista pública');
     assert.equal((await fetch(`${app.base}/public/quotes/${token}/assets/signature`)).status, 404, 'sin firma incluida');
     assert.equal((await fetch(`${app.base}/public/quotes/${token}/assets/logo`)).status, 404, 'sin logo');
     for (const m of ['POST', 'PUT', 'PATCH', 'DELETE']) assert.equal((await fetch(`${app.base}/public/quotes/${token}`, { method: m })).status, 405, m);
@@ -292,7 +290,7 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.ok((await tam(con.id)) > (await tam(sin.id)));
   });
 
-  it('send-email: adjunta el PDF, registra el envío solo si salió bien y no repite sent_at', async () => {
+  it('send-email: va sin PDF y con el botón de aceptar, registra el envío solo si salió bien y no repite sent_at', async () => {
     const q = await completo();
     assert.equal((await app.api('POST', `/quotes/${q.id}/send-email`, { token: a.token, body: {} })).status, 409, 'antes de finalizar');
     await finalizar(q.id);
@@ -310,7 +308,8 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.equal(m.to, 'juan@cliente.cl', 'por defecto, el correo del cliente');
     assert.match(m.subject, /^Presupuesto CP-\d{4}-0001 de Ana$/);
     assert.ok(m.text.includes('Hola, aquí va.') && m.text.includes(ok.json.public_url));
-    assert.equal(m.attachment.content.subarray(0, 5).toString(), '%PDF-');
+    assert.equal(m.attachment, undefined, 'el PDF se entrega al aceptar');
+    assert.ok(m.html!.includes(`${ok.json.public_url}?aceptar=1`) && m.text.includes(`${ok.json.public_url}?aceptar=1`), 'botón Aceptar el presupuesto');
     const primero = ok.json.sent_at;
     const otro = await app.api('POST', `/quotes/${q.id}/send-email`, { token: a.token, body: { to: 'Otro@Cliente.cl' } });
     assert.equal(app.mails[1]!.to, 'otro@cliente.cl');

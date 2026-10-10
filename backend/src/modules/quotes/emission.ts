@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { correoPresupuesto } from '../../lib/correo-presupuesto';
+import { correoPresupuesto, textoPresupuesto } from '../../lib/correo-presupuesto';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Request, Router } from 'express';
+import type { Request, Response, Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import QRCode from 'qrcode';
 import { z } from 'zod';
@@ -54,6 +54,34 @@ async function activeToken(quoteId: string): Promise<string> {
   const { rows } = await query<{ token: string }>(`SELECT token FROM quote_access WHERE quote_id = $1 AND kind = 'PUBLIC' AND revoked_at IS NULL`, [quoteId]);
   if (!rows[0]) throw new AppError(409, 'INVALID_STATE', 'El presupuesto no tiene enlace público');
   return rows[0].token;
+}
+
+// El PDF de un presupuesto terminado. Mientras esté aceptado (por el cliente o a mano) se genera desde el snapshot con el timbre
+// «ACEPTADO» y la fecha; si no, es el que se guardó al terminar, que nunca cambia (Contrato API §10).
+export async function pdfDelPresupuesto(quoteId: string): Promise<{ number: string; storageKey: string; aceptado: Buffer | null }> {
+  const { rows } = await query<{ storage_key: string; snapshot: Snapshot; aceptado: string | null; token: string | null }>(
+    `SELECT f.storage_key, d.snapshot,
+            CASE WHEN q.commercial_status = 'ACCEPTED'
+                 THEN to_char(COALESCE(q.accepted_at, now()) AT TIME ZONE COALESCE(d.snapshot->>'timezone', 'America/Santiago'), 'DD-MM-YYYY') END AS aceptado,
+            (SELECT a.token FROM quote_access a WHERE a.quote_id = q.id AND a.kind = 'PUBLIC' AND a.revoked_at IS NULL) AS token
+       FROM quotes q JOIN quote_documents d ON d.quote_id = q.id JOIN files f ON f.id = d.pdf_file_id
+      WHERE q.id = $1`, [quoteId]);
+  const { storage_key, snapshot: s, aceptado, token } = rows[0]!;
+  if (!aceptado) return { number: s.number, storageKey: storage_key, aceptado: null };
+  const pdf = await buildPdf(s, {
+    logo: await readImage(s.professional.logo_file_id),
+    signature: s.include_signature ? await readImage(s.professional.signature_file_id) : undefined,
+    qr: s.include_qr && token ? await QRCode.toBuffer(publicUrl(token), { margin: 1, width: 300 }) : undefined,
+    aceptado,
+  });
+  return { number: s.number, storageKey: storage_key, aceptado: pdf };
+}
+
+// Descargar ese PDF: el aceptado se entrega entero; el guardado, desde el almacenamiento (admite rangos).
+export async function enviarPdf(req: Request, res: Response, quoteId: string) {
+  const p = await pdfDelPresupuesto(quoteId);
+  if (p.aceptado) return void res.attachment(`${p.number}-aceptado.pdf`).type('application/pdf').send(p.aceptado);
+  await send(req, res.attachment(`${p.number}.pdf`).type('application/pdf'), p.storageKey);
 }
 
 // Lo que se imprime, a partir de lo guardado. Lo comparten terminar (queda fijado) y la vista previa (no se guarda).
@@ -178,9 +206,7 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
   r.get('/:id/pdf', allow('USER', 'QUOTE_CODE'), async (req, res) => {
     const q = await loadQuote(req, req.params.id);
     finalizedOnly(q);
-    const { rows } = await query<{ storage_key: string }>(
-      'SELECT f.storage_key FROM quote_documents d JOIN files f ON f.id = d.pdf_file_id WHERE d.quote_id = $1', [q.id]);
-    await send(req, res.attachment(`${q.number}.pdf`).type('application/pdf'), rows[0]!.storage_key);
+    await enviarPdf(req, res, q.id);
   });
 
   r.get('/:id/share', allow('USER', 'QUOTE_CODE'), async (req, res) => {
@@ -209,16 +235,19 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     const { rows: c } = await query<{ name: string; email: string | null }>('SELECT name, email FROM customers WHERE id = $1 AND user_id = $2', [q.customer_id, q.user_id]);
     const to = b.to ?? c[0]!.email;
     if (!to) throw new AppError(422, 'VALIDATION_FAILED', 'Datos inválidos', [{ field: 'to', message: 'El cliente no tiene correo: indica uno' }]);
-    const { rows: doc } = await query<{ storage_key: string; snapshot: Snapshot }>(
-      'SELECT f.storage_key, d.snapshot FROM quote_documents d JOIN files f ON f.id = d.pdf_file_id WHERE d.quote_id = $1', [q.id]);
+    const { rows: doc } = await query<{ snapshot: Snapshot }>('SELECT snapshot FROM quote_documents WHERE quote_id = $1', [q.id]);
     const url = publicUrl(await activeToken(q.id));
     const s = doc[0]!.snapshot;
+    // Sin PDF (es el documento oficial: el cliente lo recibe al aceptar, Contrato API §7). Si ya está aceptado, va sin el botón de
+    // aceptar y con el PDF timbrado.
+    const pdf = await pdfDelPresupuesto(q.id);
+    const estado = pdf.aceptado ? 'aceptado' : q.commercial_status === 'REJECTED' ? 'cerrado' : 'aceptable';
     await deps.sendMail({
       to,
       subject: `Presupuesto ${s.number} de ${s.professional.name}`,
-      text: `${b.message ?? `Hola ${s.customer.name}, te adjunto el presupuesto ${s.number}.`}\n\nTambién puedes verlo en línea: ${url}\n\n${s.professional.name} · ${s.professional.phone}`,
-      html: correoPresupuesto(s, url, b.message),
-      attachment: { filename: `${s.number}.pdf`, content: await read(doc[0]!.storage_key) },
+      text: textoPresupuesto(s, url, b.message, estado),
+      html: correoPresupuesto(s, url, b.message, estado),
+      attachment: pdf.aceptado ? { filename: `${s.number}-aceptado.pdf`, content: pdf.aceptado } : undefined,
     });
     await registerSend(req, q, 'EMAIL'); // solo si el envío salió bien
     res.json(await quoteDetail(await loadQuote(req, q.id)));

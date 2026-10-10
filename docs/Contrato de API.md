@@ -354,7 +354,7 @@ En **una transacción**: asigna `number` (`CP-AAAA-NNNN`), construye el snapshot
 **200** → `Quote` con `public_url`, `number`, `finalized_at`.
 
 ### `POST /quotes/{id}/send-email`
-Solo `FINALIZED`. Envía correo con mensaje, PDF adjunto y enlace público.
+Solo `FINALIZED`. Envía correo con el mensaje, **el presupuesto completo en el cuerpo** (ítems, totales y condiciones: no se cuenta con que el cliente abra el enlace) y los botones **Aceptar el presupuesto** (abre la vista pública para confirmar, §10), **Llamar por teléfono** y **Escribir por WhatsApp**; el botón de aceptar es el único enlace a la vista en línea. El pie dice que es un mensaje automático de CORE Presupuestos (con enlace a www.corepresupuestos.cl). **No lleva el PDF** (decisión del 2026-10-10): el PDF es el documento oficial del profesional y el cliente lo recibe al aceptar. Si el presupuesto ya está aceptado, el correo va sin el botón de aceptar y con el PDF timbrado «ACEPTADO» adjunto.
 ```json
 { "to": "cliente@mail.cl", "message": "Hola Juan, te adjunto el presupuesto." }
 ```
@@ -444,9 +444,9 @@ Quien tiene el código tiene los permisos del profesional sobre ese presupuesto,
 
 ---
 
-## 10. Acceso público del cliente (solo lectura)
+## 10. Acceso público del cliente (solo lectura, más aceptar)
 
-Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`, IDs internos, levantamiento, fotos, notas, seguimiento ni datos de acceso.
+Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`, IDs internos, levantamiento, fotos, notas, seguimiento ni datos de acceso. Lo único que el cliente puede hacer es **aceptar** el presupuesto (decisión del 2026-10-10, ver más abajo); no puede editarlo ni rechazarlo.
 
 ### `GET /public/quotes/{token}`
 **200** — el snapshot del contrato de BD §5, **sin** teléfono ni correo del cliente:
@@ -459,16 +459,31 @@ Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`,
   "service_description": "", "service_address": null,
   "items": [], "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "vat_rate": 19, "total": 0,
   "warranty": { "kind": "M3", "text": "3 meses" }, "validity_days": 15, "observations": null,
-  "pdf_url": "/public/quotes/{token}/pdf" }
+  "accepted_on": null, "can_accept": true }
 ```
+
+`accepted_on` es la fecha de aceptación (`YYYY-MM-DD`, en la zona del presupuesto) o `null`. `can_accept` dice si el botón «Aceptar» se ofrece: el presupuesto no está aceptado ni rechazado, no tiene una versión más nueva y no venció (`valid_until` ≥ hoy en su zona).
 
 | Ruta | Descripción |
 |------|-------------|
-| `GET /public/quotes/{token}/pdf` | Descarga el PDF. |
 | `GET /public/quotes/{token}/assets/logo` | Logo del profesional si existe. |
 | `GET /public/quotes/{token}/assets/signature` | Firma, solo si `include_signature`. |
 
-Token inexistente o revocado ⇒ **404** idéntico (sin distinguir). Cabeceras: `Cache-Control: no-store`, `X-Robots-Tag: noindex`. Cualquier método distinto de `GET` ⇒ 405.
+Token inexistente o revocado ⇒ **404** idéntico (sin distinguir). Cabeceras: `Cache-Control: no-store`, `X-Robots-Tag: noindex`. Cualquier método distinto de `GET` ⇒ 405, salvo `POST …/accept`.
+
+### `POST /public/quotes/{token}/accept` (decisión del 2026-10-10)
+
+El cliente acepta el presupuesto desde su enlace. El correo del presupuesto lleva el botón «Aceptar el presupuesto», que abre la vista pública (`/q/{token}?aceptar=1`) con la confirmación; **aceptar exige ese segundo paso** (este `POST`), porque los filtros de correo abren los enlaces solos y un `GET` aceptaría sin que nadie lo pidiera. Cuerpo vacío.
+
+**El PDF no se entrega por la vista pública** (decisión del 2026-10-10): es el documento oficial del profesional, que lo ve en la app. El cliente lo recibe solo por correo al aceptar, con el timbre «ACEPTADO» y la fecha; se genera desde el snapshot y el PDF original no cambia. El PDF del profesional (`GET /quotes/{id}/pdf`) también lleva el timbre mientras el estado sea `ACCEPTED`.
+
+- **200** — la vista de arriba con `accepted_on` y `confirmation_sent` (si se le envió la confirmación al cliente). Efectos, en una transacción: `commercial_status = ACCEPTED`, `accepted_at = now()`, `next_contact_date = NULL` y un `FollowUp` con la nota «Aceptado por el cliente desde el enlace». Queda en la auditoría (`QUOTE_ACCEPTED_BY_CUSTOMER`) y avisa el cambio en vivo (la app y la web se actualizan solas).
+- Después, fuera de la transacción: un correo al cliente (si tiene correo) y otro al profesional, cada uno con el PDF timbrado «ACEPTADO». Si un correo falla, la aceptación ya quedó: se registra el error y no se devuelve 502.
+- Ya aceptado ⇒ **200** sin repetir nada (idempotente; no vuelve a enviar correos).
+- Rechazado, con una versión más nueva o vencido ⇒ **409** `INVALID_STATE`, con un mensaje que invita a comunicarse con el profesional.
+- Mismo límite por IP que el resto de `/public`.
+
+El profesional puede seguir cambiando el estado a mano (`PUT /quotes/{id}/commercial-status`, §8); el PDF lleva el timbre mientras el estado sea `ACCEPTED`, venga de donde venga.
 
 ---
 
@@ -568,6 +583,7 @@ Sirven para escribir la dirección del trabajo con sugerencias y ubicarla en el 
 | Borrar presupuesto | ✔ (`DRAFT`/`PENDING`) | ✘ | ✘ |
 | Crear, rotar o revocar el código | ✔ | ✘ | ✘ |
 | Ver snapshot y PDF | ✔ | ✔ (el suyo, finalizado) | ✔ (por token) |
+| Aceptar el presupuesto (`POST /public/quotes/{token}/accept`) | ✘ (lo marca con §8) | ✘ | ✔ (por token) |
 
 ---
 
@@ -593,6 +609,6 @@ Las de numeración, corrección tras finalizar, enlace privado, datos del client
 | 1 | Sesión | 90 días móviles. |
 | 2 | `finalize` | Síncrono: genera el PDF dentro de la petición. Pasa a asíncrono solo si en móvil tarda demasiado. |
 | 3 | Librería de PDF y QR | Se elige en *Arquitectura técnica*, no afecta este contrato. |
-| 4 | Proveedor de SMS y de correo | Se elige en *Arquitectura técnica*. El contrato solo exige un envío de código y de correo con PDF adjunto. |
+| 4 | Proveedor de SMS y de correo | Se elige en *Arquitectura técnica*. El contrato solo exige un envío de código y de correo (con PDF adjunto al aceptar). |
 | 5 | Rate limits | Valores iniciales de §1, ajustables. |
 | 6 | Alcance del código (**abierta**) | Hoy el código permite finalizar y enviar, porque el flujo del usuario es completar y cerrar desde la web. Alternativa más estricta: que el código solo permita editar y la acción de cerrar exija sesión `USER`. Se decide antes de implementar `finalize` para sesiones `QUOTE_CODE`. |

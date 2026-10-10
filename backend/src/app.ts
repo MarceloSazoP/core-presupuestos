@@ -62,7 +62,7 @@ export function createApp(deps: { places?: Lugares; sendCode?: SendCode; sendMai
   api.use('/files', fileRoutes());
   api.use('/dashboard', dashboardRoutes());
   api.use('/access', accessRoutes(deps.ipExchangeLimit));
-  api.use('/public', publicRoutes(deps.publicLimit));
+  api.use('/public', publicRoutes(correo, deps.publicLimit));
   app.use('/api/v1', api);
 
   app.use((_req: Request, _res: Response, next) => next(new AppError(404, 'NOT_FOUND', 'No encontrado')));

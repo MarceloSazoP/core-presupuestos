@@ -44,9 +44,9 @@ describe('API: exportar mis datos y eliminar la cuenta (Exportar y eliminar la c
     assert.match(r.json.destination_masked, /^a\*\*\*@test\.cl$/);
     const m = app.mails.at(-1)!;
     assert.equal(m.to, 'a@test.cl');
-    assert.match(m.attachment.filename, /^corepresupuesto-mis-datos-\d{4}-\d{2}-\d{2}\.xlsx$/);
+    assert.match(m.attachment!.filename, /^corepresupuesto-mis-datos-\d{4}-\d{2}-\d{2}\.xlsx$/);
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(m.attachment.content as unknown as ArrayBuffer);
+    await wb.xlsx.load(m.attachment!.content as unknown as ArrayBuffer);
     assert.deepEqual(wb.worksheets.map((w) => w.name), ['Cuenta', 'Clientes', 'Presupuestos', 'Ítems', 'Visita', 'Medidas', 'Seguimiento']);
     assert.equal(wb.getWorksheet('Clientes')!.getRow(2).getCell(1).value, 'Juan Soto');
     assert.equal(wb.getWorksheet('Presupuestos')!.getRow(2).getCell(6).value, 'Instalar enchufes');

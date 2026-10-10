@@ -7,7 +7,7 @@ import { pool } from '../src/db';
 import { AppError } from '../src/errors';
 import { cerrarAvisos } from '../src/lib/events';
 import type { Channel } from '../src/lib/deliver';
-import type { QuoteMail } from '../src/lib/mail';
+import type { Correo } from '../src/lib/mail';
 
 export type Sent = { channel: Channel; destination: string; code: string };
 
@@ -25,7 +25,7 @@ export async function resetDb() {
 // Levanta la app en un puerto efímero con un "enviador" falso que guarda los códigos en vez de mandarlos.
 export async function startApp(opts: { places?: import('../src/lib/places').Lugares; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number; corsOrigins?: string[] } = {}) {
   const sent: Sent[] = [];
-  const mails: QuoteMail[] = [];
+  const mails: Correo[] = [];
   const mailState = { fail: false };
   const server: Server = afinarServidor(createApp({
     sendCode: async (channel, destination, code) => void sent.push({ channel, destination, code }),

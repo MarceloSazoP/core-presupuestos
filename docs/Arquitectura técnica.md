@@ -157,7 +157,7 @@ Sin clase base genérica de CRUD ni capa `services` que solo reenvíe: la ruta v
 
 - Credenciales por entorno. En producción la configuración incompleta **impide arrancar**.
 - Tiempo de espera de 10 s y un solo reintento ante error de red. Un fallo de envío devuelve 502 sin registrar el envío (Contrato API §7).
-- El correo del presupuesto lleva el PDF adjunto y el enlace público; el remitente es de un dominio propio con SPF y DKIM configurados.
+- El correo del presupuesto lleva el enlace público con los botones para aceptar o llamar, sin PDF; el PDF timbrado «ACEPTADO» va adjunto en el correo de aceptación (Contrato API §7 y §10); el remitente es de un dominio propio con SPF y DKIM configurados.
 
 ### Configuración
 

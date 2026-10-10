@@ -1,10 +1,10 @@
 // Formato corporativo de los correos que envía el sistema (código de ingreso, QR de recuperación, presupuesto al cliente): una sola
-// carcasa sobria con tablas y estilos en línea (lo único que respetan todos los clientes de correo), sin imágenes externas. Cada
+// carcasa sobria con tablas y estilos en línea (lo único que respetan todos los clientes de correo), sin imágenes externas ni
+// encabezado de marca: la marca va solo en el pie, en letra chica. Cada
 // correo trae además su versión de texto plano. Todo lo que viene de una persona se escapa aquí.
 export const escapar = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 const AZUL = '#0E3578'; // azul de la marca: encabezado y títulos
-const NARANJA = '#F9890D'; // naranja de la marca: un filete de acento
 const TEXTO = '#1F2937';
 const SUAVE = '#4B5563'; // 7,5:1 sobre blanco
 const LINEA = '#D9DDE3';
@@ -27,18 +27,14 @@ export function correoCorporativo({ preheader, titulo, cuerpo, base = 17, pie }:
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${FONDO};"><tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid ${LINEA};border-radius:6px;">
     <tr><td style="height:4px;background:${AZUL};border-radius:6px 6px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
-    <tr><td style="padding:24px 32px 18px;font-family:${FUENTE};">
-      <div style="font-size:20px;font-weight:bold;letter-spacing:0.3px;color:${AZUL};">CORE Presupuestos</div>
-      <div style="width:44px;height:3px;background:${NARANJA};margin-top:10px;font-size:0;line-height:0;">&nbsp;</div>
-    </td></tr>
-    <tr><td style="padding:6px 32px 8px;font-family:${FUENTE};font-size:${base}px;line-height:1.55;color:${TEXTO};">
+    <tr><td style="padding:28px 32px 8px;font-family:${FUENTE};font-size:${base}px;line-height:1.55;color:${TEXTO};">
       <h1 style="margin:0 0 16px;font-size:${base + 5}px;line-height:1.3;color:${AZUL};font-weight:bold;">${escapar(titulo)}</h1>
       ${cuerpo}
     </td></tr>
     <tr><td style="padding:20px 32px 28px;font-family:${FUENTE};">
-      <div style="border-top:1px solid ${LINEA};padding-top:16px;font-size:13px;line-height:1.5;color:${SUAVE};">
+      <div style="border-top:1px solid ${LINEA};padding-top:16px;font-size:12px;line-height:1.5;color:${SUAVE};">
         ${pie ? `<div style="margin-bottom:6px;">${pie}</div>` : ''}
-        Este es un mensaje automático de CORE Presupuestos; por favor no respondas a este correo. Los presupuestos son documentos comerciales y no constituyen un documento tributario.
+        Este es un mensaje automático de <a href="https://www.corepresupuestos.cl" style="color:${SUAVE};">CORE Presupuestos</a>; por favor no respondas a este correo. Los presupuestos son documentos comerciales y no constituyen un documento tributario.
       </div>
     </td></tr>
   </table>
@@ -67,6 +63,16 @@ export function datos(filas: [string, string][]) {
 // Botón «a prueba de clientes de correo»: un enlace dentro de una celda con fondo.
 export const boton = (texto: string, url: string) =>
   `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;"><tr><td style="background:${AZUL};border-radius:4px;"><a href="${escapar(url)}" style="display:inline-block;padding:13px 26px;font-family:${FUENTE};font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;">${escapar(texto)}</a></td></tr></table>`;
+
+// Botones secundarios en una fila (llamar, WhatsApp): con contorno, para que el principal sea el único con fondo.
+export const botonesSecundarios = (lista: [string, string][]) =>
+  `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;"><tr>${lista
+    .map(([texto, url]) => `<td style="border:2px solid ${AZUL};border-radius:4px;"><a href="${escapar(url)}" style="display:inline-block;padding:11px 20px;font-family:${FUENTE};font-size:16px;font-weight:bold;color:${AZUL};text-decoration:none;">${escapar(texto)}</a></td>`)
+    .join('<td style="width:10px;font-size:0;">&nbsp;</td>')}</tr></table>`;
+
+// Un sello en el cuerpo del correo: «ACEPTADO» en verde, con su fecha.
+export const sello = (texto: string, detalle: string) =>
+  `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;"><tr><td align="center" style="border:3px solid #1a7f37;border-radius:6px;padding:10px 22px;font-family:${FUENTE};color:#1a7f37;"><div style="font-size:24px;font-weight:bold;letter-spacing:3px;">${escapar(texto)}</div><div style="font-size:13px;">${escapar(detalle)}</div></td></tr></table>`;
 
 export const pasos = (lista: string[]) =>
   `<ol style="margin:0 0 18px;padding-left:24px;">${lista.map((p) => `<li style="margin:0 0 8px;">${p}</li>`).join('')}</ol>`;
