@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Image, { type StaticImageData } from "next/image";
+import type { ReactNode } from "react";
 import appInicio from "./capturas/app-inicio.png";
 import appTerminado from "./capturas/app-terminado.png";
 import appVisita from "./capturas/app-visita.png";
@@ -71,6 +72,7 @@ const ICONOS = {
   clientes: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
   agenda: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z",
   boleta: "M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2v20z",
+  check: "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
 };
 
 function Icono({ d, className = "size-6" }: { d: string; className?: string }) {
@@ -147,6 +149,28 @@ function Telefono({ foto, alt }: { foto: StaticImageData; alt: string }) {
 }
 
 const TITULO_SECCION = "text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]";
+
+// Una fila de «el resto del sistema»: la imagen a la izquierda y, al lado, qué es y qué se puede hacer.
+function Lado({ visual, rotulo, titulo, detalle, puntos }: { visual: ReactNode; rotulo: string; titulo: string; detalle: string; puntos: string[] }) {
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,35rem)_minmax(0,36rem)] lg:items-center lg:gap-20">
+      {visual}
+      <div className="flex flex-col gap-4">
+        <p className="text-sm font-semibold text-acento-texto">{rotulo}</p>
+        <h3 className="text-[clamp(1.5rem,2.4vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">{titulo}</h3>
+        <p className="text-lg leading-relaxed text-muted">{detalle}</p>
+        <ul className="mt-2 flex flex-col gap-3">
+          {puntos.map((p) => (
+            <li key={p} className="flex gap-3 text-[1.0625rem]">
+              <Icono d={ICONOS.check} className="mt-0.5 size-5 shrink-0 text-acento-texto" />
+              {p}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
 
 export default function Landing() {
   return (
@@ -262,33 +286,42 @@ export default function Landing() {
       {/* El resto del sistema: la web para terminarlo y lo que ve el cliente. */}
       <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
         <h2 className={`max-w-2xl ${TITULO_SECCION}`}>En el computador y en el teléfono de tu cliente.</h2>
-        {/* La foto de los equipos mide 1036 px: a 35 rem (560 px) sigue nítida incluso en pantallas de doble densidad. */}
-        <div className="mt-12 grid gap-14 lg:grid-cols-[minmax(0,35rem)_17rem] lg:items-start lg:gap-20">
-          <figure className="flex flex-col gap-5">
-            <Image
-              src={equipos}
-              alt="La app en un teléfono, con el resumen de Inicio, y el mismo presupuesto abierto en la web en un notebook, con el total y Terminar y enviar"
-              placeholder="blur"
-              quality={90}
-              sizes="(min-width: 1024px) 35rem, 100vw"
-              className="h-auto w-full rounded-xl"
-            />
-            <figcaption className="flex max-w-2xl flex-col gap-1.5">
-              <span className="text-lg font-semibold text-foreground">En terreno y en tu escritorio</span>
-              <span className="text-muted">
-                El mismo presupuesto, al día en el teléfono y en el computador. Ábrelo en la web con su código, o escaneando el QR desde la app, y termínalo con pantalla grande: ítems, descuento, IVA y condiciones.
-              </span>
-            </figcaption>
-          </figure>
-          <figure className="flex flex-col gap-5">
-            <div className="mx-auto w-full max-w-[17rem]">
-              <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y Descargar PDF" />
-            </div>
-            <figcaption className="flex flex-col gap-1.5">
-              <span className="text-lg font-semibold text-foreground">Así lo recibe tu cliente</span>
-              <span className="text-muted">Un enlace que abre en su teléfono, sin instalar nada: el detalle, el total y el PDF. Solo puede verlo, no editarlo.</span>
-            </figcaption>
-          </figure>
+        <div className="mt-12 flex flex-col gap-20">
+          <Lado
+            visual={
+              // La foto de los equipos mide 1036 px: a 35 rem (560 px) sigue nítida incluso en pantallas de doble densidad.
+              <Image
+                src={equipos}
+                alt="La app en un teléfono, con el resumen de Inicio, y el mismo presupuesto abierto en la web en un notebook, con el total y Terminar y enviar"
+                placeholder="blur"
+                quality={90}
+                sizes="(min-width: 1024px) 35rem, 100vw"
+                className="h-auto w-full rounded-xl"
+              />
+            }
+            rotulo="En el computador"
+            titulo="Empiézalo en terreno, termínalo en tu escritorio."
+            detalle="El presupuesto queda al día en el teléfono y en la web. Ábrelo con su código, o escaneando el QR desde la app, y termínalo con calma en pantalla grande."
+            puntos={[
+              "Ítems con cantidad, unidad y precio: el total se calcula solo.",
+              "Descuento, IVA, garantía, vigencia y condiciones.",
+              "Previsualiza el PDF antes de enviarlo.",
+              "Terminar y enviar, desde ahí mismo.",
+            ]}
+          />
+          <Lado
+            visual={
+              <div className="flex justify-center rounded-xl bg-niebla px-6 py-10">
+                <div className="w-full max-w-[17rem]">
+                  <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y Descargar PDF" />
+                </div>
+              </div>
+            }
+            rotulo="En el teléfono de tu cliente"
+            titulo="Así lo recibe tu cliente."
+            detalle="Le llega un enlace por correo o WhatsApp que se abre en su teléfono, sin instalar nada ni crear una cuenta."
+            puntos={["Quién lo envía, el detalle y el total, claros.", "Descarga el PDF con un toque.", "Solo puede verlo: no puede editarlo."]}
+          />
         </div>
       </section>
 
