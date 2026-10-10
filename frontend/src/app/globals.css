@@ -472,11 +472,55 @@ button {
       display: none;
     }
   }
+
+  /* Carrusel de los países (portada): la pista lleva dos copias de la lista y corre una (−50 %) en línea recta, sin fin. Cada tarjeta
+     lleva su margen a la derecha (no `gap`) para que la media vuelta empalme exacta. Se detiene al pasar el mouse y los bordes se
+     desvanecen con una máscara. Solo `transform`: corre fuera del hilo principal. */
+  .carrusel {
+    overflow: hidden;
+    mask-image: linear-gradient(to right, transparent, #000 4rem, #000 calc(100% - 4rem), transparent);
+  }
+  .carrusel-pista {
+    display: flex;
+    width: max-content;
+    animation: carrusel 90s linear infinite;
+  }
+  .carrusel-tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    width: 14rem;
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+    padding: 1.25rem;
+  }
+  @keyframes carrusel {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .carrusel:hover .carrusel-pista {
+      animation-play-state: paused;
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .asentar {
     animation: none;
+  }
+  /* El carrusel queda quieto y se recorre deslizando: sin la copia repetida ni la máscara. */
+  .carrusel {
+    overflow-x: auto;
+    mask-image: none;
+  }
+  .carrusel-pista {
+    animation: none;
+    padding-inline: 1rem;
+  }
+  .carrusel-tarjeta[aria-hidden="true"] {
+    display: none;
   }
   .boton,
   .boton-secundario,

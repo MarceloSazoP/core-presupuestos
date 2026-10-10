@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Image, { type StaticImageData } from "next/image";
 import type { ReactNode } from "react";
+import { PAISES_ORDENADOS, tasaLegible } from "@/lib/paises";
 import appInicio from "./capturas/app-inicio.png";
 import appTerminado from "./capturas/app-terminado.png";
 import appVisita from "./capturas/app-visita.png";
@@ -13,7 +14,7 @@ import { VinculoQr } from "./vinculo-qr";
 export const metadata: Metadata = {
   title: "CORE Presupuestos · Del terreno al presupuesto, sin olvidar nada",
   description:
-    "Anota lo que ves en la visita (notas, fotos, medidas y voz), prepara el presupuesto y envíalo al cliente en PDF. Para electricistas, gasfíteres, instaladores y técnicos independientes.",
+    "Anota lo que ves en la visita (notas, fotos, medidas y voz), prepara el presupuesto y envíalo al cliente en PDF. Para electricistas, gasfíteres, plomeros, instaladores y técnicos independientes de los países de habla hispana.",
 };
 
 export const viewport: Viewport = { themeColor: "#15191e" }; // arriba va la barra oscura del anuncio
@@ -123,7 +124,11 @@ const BENEFICIOS = [
 const PREGUNTAS = [
   {
     pregunta: "¿Es una boleta o una factura?",
-    respuesta: "No. Es un presupuesto comercial: sirve para cotizar un trabajo y que el cliente lo acepte. No reemplaza boletas ni facturas y no se informa al SII.",
+    respuesta: "No. Es un presupuesto comercial: sirve para cotizar un trabajo y que el cliente lo acepte. No reemplaza boletas ni facturas y no se informa al servicio de impuestos de tu país (SII, SAT, SUNAT, DIAN…).",
+  },
+  {
+    pregunta: "¿Funciona en mi país?",
+    respuesta: `Sí, en los ${PAISES_ORDENADOS.length} países de habla hispana. Eliges tu país en la app y tus presupuestos usan su moneda y calculan su impuesto (IVA, IGV, ITBMS, ITBIS, ISV o IVU) con la tasa que corresponde. Si la ley cambia una tasa, la actualizamos; los presupuestos que ya enviaste no cambian.`,
   },
   {
     pregunta: "¿Funciona sin señal?",
@@ -206,6 +211,7 @@ export default function Landing() {
           <div className="flex items-center gap-6 text-sm font-medium">
             <a href="#que-hace" className="hidden hover:text-acento-texto md:inline">Qué hace</a>
             <a href="#como-funciona" className="hidden hover:text-acento-texto md:inline">Cómo funciona</a>
+            <a href="#paises" className="hidden hover:text-acento-texto md:inline">Países</a>
             <a href="#preguntas" className="hidden hover:text-acento-texto md:inline">Preguntas</a>
             <a href="#consulta" className="boton min-h-10 px-4 text-sm">
               <span className="sm:hidden">Consultar</span>
@@ -216,12 +222,13 @@ export default function Landing() {
 
         <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_58%] xl:gap-x-[4%]">
           <div className="flex flex-col gap-6">
+            <p className="pastilla">Para los países de habla hispana</p>
             <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-semibold leading-[1.04] tracking-[-0.03em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:text-[clamp(2.5rem,3.6vw,4.5rem)] xl:max-w-[34rem] 2xl:max-w-[44rem]">
               Del terreno al presupuesto, sin olvidar nada.
             </h1>
             <p className="max-w-xl text-lg leading-relaxed text-muted lg:max-w-[min(100%,30rem)] xl:max-w-[32rem] 2xl:max-w-[38rem] 2xl:text-xl">
               Anota lo que ves en la visita (notas, fotos, medidas y voz) y entrega un presupuesto profesional en minutos.
-              Hecho para electricistas, gasfíteres, instaladores y técnicos independientes.
+              Hecho para electricistas, gasfíteres, plomeros, instaladores y técnicos independientes.
             </p>
           </div>
 
@@ -316,7 +323,7 @@ export default function Landing() {
             detalle="El presupuesto queda al día en el teléfono y en la web. Ábrelo con su código, o escaneando el QR desde la app, y termínalo con calma en pantalla grande."
             puntos={[
               { icono: ICONOS.boleta, titulo: "Ítems y total", detalle: "Cantidad, unidad y precio en cada línea. El total se calcula solo." },
-              { icono: ICONOS.documento, titulo: "Descuento e IVA", detalle: "Agrégalos si corresponde, junto con la garantía y la vigencia." },
+              { icono: ICONOS.documento, titulo: "Descuento e impuesto", detalle: "El IVA (o el impuesto de tu país) con su tasa, junto con la garantía y la vigencia." },
               { icono: ICONOS.ver, titulo: "Vista previa del PDF", detalle: "Míralo tal como le llegará a tu cliente, antes de enviarlo." },
               { icono: ICONOS.enviar, titulo: "Terminar y enviar", detalle: "Por correo con el PDF, o por WhatsApp, desde ahí mismo." },
             ]}
@@ -362,7 +369,42 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="preguntas" className="scroll-mt-6 px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+      {/* Los países salen de la misma tabla que usan la app y el servidor: si cambia una tasa, la portada la muestra sola. */}
+      <section id="paises" aria-labelledby="titulo-paises" className="scroll-mt-6 py-16 lg:py-20">
+        <div className="flex max-w-3xl flex-col gap-4 px-4 sm:px-6 lg:px-12 lg:max-w-[54rem]">
+          <h2 id="titulo-paises" className={TITULO_SECCION}>
+            Para los países de habla hispana.
+          </h2>
+          <p className="text-lg leading-relaxed text-muted">
+            Todo en español, con la moneda de tu país y su impuesto calculado con la tasa que corresponde. Eliges tu país una vez y listo. Si la
+            ley cambia una tasa, la actualizamos; los presupuestos que ya enviaste no cambian.
+          </p>
+        </div>
+        {/* Carrusel continuo: dos copias de la lista y la pista corre media vuelta (una copia) para empalmar sin salto. La segunda copia
+            no la lee el lector de pantalla. Con «reducir movimiento» queda quieto y se recorre deslizando. */}
+        <div className="carrusel mt-10">
+          <ul className="carrusel-pista">
+            {[...PAISES_ORDENADOS, ...PAISES_ORDENADOS].map((p, i) => (
+              <li key={`${p.country}-${i}`} aria-hidden={i >= PAISES_ORDENADOS.length || undefined} className="carrusel-tarjeta flotante">
+                {/* Banderas de flag-icons (MIT) en PNG de 96 × 72: las banderas emoji no se ven en Windows. */}
+                <span className="flex items-center gap-2.5 font-semibold leading-tight">
+                  <Image src={`/banderas/${p.country.toLowerCase()}.png`} alt="" width={32} height={24} unoptimized className="shrink-0 rounded-[3px] ring-1 ring-borde" />
+                  {p.name}
+                </span>
+                <span>
+                  <span className="text-3xl font-semibold tabular-nums tracking-[-0.02em]">{tasaLegible(p.vat_rate)} %</span>{" "}
+                  <span className="text-muted">{p.vat_label}</span>
+                </span>
+                <span className="text-sm text-muted">
+                  {p.currency} ({p.symbol})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section id="preguntas" className="scroll-mt-6 bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
           <h2 className={TITULO_SECCION}>Preguntas frecuentes.</h2>
           {/* <details> nativo: se abre con teclado y lector de pantalla sin código extra. */}
@@ -382,7 +424,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="px-4 pb-16 sm:px-6 lg:px-12 lg:pb-20">
+      <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
         <div className="flotante grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:p-10">
           <div className="flex max-w-2xl flex-col gap-2">
             <h2 className="text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">¿Tu profesional te envió un código?</h2>
@@ -398,11 +440,12 @@ export default function Landing() {
         <div className="flex flex-col justify-between gap-8 sm:flex-row">
           <div className="flex max-w-sm flex-col gap-2">
             <p className="font-semibold text-white">CORE Presupuestos</p>
-            <p>Presupuestos para profesionales independientes. Presupuesto comercial: no es un documento tributario.</p>
+            <p>Presupuestos para profesionales independientes de los países de habla hispana. Presupuesto comercial: no es un documento tributario.</p>
           </div>
           <nav aria-label="Pie de página" className="flex flex-col gap-2 sm:items-end">
             <a href="#que-hace" className="hover:text-white">Qué hace</a>
             <a href="#como-funciona" className="hover:text-white">Cómo funciona</a>
+            <a href="#paises" className="hover:text-white">Países</a>
             <a href="#preguntas" className="hover:text-white">Preguntas frecuentes</a>
             <a href="#consulta" className="hover:text-white">Consultar un presupuesto</a>
           </nav>
