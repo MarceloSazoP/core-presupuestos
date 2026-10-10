@@ -4,7 +4,6 @@ import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -154,7 +153,9 @@ export default async function VistaPublica({ params, searchParams }: { params: P
           <Typography id="detalle" variant="overline" component="h2" color="text.secondary">
             Detalle
           </Typography>
-          <Stack component="ul" divider={<Divider component="li" aria-hidden="true" />} sx={{ m: 0, p: 0, listStyle: "none", borderTop: 1, borderBottom: 1, borderColor: "divider" }}>
+          {/* La línea entre ítems es CSS: un <Divider> creado aquí y pasado como prop a Stack (componente de cliente) llegaba vacío al
+              armar el HTML y rompía la página con dos o más ítems. */}
+          <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none", borderTop: 1, borderBottom: 1, borderColor: "divider", "& > li + li": { borderTop: 1, borderColor: "divider" } }}>
             {q.items.map((i, n) => (
               <Box component="li" key={n} sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, py: 1.5 }}>
                 <Box sx={{ minWidth: 0 }}>
@@ -171,7 +172,7 @@ export default async function VistaPublica({ params, searchParams }: { params: P
                 <Typography sx={{ flexShrink: 0, fontWeight: 500, fontVariantNumeric: "tabular-nums" }}>{i.kind === "TASK" && i.line_total === 0 ? "Incluido" : clp(i.line_total)}</Typography>
               </Box>
             ))}
-          </Stack>
+          </Box>
           <Stack component="dl" spacing={0.75} sx={{ m: 0, mt: 2, ml: { sm: "auto" }, width: { sm: "20rem" }, fontVariantNumeric: "tabular-nums" }}>
             <Box sx={FILA_TOTAL}>
               <dt>Subtotal</dt>
