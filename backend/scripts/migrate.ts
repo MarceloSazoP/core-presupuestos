@@ -10,20 +10,22 @@ export async function migrate(pool: Pool): Promise<string[]> {
   const applied: string[] = [];
   try {
     await client.query('SELECT pg_advisory_lock($1)', [LOCK_KEY]);
+    // El registro vive siempre en public: la 0017 movió las tablas a "core-presupuestos" pero no este registro, y sin el schema
+    // escrito, con la ruta de búsqueda nueva se creaba uno vacío en "core-presupuestos" y se volvía a intentar desde la 0001.
     await client.query(
-      `CREATE TABLE IF NOT EXISTS schema_migrations (
+      `CREATE TABLE IF NOT EXISTS public.schema_migrations (
          name text PRIMARY KEY,
          applied_at timestamptz NOT NULL DEFAULT now())`,
     );
     const done = new Set(
-      (await client.query<{ name: string }>('SELECT name FROM schema_migrations')).rows.map((r) => r.name),
+      (await client.query<{ name: string }>('SELECT name FROM public.schema_migrations')).rows.map((r) => r.name),
     );
     for (const file of readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()) {
       if (done.has(file)) continue;
       await client.query('BEGIN');
       try {
         await client.query(readFileSync(join(dir, file), 'utf8'));
-        await client.query('INSERT INTO schema_migrations (name) VALUES ($1)', [file]);
+        await client.query('INSERT INTO public.schema_migrations (name) VALUES ($1)', [file]);
         await client.query('COMMIT');
       } catch (err) {
         await client.query('ROLLBACK');
