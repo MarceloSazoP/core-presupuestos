@@ -72,7 +72,11 @@ const ICONOS = {
   clientes: "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
   agenda: "M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z",
   boleta: "M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2v20z",
-  check: "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
+  ver: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z",
+  enviar: "M2.01 21 23 12 2.01 3 2 10l15 2-15 2z",
+  descargar: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
+  candado: "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z",
+  enlace: "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z",
 };
 
 function Icono({ d, className = "size-6" }: { d: string; className?: string }) {
@@ -150,20 +154,28 @@ function Telefono({ foto, alt }: { foto: StaticImageData; alt: string }) {
 
 const TITULO_SECCION = "text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]";
 
-// Una fila de «el resto del sistema»: la imagen a la izquierda y, al lado, qué es y qué se puede hacer.
-function Lado({ visual, rotulo, titulo, detalle, puntos }: { visual: ReactNode; rotulo: string; titulo: string; detalle: string; puntos: string[] }) {
+type Punto = { icono: string; titulo: string; detalle: string };
+
+// Una fila de «el resto del sistema»: la imagen y, al lado, qué es y qué se puede hacer. El texto ocupa todo el ancho que queda (los
+// puntos en tarjetas de a dos) para que la pantalla ancha no quede con un hueco; `invertido` alterna el lado de la imagen.
+function Lado({ visual, rotulo, titulo, detalle, puntos, invertido = false }: { visual: ReactNode; rotulo: string; titulo: string; detalle: string; puntos: Punto[]; invertido?: boolean }) {
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,35rem)_minmax(0,36rem)] lg:items-center lg:gap-20">
-      {visual}
+    <div className={`grid gap-8 lg:items-center lg:gap-16 ${invertido ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,35rem)]" : "lg:grid-cols-[minmax(0,35rem)_minmax(0,1fr)]"}`}>
+      <div className={invertido ? "lg:order-last" : ""}>{visual}</div>
       <div className="flex flex-col gap-4">
         <p className="text-sm font-semibold text-acento-texto">{rotulo}</p>
         <h3 className="text-[clamp(1.5rem,2.4vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">{titulo}</h3>
-        <p className="text-lg leading-relaxed text-muted">{detalle}</p>
-        <ul className="mt-2 flex flex-col gap-3">
+        <p className="max-w-3xl text-lg leading-relaxed text-muted">{detalle}</p>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2">
           {puntos.map((p) => (
-            <li key={p} className="flex gap-3 text-[1.0625rem]">
-              <Icono d={ICONOS.check} className="mt-0.5 size-5 shrink-0 text-acento-texto" />
-              {p}
+            <li key={p.titulo} className="flotante flex gap-4 p-5">
+              <span className="icono-suave">
+                <Icono d={p.icono} />
+              </span>
+              <div className="flex flex-col gap-1">
+                <h4 className="text-[1.0625rem] font-semibold">{p.titulo}</h4>
+                <p className="text-muted">{p.detalle}</p>
+              </div>
             </li>
           ))}
         </ul>
@@ -303,24 +315,30 @@ export default function Landing() {
             titulo="Empiézalo en terreno, termínalo en tu escritorio."
             detalle="El presupuesto queda al día en el teléfono y en la web. Ábrelo con su código, o escaneando el QR desde la app, y termínalo con calma en pantalla grande."
             puntos={[
-              "Ítems con cantidad, unidad y precio: el total se calcula solo.",
-              "Descuento, IVA, garantía, vigencia y condiciones.",
-              "Previsualiza el PDF antes de enviarlo.",
-              "Terminar y enviar, desde ahí mismo.",
+              { icono: ICONOS.boleta, titulo: "Ítems y total", detalle: "Cantidad, unidad y precio en cada línea. El total se calcula solo." },
+              { icono: ICONOS.documento, titulo: "Descuento e IVA", detalle: "Agrégalos si corresponde, junto con la garantía y la vigencia." },
+              { icono: ICONOS.ver, titulo: "Vista previa del PDF", detalle: "Míralo tal como le llegará a tu cliente, antes de enviarlo." },
+              { icono: ICONOS.enviar, titulo: "Terminar y enviar", detalle: "Por correo con el PDF, o por WhatsApp, desde ahí mismo." },
             ]}
           />
           <Lado
+            invertido
             visual={
-              <div className="flex justify-center rounded-xl bg-niebla px-6 py-10">
-                <div className="w-full max-w-[17rem]">
+              <div className="flex justify-center rounded-xl bg-niebla px-6 py-8">
+                <div className="w-full max-w-[15rem]">
                   <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y Descargar PDF" />
                 </div>
               </div>
             }
             rotulo="En el teléfono de tu cliente"
             titulo="Así lo recibe tu cliente."
-            detalle="Le llega un enlace por correo o WhatsApp que se abre en su teléfono, sin instalar nada ni crear una cuenta."
-            puntos={["Quién lo envía, el detalle y el total, claros.", "Descarga el PDF con un toque.", "Solo puede verlo: no puede editarlo."]}
+            detalle="Le llega un enlace por correo o WhatsApp que se abre en su teléfono. Ve un presupuesto claro y profesional, con tus datos."
+            puntos={[
+              { icono: ICONOS.enlace, titulo: "Sin instalar nada", detalle: "Se abre en el navegador del teléfono, sin crear una cuenta." },
+              { icono: ICONOS.clientes, titulo: "Fácil de leer", detalle: "Quién lo envía, el detalle de los trabajos y el total." },
+              { icono: ICONOS.descargar, titulo: "Descarga el PDF", detalle: "Con un toque, para guardarlo o reenviarlo." },
+              { icono: ICONOS.candado, titulo: "Solo lectura", detalle: "Puede verlo, pero no cambiar nada." },
+            ]}
           />
         </div>
       </section>
