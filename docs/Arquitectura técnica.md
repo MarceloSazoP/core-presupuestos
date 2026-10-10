@@ -287,7 +287,7 @@ Una notificación local por presupuesto con `next_contact_date`, a las 09:00 de 
 ### Envío y seguimiento
 
 - **WhatsApp:** abrir `https://wa.me/<número>?text=<mensaje con public_url>`, con respaldo a la hoja de compartir. La app **no puede saber** si el usuario envió el mensaje: al volver pregunta "¿Lo enviaste?" y solo entonces llama a `mark-sent` (Contrato API §7).
-- **PDF:** se descarga `GET /quotes/{id}/pdf` al caché y se comparte con `expo-sharing`.
+- **PDF (ver, decisión del 2026-10-09):** «Ver PDF» descarga `GET /quotes/{id}/pdf` con la sesión al caché (`File.downloadFileAsync`) y lo abre: en **Android** con el visor de PDF del teléfono (`expo-intent-launcher`, `ACTION_VIEW` con el `contentUri`); en **iPhone** en una pantalla de la app con `react-native-webview`, que lo dibuja con zoom y deja compartirlo. No se usa el enlace público (`public_url`) para esto: depende de `WEB_BASE_URL` y, en desarrollo, apunta a una dirección que el teléfono no alcanza.
 - **Recordatorios:** una notificación local a las 09:00 (hora local del teléfono) del `next_contact_date`. Al abrir la app y tras cada cambio de seguimiento se reconcilian con `GET /quotes?commercial_status=SENT` y `FOLLOW_UP` (el resumen ya trae `next_contact_date`). Se cancelan al pasar a `ACCEPTED` o `REJECTED`. Hora aproximada, así que **no** se pide el permiso de alarmas exactas. Solo suenan en el dispositivo que las programó.
 - Los SO limitan las notificaciones locales pendientes: se programan solo las más próximas (cantidad a definir al implementar).
 

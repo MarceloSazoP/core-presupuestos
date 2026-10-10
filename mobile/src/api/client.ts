@@ -59,6 +59,20 @@ export async function api<T = unknown>(path: string, { method = 'GET', body, tok
   return json as T;
 }
 
+// Descarga con la sesión a un archivo del teléfono (el PDF de un presupuesto). Se pisa si ya estaba. Falla como `api()`: sin conexión,
+// status 0; si la sesión venció, la cierra.
+export async function descargar(path: string, destino: File): Promise<File> {
+  const t = obtenerToken();
+  try {
+    return await File.downloadFileAsync(BASE + path, destino, { headers: t ? { Authorization: `Bearer ${t}` } : {}, idempotent: true });
+  } catch (e) {
+    const motivo = e instanceof Error ? e.message : String(e);
+    const status = Number(/\b([45]\d\d)\b/.exec(motivo)?.[1] ?? 0); // expo-file-system pone el código HTTP en el mensaje
+    if (status === 401 && t) alVencer();
+    throw new ApiError(status, status ? 'DESCARGA' : 'SIN_CONEXION', status ? 'No se pudo descargar el PDF.' : 'No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo.');
+  }
+}
+
 // Mensaje legible para mostrar en pantalla.
 export function mensajeDe(e: unknown): string {
   // En desarrollo se muestra el motivo real (cámara, recorte de la foto, etc.) para poder diagnosticarlo en el teléfono.

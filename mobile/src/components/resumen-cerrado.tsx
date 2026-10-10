@@ -1,6 +1,6 @@
-import * as WebBrowser from 'expo-web-browser';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
+import { mensajeDe } from '@/api/client';
 import { Text } from 'react-native-paper';
 import type { Presupuesto } from '@/api/types';
 import { BarraFlotante } from '@/components/barra-flotante';
@@ -14,6 +14,7 @@ import { useSinSenal } from '@/lib/conexion';
 import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, vencimiento } from '@/lib/fechas';
 import { delPresupuesto, useDinero } from '@/lib/montos';
+import { abrirPdf } from '@/lib/pdf';
 import { avisar } from '@/lib/toast';
 import { espacio, type Color, useTema } from '@/theme';
 
@@ -120,7 +121,14 @@ export function AccionesCerrado({ q, recargar, reserva, conCompartir }: { q: Pre
   const { compartir, error, dialogo } = useEnvio(q, recargar);
   const sinEnviar = q.commercial_status === 'NONE';
   const segundo = sinEnviar ? (conCompartir ? 'compartir' : null) : 'llamar';
-  const verPdf = (url: string) => void WebBrowser.openBrowserAsync(url).catch(() => avisar.error('No se pudo abrir el PDF'));
+  // El PDF real, descargado con la sesión (no el enlace web: en desarrollo apunta a una dirección que el teléfono no alcanza).
+  const [abriendo, setAbriendo] = useState(false);
+  const verPdf = () => {
+    setAbriendo(true);
+    abrirPdf(q)
+      .catch((err) => avisar.error('No se pudo abrir el PDF', mensajeDe(err)))
+      .finally(() => setAbriendo(false));
+  };
   return (
     <BarraFlotante reserva={reserva}>
       {sinSenal ? (
@@ -129,7 +137,7 @@ export function AccionesCerrado({ q, recargar, reserva, conCompartir }: { q: Pre
         <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM>
       ) : null}
       <View style={e.fila}>
-        {q.public_url ? <BotonM titulo="Ver PDF" icono="documento" variante="secundario" onPress={() => verPdf(q.public_url!)} disabled={sinSenal} style={e.mitad} accessibilityLabel="Ver el PDF como lo recibe el cliente" /> : null}
+        {q.public_url ? <BotonM titulo="Ver PDF" icono="documento" variante="secundario" onPress={verPdf} cargando={abriendo} disabled={sinSenal || abriendo} style={e.mitad} accessibilityLabel="Ver el PDF como lo recibe el cliente" /> : null}
         {segundo === 'compartir' ? (
           <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} disabled={sinSenal || !q.public_url} style={e.mayor} />
         ) : segundo === 'llamar' ? (
