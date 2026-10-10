@@ -221,6 +221,8 @@ Entra con el QR de recuperación que llegó al correo, sin teléfono ni correo.
 | `PUT /me/signature` | Igual que el logo. |
 | `GET /me/signature` | Igual que el logo. |
 | `DELETE /me/signature` | **204** |
+| `PUT /me/push-token` | `{ "token": "ExponentPushToken[…]" }` → **204**. Guarda el token push de este teléfono para el aviso de aceptación (Arquitectura §5). Si el token era de otra cuenta, pasa a esta. Token con otro formato ⇒ 422. |
+| `DELETE /me/push-token` | `{ "token": "…" }` → **204**. Al cerrar sesión: este teléfono deja de recibir los avisos de la cuenta. |
 
 **Firma en el PDF (decisión del 2026-10-04).** El PDF siempre cierra con un bloque de firma: una **línea** y, debajo, **«Firma:» seguido del nombre o negocio** configurado (`name`) y, en otra línea, el **teléfono y el correo de contacto** (así también sirve para firmar a mano). La **imagen de la firma** se imprime sobre la línea cuando el usuario activa `include_signature` en su perfil (el interruptor está junto a la foto de la firma, en «Configurar»). Es una opción **del perfil, no de cada presupuesto**: o va en todos o en ninguno, porque una firma que unas veces está y otras no le resta seriedad al documento.
 
@@ -479,7 +481,8 @@ El cliente acepta el presupuesto desde su enlace. **Para el cliente, el botón �
 
 - **200** — la vista de arriba con `accepted_on` y `confirmation_sent` (si se le envió la confirmación al cliente). Efectos, en una transacción: `commercial_status = ACCEPTED`, `accepted_at = now()`, `next_contact_date = NULL` y un `FollowUp` con la nota «Aceptado por el cliente desde el enlace». Queda en la auditoría (`QUOTE_ACCEPTED_BY_CUSTOMER`) y avisa el cambio en vivo (la app y la web se actualizan solas).
 - Después, fuera de la transacción: un correo al cliente (si tiene correo) y otro al profesional, cada uno con el PDF timbrado «ACEPTADO». El correo de la propuesta y el de aceptación al cliente llevan arriba el logo del profesional (si lo tiene), incrustado en el correo. Si un correo falla, la aceptación ya quedó: se registra el error y no se devuelve 502.
-- Ya aceptado ⇒ **200** sin repetir nada (idempotente; no vuelve a enviar correos).
+- Además, una notificación push a los teléfonos del profesional («Presupuesto aceptado · {cliente} aceptó el presupuesto {número} ({total}).», con `data: { tipo: 'aceptado', quoteId }`). Si falla, la aceptación ya quedó.
+- Ya aceptado ⇒ **200** sin repetir nada (idempotente; no vuelve a enviar correos ni avisos).
 - Rechazado, con una versión más nueva o vencido ⇒ **409** `INVALID_STATE`, con un mensaje que invita a comunicarse con el profesional.
 - Mismo límite por IP que el resto de `/public`.
 

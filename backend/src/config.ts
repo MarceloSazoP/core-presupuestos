@@ -34,6 +34,7 @@ const schema = z
 
     // Correo por Resend (opcional: con SMTP completo no hace falta).
     RESEND_API_KEY: z.string().optional(),
+    EXPO_ACCESS_TOKEN: z.string().optional(), // solo si se activa la seguridad de push en EAS (Arquitectura §5)
     EMAIL_FROM: z.string().optional(),
     // SMTP para correo (p. ej. Gmail con contraseña de aplicación)
     SMTP_HOST: z.string().optional(),

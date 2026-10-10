@@ -115,6 +115,31 @@ describe('API: el cliente acepta el presupuesto desde el enlace', () => {
     assert.ok(!profesional.logo && !profesional.html!.includes('cid:logo'));
   });
 
+  it('token push: se guarda, pasa a otra cuenta en el mismo teléfono y se borra; aceptar avisa solo al dueño', async () => {
+    const TOKEN = 'ExponentPushToken[abc123]';
+    assert.equal((await app.api('PUT', '/me/push-token', { token: a.token, body: { token: 'cualquier-cosa' } })).status, 422);
+    assert.equal((await app.api('PUT', '/me/push-token', { token: a.token, body: { token: TOKEN } })).status, 204);
+    const dueno = async () => (await pool.query('SELECT user_id FROM push_tokens WHERE token = $1', [TOKEN])).rows[0]?.user_id as string | undefined;
+    assert.equal(await dueno(), a.user.id);
+
+    const q = await enviado();
+    await aceptar(q.token);
+    assert.equal(app.pushes.length, 1);
+    assert.equal(app.pushes[0]!.userId, a.user.id);
+    assert.deepEqual(app.pushes[0]!.aviso.data, { tipo: 'aceptado', quoteId: q.id });
+    assert.match(app.pushes[0]!.aviso.body, /^Juan aceptó el presupuesto CP-\d{4}-\d{4} \(\$100\.000\)\.$/);
+    await aceptar(q.token);
+    assert.equal(app.pushes.length, 1, 'aceptar de nuevo no vuelve a avisar');
+
+    const b = await app.login('+56922222222', 'b@test.cl', 'Beto');
+    await app.api('PUT', '/me/push-token', { token: b.token, body: { token: TOKEN } });
+    assert.equal(await dueno(), b.user.id, 'en el mismo teléfono entró otra cuenta: el aviso es para ella');
+    assert.equal((await app.api('DELETE', '/me/push-token', { token: a.token, body: { token: TOKEN } })).status, 204);
+    assert.equal(await dueno(), b.user.id, 'una cuenta no borra el token de otra');
+    await app.api('DELETE', '/me/push-token', { token: b.token, body: { token: TOKEN } });
+    assert.equal(await dueno(), undefined);
+  });
+
   it('si el correo falla, la aceptación queda igual', async () => {
     const q = await enviado();
     app.mailState.fail = true;

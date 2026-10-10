@@ -204,10 +204,10 @@ Se entrega un `.env.example` sin valores reales.
 | Archivos | `expo-file-system` | Medios en `Paths.document` (persistente, no lo limpia el sistema). |
 | Sesión | `expo-secure-store` | Solo el token (cabe holgado bajo ~2 KB). |
 | Conectividad | `expo-network` | Solo como señal para disparar la sincronización. |
-| Recordatorios | `expo-notifications` | Notificaciones **locales** por fecha. |
+| Recordatorios y avisos | `expo-notifications` | Notificaciones **locales** por fecha (recordatorios) y **push** del aviso «tu cliente aceptó» (ver «Aviso de aceptación»). |
 | Compartir | `expo-sharing` y `Linking` | PDF y WhatsApp. |
 
-La documentación del SDK 57 indica soporte en Expo Go para `expo-sqlite`, `expo-camera`, `expo-image-picker`, `expo-image-manipulator`, `expo-secure-store` y las notificaciones **locales**. No lo verifiqué para `expo-audio`, `expo-file-system`, `expo-location`, `expo-network` ni `expo-sharing`: si alguno exige compilación nativa, se usa `eas build --profile development`. Las notificaciones **push** remotas no se usan.
+La documentación del SDK 57 indica soporte en Expo Go para `expo-sqlite`, `expo-camera`, `expo-image-picker`, `expo-image-manipulator`, `expo-secure-store` y las notificaciones **locales**. No lo verifiqué para `expo-audio`, `expo-file-system`, `expo-location`, `expo-network` ni `expo-sharing`: si alguno exige compilación nativa, se usa `eas build --profile development`. Las notificaciones **push** remotas se usan solo para el aviso de aceptación (decisión del 2026-10-10) y **no funcionan en Expo Go en Android** desde el SDK 53: se prueban con un build propio (APK `preview` o `development`).
 
 ### Reglas de interfaz (de `vercel-react-native-skills` y `animate-expo`)
 
@@ -284,6 +284,16 @@ El usuario pidió reutilizar clientes y traerlos desde la agenda del teléfono. 
 ### Recordatorios locales (implementado)
 
 Una notificación local por presupuesto con `next_contact_date`, a las 09:00 de ese día en la hora del teléfono. Se simplifica el diseño de arriba: **no hay tabla `reminders`**; el `identifier` de la notificación es `contacto-<quote_id>`, así que programar de nuevo reemplaza la anterior y cancelar no necesita un mapa. La lógica de decidir qué programar y qué cancelar es una función pura con pruebas (`mobile/src/lib/recordatorios.ts`). El permiso de notificaciones se pide la primera vez que se programa una fecha, no al abrir la app. Tocar el aviso abre el presupuesto.
+
+### Aviso de aceptación (push, decisión del 2026-10-10)
+
+Cuando el cliente acepta desde su correo (Contrato API §10), el profesional se entera **aunque la app esté cerrada**:
+
+- **Registro:** la app pide el token push de Expo (`getExpoPushTokenAsync` con el `projectId` de EAS) y lo guarda con `PUT /me/push-token`. El permiso se pide la primera vez que envía un presupuesto (es cuando el aviso tiene sentido); al abrir la app solo se renueva si el permiso ya está dado. Al cerrar sesión, `DELETE /me/push-token`. En Android el aviso usa el canal `default`, que la app crea antes de registrarse (sin canal, Android no lo muestra).
+- **Envío:** al aceptar, la API hace un `POST` a `https://exp.host/--/api/v2/push/send` (sin SDK) con `{ tipo: 'aceptado', quoteId }` en `data`. Un token que Expo informa como `DeviceNotRegistered` se borra. `EXPO_ACCESS_TOKEN` es opcional (solo si se activa la seguridad de push en EAS). Un fallo no afecta la aceptación.
+- **En la app:** con la app abierta, el aviso dispara la relectura de la lista y del presupuesto abierto (`lib/eventos.ts`); si se estaba mirando la pestaña donde estaba el presupuesto, la lista pasa a «Aceptados». Tocar el aviso abre el presupuesto y queda en la bandeja de Avisos, como los recordatorios.
+- **Sin push en el teléfono** (Expo Go en Android, sin permiso o sin red): la lista detecta el cambio al refrescarse (cada 8 s con la pantalla a la vista) y la app muestra una notificación local con el mismo texto. Con la app cerrada, en ese caso, se entera al abrirla.
+- **Credenciales (las configura el dueño de la cuenta de EAS):** Android necesita un proyecto de Firebase (FCM V1): el `google-services.json` en la app y la clave de servicio subida a EAS (`eas credentials`). iPhone necesita la clave de APNs, que EAS crea al compilar con una cuenta de Apple Developer.
 
 ### Envío y seguimiento
 

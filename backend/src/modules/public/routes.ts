@@ -5,6 +5,8 @@ import { AppError, notFound } from '../../errors';
 import { audit } from '../../lib/audit';
 import { correosAceptado } from '../../lib/correo-presupuesto';
 import type { SendMail } from '../../lib/mail';
+import type { EnviarPush } from '../../lib/push';
+import { formatoMonto } from '../../lib/paises';
 import type { Snapshot } from '../../lib/snapshot';
 import { send } from '../../lib/storage';
 import { pdfDelPresupuesto, readImage } from '../quotes/emission';
@@ -63,7 +65,7 @@ const view = (d: Doc) => {
   };
 };
 
-export function publicRoutes(sendMail: SendMail, ipLimit = 60) {
+export function publicRoutes(sendMail: SendMail, enviarPush: EnviarPush, ipLimit = 60) {
   const r = Router();
   const headers: RequestHandler = (_req, res, next) => {
     res.set({ 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' });
@@ -108,9 +110,13 @@ export function publicRoutes(sendMail: SendMail, ipLimit = 60) {
     // El del cliente lleva el logo arriba (si lo hay); el aviso al profesional, no.
     const enviar = (to: string, m: { subject: string; text: string; html: string }, conLogo = false) =>
       sendMail({ to, ...m, attachment: adjunto, ...(conLogo && logo && { logo }) }).then(() => true, (e: unknown) => (console.error('Correo de aceptación:', e), false));
+    // El aviso push al profesional: le llega aunque tenga la app cerrada (Arquitectura §5). Se espera aquí: en Vercel la función se
+    // congela al responder.
+    const s = ahora.snapshot;
     const [confirmation_sent] = await Promise.all([
       ahora.customer_email ? enviar(ahora.customer_email, correos.cliente, true) : false,
-      enviar(ahora.snapshot.professional.email, correos.profesional),
+      enviar(s.professional.email, correos.profesional),
+      enviarPush(d.user_id, { title: 'Presupuesto aceptado', body: `${s.customer.name} aceptó el presupuesto ${s.number} (${formatoMonto(s.total, s.currency ?? 'CLP')}).`, data: { tipo: 'aceptado', quoteId: d.quote_id } }),
     ]);
     res.json({ ...view(ahora), confirmation_sent });
   });

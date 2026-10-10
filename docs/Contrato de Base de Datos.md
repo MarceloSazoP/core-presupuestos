@@ -828,3 +828,24 @@ ALTER TABLE quotes ALTER COLUMN vat_rate TYPE numeric(5,2);
 - El backend ya convierte `numeric` a número (`db.ts`), así que la API sigue entregando `vat_rate` como número (`11.5`).
 - El impuesto sigue siendo un entero: `round(neto × tasa / 100)` con `.5` hacia arriba, calculado en centésimas de la tasa para no depender de flotantes.
 - **Prueba que acompaña:** un presupuesto de Puerto Rico guarda 11,5 y su impuesto sobre 100.000 es 11.500.
+
+---
+
+## 25. Migración `0020` (tokens de notificación push, decisión del 2026-10-10)
+
+Para avisarle al profesional que su cliente aceptó, aunque la app esté cerrada (`Arquitectura técnica.md` §5, «Aviso de aceptación»).
+
+```sql
+CREATE TABLE push_tokens (
+  token      text PRIMARY KEY,                -- el token de Expo de un teléfono (ExponentPushToken[…])
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX push_tokens_user_idx ON push_tokens (user_id);
+ALTER TABLE push_tokens ENABLE ROW LEVEL SECURITY;
+```
+
+- Un token es de **un teléfono**: si en ese teléfono entra otra cuenta, el token pasa a ella (`ON CONFLICT (token) DO UPDATE`). Una cuenta puede tener varios teléfonos.
+- Se borra al cerrar sesión, cuando Expo informa `DeviceNotRegistered` y, con la cuenta, en cascada.
+- **Prueba que acompaña:** guardar, mover y borrar un token; aceptar un presupuesto avisa a los teléfonos de su dueño y a nadie más.
+

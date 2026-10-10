@@ -58,6 +58,21 @@ export const meRoutes = (sendMail?: SendMail, sendCode?: SendCode) => {
     res.json(await profile(uid(req)));
   });
 
+  // Token push de este teléfono, para el aviso «tu cliente aceptó» (Contrato API §4). Si era de otra cuenta, pasa a esta.
+  const PushToken = z.strictObject({ token: z.string().trim().max(200).regex(/^Expo(nent)?PushToken\[[^\]]+\]$/, 'Token push no válido') });
+  r.put('/push-token', async (req, res) => {
+    const { token } = parse(PushToken, req.body);
+    await query(
+      `INSERT INTO push_tokens (token, user_id) VALUES ($1, $2)
+       ON CONFLICT (token) DO UPDATE SET user_id = EXCLUDED.user_id, updated_at = now()`, [token, uid(req)]);
+    res.status(204).end();
+  });
+  r.delete('/push-token', async (req, res) => {
+    const { token } = parse(PushToken, req.body);
+    await query('DELETE FROM push_tokens WHERE token = $1 AND user_id = $2', [token, uid(req)]);
+    res.status(204).end();
+  });
+
   // Nombre y datos de contacto que salen en los presupuestos. El teléfono y el correo de la CUENTA no se cambian en el MVP
   // (Contrato API §4); `.strict()` rechaza cualquier otro campo. Lo no enviado se conserva y `null` borra el contacto propio.
   r.put('/', async (req, res) => {

@@ -8,6 +8,7 @@ import { AppError } from '../src/errors';
 import { cerrarAvisos } from '../src/lib/events';
 import type { Channel } from '../src/lib/deliver';
 import type { Correo } from '../src/lib/mail';
+import type { AvisoPush } from '../src/lib/push';
 
 export type Sent = { channel: Channel; destination: string; code: string };
 
@@ -26,6 +27,7 @@ export async function resetDb() {
 export async function startApp(opts: { places?: import('../src/lib/places').Lugares; ipStartLimit?: number; ipExchangeLimit?: number; mailLimit?: number; publicLimit?: number; corsOrigins?: string[] } = {}) {
   const sent: Sent[] = [];
   const mails: Correo[] = [];
+  const pushes: { userId: string; aviso: AvisoPush }[] = [];
   const mailState = { fail: false };
   const server: Server = afinarServidor(createApp({
     sendCode: async (channel, destination, code) => void sent.push({ channel, destination, code }),
@@ -33,6 +35,7 @@ export async function startApp(opts: { places?: import('../src/lib/places').Luga
       if (mailState.fail) throw new AppError(502, 'DELIVERY_FAILED', 'No se pudo enviar el correo.');
       mails.push(m);
     },
+    enviarPush: async (userId, aviso) => void pushes.push({ userId, aviso }),
     ...opts,
   }).listen(0));
   await new Promise((r) => server.once('listening', r));
@@ -68,7 +71,7 @@ export async function startApp(opts: { places?: import('../src/lib/places').Luga
     return { token: v.json.token as string, user: v.json.user as { id: string } };
   }
 
-  return { base, api, upload, sent, mails, mailState, login, close: async () => {
+  return { base, api, upload, sent, mails, pushes, mailState, login, close: async () => {
     server.closeAllConnections(); // los avisos en vivo dejan conexiones abiertas
     await cerrarAvisos();
     await new Promise<void>((r) => server.close(() => r()));
