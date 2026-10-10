@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
-import { Modal, Platform, ScrollView, StyleSheet, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Button, Card, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { Icono, TECLADO_ID, type NombreIcono } from '@/components/ui';
 import { espacio, MIN_TOQUE, radio, useTema, type Color } from '@/theme';
 import { bordeElevado } from '@/theme-paper';
@@ -182,30 +185,93 @@ export function CampoM({ etiqueta, error, ayuda, izquierda, fondo, style, ...pro
 type AccionHoja = { titulo: string; onPress: () => void; fuerte?: boolean; disabled?: boolean };
 
 // Hoja de edición de Material (en iPhone se abre como hoja y se puede bajar; en Android ocupa la pantalla y «atrás» la cierra): la barra
-// de arriba con «Cancelar» a la izquierda, el título y la acción que confirma a la derecha, como el diálogo de pantalla completa de
-// Material; debajo, el contenido con su desplazamiento y el teclado.
+// de arriba con «‹ Atrás» (o «‹ Cancelar») a la izquierda, el título y la acción que confirma a la derecha, como el diálogo de pantalla
+// completa de Material; debajo, el contenido con su desplazamiento y el teclado. Deslizar hacia la derecha hace lo mismo que «Atrás».
 export function HojaM({ titulo, cancelar, listo, alCerrar, children }: { titulo: string; cancelar?: AccionHoja; listo?: AccionHoja; alCerrar: () => void; children: ReactNode }) {
   const t = useTema();
+  const volver = cancelar?.onPress ?? alCerrar;
   const accion = (a: AccionHoja) => (
     <Button mode="text" onPress={a.onPress} disabled={a.disabled} textColor={t.acento} accessibilityLabel={a.titulo} style={e.boton} contentStyle={e.contenidoBoton} labelStyle={[e.textoAccion, a.fuerte ? e.accionFuerte : null]}>
       {a.titulo}
     </Button>
   );
   return (
-    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
-      <View style={[e.flex, { backgroundColor: t.fondo }]}>
-        {/* En la hoja de iOS, la barrita avisa que se puede deslizar hacia abajo. */}
-        {Platform.OS === 'ios' ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarre, { backgroundColor: t.suave }]} /> : null}
-        <View style={e.barraHoja}>
-          <View style={e.ladoHoja}>{cancelar ? accion(cancelar) : null}</View>
-          <Text variant="titleLarge" accessibilityRole="header" numberOfLines={1} style={e.tituloHoja}>{titulo}</Text>
-          <View style={[e.ladoHoja, e.derechaHoja]}>{listo ? accion(listo) : null}</View>
+    <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={volver}>
+      <DeslizarParaVolver alVolver={volver}>
+        <View style={[e.flex, { backgroundColor: t.fondo }]}>
+          {/* En la hoja de iOS, la barrita avisa que se puede deslizar hacia abajo. */}
+          {Platform.OS === 'ios' ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[e.agarre, { backgroundColor: t.suave }]} /> : null}
+          <View style={e.barraHoja}>
+            <View style={e.ladoHoja}>
+              <BotonVolver titulo={cancelar?.titulo ?? 'Atrás'} onPress={volver} disabled={cancelar?.disabled} />
+            </View>
+            <Text variant="titleLarge" accessibilityRole="header" numberOfLines={1} style={e.tituloHoja}>{titulo}</Text>
+            <View style={[e.ladoHoja, e.derechaHoja]}>{listo ? accion(listo) : null}</View>
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenidoHoja}>
+            {children}
+          </ScrollView>
         </View>
-        <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive" automaticallyAdjustKeyboardInsets contentContainerStyle={e.contenidoHoja}>
-          {children}
-        </ScrollView>
-      </View>
+      </DeslizarParaVolver>
     </Modal>
+  );
+}
+
+// «‹ Atrás» de las hojas: el ícono de volver de cada sistema y la palabra, en el color de acción. `titulo`: «Cancelar» donde la hoja
+// descarta lo escrito.
+export function BotonVolver({ titulo = 'Atrás', onPress, disabled }: { titulo?: string; onPress: () => void; disabled?: boolean }) {
+  const t = useTema();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={titulo} onPress={onPress} disabled={disabled} hitSlop={8} style={({ pressed }) => [e.volver, { opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }]}>
+      <Icono nombre="atras" tamano={22} color={t.acento} />
+      <Text style={[e.textoVolver, { color: t.acento }]}>{titulo}</Text>
+    </Pressable>
+  );
+}
+
+// Deslizar hacia la derecha para volver, como «atrás» (receta de la hoja que se arrastra de animate-expo, de lado): la hoja sigue al
+// dedo; al soltar decide la velocidad proyectada (un gesto rápido y corto basta) y esa velocidad pasa al resorte, sin salto. Solo hacia la
+// derecha y con intención: el desplazamiento vertical y los gestos hacia la izquierda no lo activan. `soloBorde`: empieza solo desde el
+// borde izquierdo (donde el contenido usa el arrastre, como un mapa).
+const BORDE = 32;
+function proyectar(velocidad: number) {
+  'worklet';
+  return ((velocidad / 1000) * 0.998) / (1 - 0.998); // dónde se detendría el dedo si siguiera frenando
+}
+export function DeslizarParaVolver({ alVolver, soloBorde, children }: { alVolver: () => void; soloBorde?: boolean; children: ReactNode }) {
+  const t = useTema();
+  const { width } = useWindowDimensions();
+  const x = useSharedValue(0);
+  const inicio = useSharedValue(0);
+  const base = Gesture.Pan()
+    .activeOffsetX(24)
+    .failOffsetX(-24)
+    .failOffsetY([-14, 14])
+    .onStart(() => {
+      inicio.set(x.get()); // si se toma a mitad de camino, sigue desde donde se ve
+    })
+    .onUpdate((ev) => {
+      x.set(Math.max(0, inicio.get() + ev.translationX));
+    })
+    .onEnd((ev) => {
+      if (x.get() + proyectar(ev.velocityX) > width * 0.4) {
+        // Se cierra ya, mientras el contenido sale: esperar a que termine de salir dejaba la hoja vacía a la vista un momento.
+        x.set(withSpring(width, { duration: 300, dampingRatio: 1, velocity: ev.velocityX, overshootClamping: true, reduceMotion: ReduceMotion.System }));
+        scheduleOnRN(alVolver);
+      } else {
+        x.set(withSpring(0, { duration: 300, dampingRatio: 0.8, velocity: ev.velocityX, reduceMotion: ReduceMotion.System }));
+      }
+    });
+  const gesto = soloBorde ? base.hitSlop({ left: 0, width: BORDE }) : base;
+  const estilo = useAnimatedStyle(() => ({ transform: [{ translateX: x.get() }] }));
+  return (
+    // Dentro de un Modal, Gesture Handler necesita su propia raíz (en Android el Modal es otra ventana).
+    // Lo que queda a la vista al correrse el contenido es del color de la página (no el blanco del modal).
+    <GestureHandlerRootView style={[e.flex, { backgroundColor: t.fondo }]}>
+      <GestureDetector gesture={gesto}>
+        <Animated.View style={[e.flex, estilo]}>{children}</Animated.View>
+      </GestureDetector>
+    </GestureHandlerRootView>
   );
 }
 
@@ -242,5 +308,7 @@ const e = StyleSheet.create({
   tituloHoja: { flexShrink: 1, textAlign: 'center' },
   textoAccion: { fontSize: 16, lineHeight: 20, marginHorizontal: 12 },
   accionFuerte: { fontWeight: '700' },
+  volver: { minHeight: MIN_TOQUE, flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: espacio.s },
+  textoVolver: { fontSize: 16, lineHeight: 20 },
   contenidoHoja: { padding: espacio.l, paddingBottom: espacio.xxl, gap: espacio.xl },
 });

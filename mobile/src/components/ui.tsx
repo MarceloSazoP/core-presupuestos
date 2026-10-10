@@ -64,6 +64,7 @@ const ICONOS = {
   ojo: { ios: 'eye', android: 'visibility', web: 'visibility' },
   ojoCerrado: { ios: 'eye.slash', android: 'visibility_off', web: 'visibility_off' },
   flechaIzq: { ios: 'arrow.left', android: 'arrow_back', web: 'arrow_back' },
+  atras: { ios: 'chevron.left', android: 'arrow_back', web: 'arrow_back' }, // el «atrás» de cada sistema
   flecha: { ios: 'arrow.right', android: 'arrow_forward', web: 'arrow_forward' },
   papelera: { ios: 'trash', android: 'delete', web: 'delete' },
   buscar: { ios: 'magnifyingglass', android: 'search', web: 'search' },

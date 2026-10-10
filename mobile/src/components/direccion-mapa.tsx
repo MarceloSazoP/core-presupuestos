@@ -5,7 +5,7 @@ import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View } fr
 import MapView, { Marker } from 'react-native-maps';
 import { IconButton, Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { api } from '@/api/client';
-import { CampoM } from '@/components/material';
+import { BotonVolver, CampoM, DeslizarParaVolver } from '@/components/material';
 import { Boton, Campo, Icono, Texto } from '@/components/ui';
 import { formatearDireccion, puntoDe, redondear, sesionNueva, type Punto } from '@/lib/direccion';
 import { avisar } from '@/lib/toast';
@@ -210,11 +210,13 @@ export function HojaDireccion({ inicial, puntoInicial, alListo, alCerrar }: { in
 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
+      {/* Deslizar para volver solo desde el borde izquierdo: en el resto, el dedo mueve el mapa. */}
+      <DeslizarParaVolver alVolver={alCerrar} soloBorde>
       <View style={[e.hoja, { backgroundColor: t.fondo }]}>
         <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={alCerrar} hitSlop={8} style={e.lado}>
-            <Texto color="acento">Cancelar</Texto>
-          </Pressable>
+          <View style={e.lado}>
+            <BotonVolver titulo="Cancelar" onPress={alCerrar} />
+          </View>
           <Texto fuerte accessibilityRole="header">Dirección</Texto>
           <View style={e.lado} />
         </View>
@@ -259,6 +261,7 @@ export function HojaDireccion({ inicial, puntoInicial, alListo, alCerrar }: { in
           <Boton titulo="Listo" icono="listo" onPress={() => alListo({ direccion: texto.trim(), latitude: punto?.latitude ?? null, longitude: punto?.longitude ?? null })} />
         </ScrollView>
       </View>
+      </DeslizarParaVolver>
     </Modal>
   );
 }

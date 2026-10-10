@@ -3,7 +3,7 @@ import { ElegirUnidad } from '@/components/elegir-unidad';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { BarraListo } from '@/components/barra-listo';
 import { Chip } from 'react-native-paper';
-import { BotonM, TextoM } from '@/components/material';
+import { BotonM, BotonVolver, DeslizarParaVolver, TextoM } from '@/components/material';
 import { Campo, Icono } from '@/components/ui';
 import { dinero, montoEscrito, soloDigitos } from '@/lib/formato';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
@@ -66,11 +66,12 @@ export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }
   const total = tarea ? (f.unit_price ? dinero(entero(f.unit_price), moneda) : 'Incluido') : dinero(valorDe(f), moneda);
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={alCerrar}>
+      <DeslizarParaVolver alVolver={alCerrar}>
       <View style={[e.hoja, { backgroundColor: t.fondo }]}>
         <View style={e.barra}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar" onPress={alCerrar} hitSlop={8} style={e.lado}>
-            <TextoM color="acento">Cancelar</TextoM>
-          </Pressable>
+          <View style={e.lado}>
+            <BotonVolver titulo="Cancelar" onPress={alCerrar} />
+          </View>
           <TextoM fuerte accessibilityRole="header">{nueva ? (tarea ? 'Nueva tarea' : 'Nuevo ítem') : tarea ? 'Tarea' : 'Ítem'}</TextoM>
           <Pressable accessibilityRole="button" accessibilityLabel={nueva ? 'Agregar' : 'Guardar'} onPress={guardar} hitSlop={8} style={[e.lado, e.derecha]}>
             <TextoM color="acento" fuerte>{nueva ? 'Agregar' : 'Guardar'}</TextoM>
@@ -120,6 +121,7 @@ export function ModalItem({ fila, nueva, moneda, alGuardar, alQuitar, alCerrar }
         </ScrollView>
       </View>
       <BarraListo />
+      </DeslizarParaVolver>
     </Modal>
   );
 }
