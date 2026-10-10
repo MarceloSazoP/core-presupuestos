@@ -54,6 +54,9 @@ export type Presupuesto = {
   next_contact_date: string | null;
   observations: string | null;
   public_url: string | null;
+  finalized_at?: string | null; // ISO: cuándo se terminó, se envió y se aceptó (los trae el servidor)
+  sent_at?: string | null;
+  accepted_at?: string | null;
 };
 
 export type PresupuestoCreado = Presupuesto & { access_code?: string };

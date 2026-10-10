@@ -16,7 +16,7 @@ import type { Presupuesto } from '@/api/types';
 import { entero, ModalItem, numero, valorDe, type Fila } from '@/components/modal-item';
 import { useDialogo } from '@/components/dialogo';
 import { FilaVisita, GrupoVisita } from '@/components/fila-visita';
-import { BotonM, PastillaM, TarjetaM, TextoM } from '@/components/material';
+import { BotonM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
 import { AvisoSinSenal } from '@/components/sincronizacion';
@@ -265,15 +265,14 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   );
 }
 
-// Presupuesto terminado: enviarlo. El PDF y el enlace público los generó el servidor al terminar.
-export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
+// Enviar un presupuesto terminado: compartir (hoja del sistema), WhatsApp o correo; cada uno lo marca como enviado. Lo usan la tarjeta de
+// envío y la barra de abajo del presupuesto terminado. El PDF y el enlace público los generó el servidor al terminar.
+export function useEnvio(q: Presupuesto, recargar: () => Promise<void>) {
   const { dialogo, decidir } = useDialogo();
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
-  const enviado = q.commercial_status !== 'NONE';
-  const sinSenal = useSinSenal();
 
-  async function avisar(ruta: string, body: unknown = {}) {
+  async function marcar(ruta: string, body: unknown = {}) {
     try {
       await asegurarSincronizado(q.id);
       await api(`/quotes/${q.id}/${ruta}`, { method: 'POST', body });
@@ -291,7 +290,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
 
   async function compartir() {
     const r = await Share.share({ message: mensaje });
-    if (r.action === Share.sharedAction) await avisar('mark-sent', { channel: 'SHARE' });
+    if (r.action === Share.sharedAction) await marcar('mark-sent', { channel: 'SHARE' });
   }
 
   async function whatsapp() {
@@ -301,18 +300,25 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
     } catch {
       return setError('No se pudo abrir WhatsApp.');
     }
-    confirmar('¿Enviaste el mensaje?', 'Sí, enviado', () => void avisar('mark-sent', { channel: 'WHATSAPP' }));
+    confirmar('¿Enviaste el mensaje?', 'Sí, enviado', () => void marcar('mark-sent', { channel: 'WHATSAPP' }));
   }
 
   const correo = () =>
     confirmar(`¿Enviar a ${q.customer.email}?`, 'Enviar', () => {
       setOcupado(true);
-      void avisar('send-email').finally(() => setOcupado(false));
+      void marcar('send-email').finally(() => setOcupado(false));
     });
+
+  return { compartir, whatsapp, correo, error, ocupado, dialogo };
+}
+
+// Presupuesto terminado: la tarjeta para enviarlo. En qué estado va (enviado o no) lo dice el resumen de arriba.
+export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
+  const { compartir, whatsapp, correo, error, ocupado, dialogo } = useEnvio(q, recargar);
+  const sinSenal = useSinSenal();
 
   return (
     <TarjetaM>
-      <PastillaM texto={enviado ? 'Enviado al cliente' : 'Listo para enviar'} tono={enviado ? 'ok' : 'aviso'} />
       <TextoM variante="subtitulo" accessibilityRole="header">Enviar al cliente</TextoM>
       <TextoM suave>Tu cliente recibe el PDF y un enlace de solo lectura. No puede editar nada.</TextoM>
       {q.public_url ? <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} disabled={sinSenal} /> : null}

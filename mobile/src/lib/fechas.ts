@@ -6,6 +6,12 @@ export const enDias = (dias: number, desde = new Date()) => {
   return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
 };
 
+// Hasta cuándo vale un presupuesto: el día en que se terminó (en el teléfono) más su validez; `vencido` si ese día ya pasó.
+export function vencimiento(terminadoIso: string, dias: number, hoy = new Date()) {
+  const fecha = enDias(dias, new Date(terminadoIso));
+  return { fecha, vencido: fecha < enDias(0, hoy) };
+}
+
 // El día que eligió la persona en el calendario (en la hora local del teléfono), como 'YYYY-MM-DD'.
 export const aFechaLocal = (d: Date) => `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
 

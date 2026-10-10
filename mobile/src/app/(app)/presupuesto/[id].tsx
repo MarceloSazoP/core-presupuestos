@@ -20,6 +20,7 @@ import { Seguimiento } from '@/components/seguimiento';
 import { Levantamiento } from '@/components/levantamiento';
 import { NuevaVersion } from '@/components/nueva-version';
 import { PartesDeslizables } from '@/components/partes-deslizables';
+import { AccionesCerrado, ResumenCerrado, VisitaLectura } from '@/components/resumen-cerrado';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { BotonM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
@@ -168,6 +169,9 @@ export default function Detalle() {
       {/* En qué va (pendiente o su número, y la versión) está en el título de la barra; aquí solo, si es una versión nueva, a cuál reemplaza. */}
       {q.previous_number ? <TextoM variante="chico" suave>Reemplaza al presupuesto {q.previous_number}</TextoM> : null}
 
+      {/* Terminado: en qué va y cuánto es, a la vista en todas sus pestañas. */}
+      {cerrado ? <ResumenCerrado q={q} /> : null}
+
       <PestanasParte partes={partes} valor={actualId} alElegir={setParte} />
 
       <PartesDeslizables posicion={posicion} total={partes.length} alIr={ir}>
@@ -223,6 +227,7 @@ export default function Detalle() {
                 </View>
               </TarjetaM>
             ) : null}
+            <VisitaLectura q={q} />
           </View>
         </>
       ) : (
@@ -237,6 +242,8 @@ export default function Detalle() {
         </>
       )}
       </PartesDeslizables>
+      {/* Terminado: «Ver PDF» y la acción que toca ahora, flotando al pie (como «Guardar» y «Terminar» en uno pendiente). */}
+      {cerrado ? <AccionesCerrado q={q} recargar={recargar} reserva={RESERVA} conCompartir={actualId !== 'enviar'} /> : null}
       {dialogo}
     </ScrollConBarra>
   );

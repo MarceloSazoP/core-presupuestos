@@ -41,7 +41,7 @@ export function SeccionM({ titulo, icono, descripcion, accion, children, style }
 }
 
 // Etiqueta tonal de Material (como un chip de solo lectura): el punto y el texto en su color, sobre su tono suave.
-export function PastillaM({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'acento' | 'seguimiento' | 'error' }) {
+export function PastillaM({ texto, tono }: { texto: string; tono: 'aviso' | 'ok' | 'suave' | 'acento' | 'seguimiento' | 'error' | 'info' }) {
   const t = useTema();
   const color = t[tono];
   return (
