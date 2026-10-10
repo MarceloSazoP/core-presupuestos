@@ -7,7 +7,7 @@ import { montoDeDescuento, porcentajeDe } from '@/lib/descuento';
 import { avisar } from '@/lib/toast';
 import { simboloUnidad } from '@/lib/unidades';
 import { router } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Linking, Share, StyleSheet, View } from 'react-native';
 import { Button, Divider, Switch, Text, TouchableRipple } from 'react-native-paper';
@@ -19,7 +19,12 @@ import { FilaVisita, GrupoVisita } from '@/components/fila-visita';
 import { BotonM, PastillaM, TarjetaM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { totalesDe } from '@/lib/totales';
+import { AvisoSinSenal } from '@/components/sincronizacion';
+import { borradorVigente, claveBorradorCierre } from '@/lib/borrador-cierre';
+import { useSinSenal } from '@/lib/conexion';
+import { huellaCierre } from '@/lib/huellas';
 import { asegurarSincronizado } from '@/sync/cola';
+import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, useTema } from '@/theme';
 
 // Etapa 3 del wizard (CLAUDE.md §10): ítems, descuento, garantía y vigencia, y TERMINAR. Requiere conexión: los totales,
@@ -47,6 +52,29 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
   const [obs, setObs] = useState(q.observations ?? '');
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState<'guardar' | 'terminar' | null>(null);
+  const sinSenal = useSinSenal();
+
+  // Lo que se arma aquí queda en el teléfono hasta guardarlo (sin señal, o si la app se cierra): al abrir se recupera si el presupuesto
+  // no cambió en el servidor; no se escribe nada antes de haberlo leído, para no pisar el borrador con lo del servidor.
+  const [base] = useState(() => huellaCierre(q));
+  const borradorLeido = useRef(false);
+  useEffect(() => {
+    void leerKv(claveBorradorCierre(q.id)).then((v) => {
+      const b = borradorVigente<Fila>(v, base);
+      if (b) {
+        setFilas(b.filas);
+        setPct(b.pct);
+        setConIva(b.conIva);
+        setDias(b.dias);
+        setGarantia(b.garantia);
+        setObs(b.obs);
+      }
+      borradorLeido.current = true;
+    });
+  }, [q.id, base]);
+  useEffect(() => {
+    if (borradorLeido.current) void guardarKv(claveBorradorCierre(q.id), JSON.stringify({ base, filas, pct, conIva, dias, garantia, obs }));
+  }, [q.id, base, filas, pct, conIva, dias, garantia, obs]);
 
   const subtotal = filas.reduce((s, f) => s + valorDe(f), 0); // vista previa; manda el servidor
   const agregar = (tipo: Fila['tipo']) => setAbierta({ nueva: true, fila: { clave: `n${++contador.current}`, tipo, description: '', quantity: '1', unit: 'un', unit_price: '' } });
@@ -87,6 +115,7 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
     try {
       await asegurarSincronizado(q.id, que === 'terminar' ? 'todo' : 'creacion'); // terminar exige que fotos y voz ya estén arriba
       await guardar();
+      await guardarKv(claveBorradorCierre(q.id), 'null'); // ya está en el servidor
       if (que === 'terminar') {
         await api(`/quotes/${q.id}/finalize`, { method: 'POST', body: {} });
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -201,10 +230,15 @@ export function Cierre({ q, recargar, alTerminar }: { q: Presupuesto; recargar: 
 
       {/* Las acciones flotan al pie mientras queda formulario por ver y, al llegar al final, se quedan en su sitio sin tapar nada. */}
       <BarraFlotante reserva={RESERVA_BARRA} pista="Condiciones">
-        {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+        {/* Sin señal se puede seguir armando (queda en el teléfono); guardar y terminar esperan a que vuelva la conexión. */}
+        {sinSenal ? (
+          <AvisoSinSenal texto="lo que escribes queda en el teléfono. Para guardar o terminar, necesitas internet." />
+        ) : error ? (
+          <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM>
+        ) : null}
         <View style={e.fila}>
-          <BotonM titulo="Guardar" icono="guardar" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null} style={e.mitad} accessibilityLabel="Guardar y volver" />
-          <BotonM titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null} style={e.mayor} />
+          <BotonM titulo="Guardar" icono="guardar" variante="secundario" onPress={() => void correr('guardar')} cargando={trabajando === 'guardar'} disabled={trabajando !== null || sinSenal} style={e.mitad} accessibilityLabel="Guardar y volver" />
+          <BotonM titulo="Terminar presupuesto" icono="listo" onPress={pedirTerminar} cargando={trabajando === 'terminar'} disabled={trabajando !== null || sinSenal} style={e.mayor} />
         </View>
       </BarraFlotante>
 
@@ -237,6 +271,7 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const enviado = q.commercial_status !== 'NONE';
+  const sinSenal = useSinSenal();
 
   async function avisar(ruta: string, body: unknown = {}) {
     try {
@@ -280,10 +315,14 @@ export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise
       <PastillaM texto={enviado ? 'Enviado al cliente' : 'Listo para enviar'} tono={enviado ? 'ok' : 'aviso'} />
       <TextoM variante="subtitulo" accessibilityRole="header">Enviar al cliente</TextoM>
       <TextoM suave>Tu cliente recibe el PDF y un enlace de solo lectura. No puede editar nada.</TextoM>
-      {q.public_url ? <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} /> : null}
-      <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" onPress={() => void whatsapp()} />
-      {q.customer.email ? <BotonM titulo="Enviar por correo" icono="correo" variante="secundario" onPress={correo} cargando={ocupado} disabled={ocupado} /> : <TextoM variante="chico" suave>El cliente no tiene correo guardado.</TextoM>}
-      {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+      {q.public_url ? <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} disabled={sinSenal} /> : null}
+      <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" onPress={() => void whatsapp()} disabled={sinSenal} />
+      {q.customer.email ? <BotonM titulo="Enviar por correo" icono="correo" variante="secundario" onPress={correo} cargando={ocupado} disabled={ocupado || sinSenal} /> : <TextoM variante="chico" suave>El cliente no tiene correo guardado.</TextoM>}
+      {sinSenal ? (
+        <AvisoSinSenal texto="para enviar el presupuesto, necesitas internet." />
+      ) : error ? (
+        <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM>
+      ) : null}
       {dialogo}
     </TarjetaM>
   );

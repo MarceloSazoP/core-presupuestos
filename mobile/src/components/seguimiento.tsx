@@ -10,6 +10,8 @@ import { Icono } from '@/components/ui';
 import { ESTADOS } from '@/lib/estados';
 import { aFechaLocal, diaCorto, enDias } from '@/lib/fechas';
 import { pedirPermiso, sincronizarRecordatorios } from '@/lib/notificaciones';
+import { AvisoSinSenal } from '@/components/sincronizacion';
+import { useSinSenal } from '@/lib/conexion';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
@@ -29,6 +31,9 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
   const [calendario, setCalendario] = useState(false);
   const [elegida, setElegida] = useState(() => new Date(Date.now() + 86_400_000)); // por defecto, mañana
   const cerrada = q.commercial_status === 'ACCEPTED' || q.commercial_status === 'REJECTED';
+  // Programar, quitar la fecha y guardar notas van al servidor: sin señal quedan desactivados (llamar sí funciona).
+  const sinSenal = useSinSenal();
+  const bloqueado = ocupado || sinSenal;
 
   const cargarHistorial = useCallback(() => api<{ data: Registro[] }>(`/quotes/${q.id}/follow-ups`).then((r) => setHistorial(r.data)).catch(() => {}), [q.id]);
   useEffect(() => void cargarHistorial(), [cargarHistorial]);
@@ -80,31 +85,36 @@ export function Seguimiento({ q, recargar }: { q: Presupuesto; recargar: () => P
             {PLAZOS.map((p) => {
               const elegido = q.next_contact_date === enDias(p.dias);
               return (
-                <Pressable key={p.dias} accessibilityRole="button" accessibilityState={{ selected: elegido }} disabled={ocupado} onPress={() => void programar(enDias(p.dias))} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? `${t.acento}1A` : t.campo, opacity: pressed ? 0.7 : 1 }]}>
+                <Pressable key={p.dias} accessibilityRole="button" accessibilityState={{ selected: elegido }} disabled={bloqueado} onPress={() => void programar(enDias(p.dias))} style={({ pressed }) => [e.chip, { borderColor: elegido ? t.acento : t.bordeCampo, backgroundColor: elegido ? `${t.acento}1A` : t.campo, opacity: pressed ? 0.7 : 1 }]}>
                   <TextoM color={elegido ? 'acento' : 'texto'} fuerte={elegido}>{p.texto}</TextoM>
                 </Pressable>
               );
             })}
           </View>
-          {Platform.OS === 'web' ? null : <BotonM titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha'} icono="calendario" variante="secundario" disabled={ocupado} onPress={abrirCalendario} />}
+          {Platform.OS === 'web' ? null : <BotonM titulo={calendario ? 'Cerrar calendario' : 'Elegir otra fecha'} icono="calendario" variante="secundario" disabled={bloqueado} onPress={abrirCalendario} />}
           {calendario && Platform.OS === 'ios' ? (
             <View style={[e.calendario, { backgroundColor: t.campo, borderColor: t.borde }]}>
               <DateTimePicker value={elegida} mode="date" display="inline" minimumDate={new Date()} accentColor={t.acento} onChange={(_, d) => d && setElegida(d)} />
-              <BotonM titulo={`Programar para el ${diaCorto(aFechaLocal(elegida))}`} disabled={ocupado} onPress={() => void programar(aFechaLocal(elegida))} />
+              <BotonM titulo={`Programar para el ${diaCorto(aFechaLocal(elegida))}`} disabled={bloqueado} onPress={() => void programar(aFechaLocal(elegida))} />
             </View>
           ) : null}
-          {conFecha ? <BotonM titulo="Quitar la fecha" variante="texto" disabled={ocupado} onPress={() => void hacer(() => api(`/quotes/${q.id}/next-contact`, { method: 'DELETE' }))} /> : null}
+          {sinSenal ? <AvisoSinSenal texto="para programar el próximo contacto, necesitas internet." /> : null}
+          {conFecha ? <BotonM titulo="Quitar la fecha" variante="texto" disabled={bloqueado} onPress={() => void hacer(() => api(`/quotes/${q.id}/next-contact`, { method: 'DELETE' }))} /> : null}
         </TarjetaM>
       )}
 
       <TarjetaM>
         <View style={e.fila}>
           <BotonM titulo="Llamar" icono="llamar" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`tel:${q.customer.phone}`)} />
-          <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" style={e.mitad} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
+          <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" style={e.mitad} disabled={sinSenal} onPress={() => void Linking.openURL(`https://wa.me/${q.customer.phone.replace(/\D/g, '')}`)} />
         </View>
         <CampoModal etiqueta="Nota (opcional)" titulo="Nota" agregar="Agregar nota" icono="lapiz" valor={nota} alCambiar={setNota} maxLength={2000} placeholder="Qué te dijo, qué falta" />
-        <BotonM titulo="Guardar nota" variante="secundario" disabled={ocupado || !nota.trim()} onPress={() => void soloNota()} />
-        {error ? <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM> : null}
+        <BotonM titulo="Guardar nota" variante="secundario" disabled={bloqueado || !nota.trim()} onPress={() => void soloNota()} />
+        {sinSenal ? (
+          <AvisoSinSenal texto="para WhatsApp y guardar notas, necesitas internet. Llamar sí funciona." />
+        ) : error ? (
+          <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM>
+        ) : null}
       </TarjetaM>
 
       {historial.length ? (

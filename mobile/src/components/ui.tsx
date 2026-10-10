@@ -44,6 +44,7 @@ const ICONOS = {
   opciones: { ios: 'ellipsis', android: 'more_vert', web: 'more_vert' },
   listo: { ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' },
   sincronizar: { ios: 'arrow.triangle.2.circlepath', android: 'sync', web: 'sync' },
+  sinSenal: { ios: 'wifi.slash', android: 'cloud_off', web: 'cloud_off' },
   documento: { ios: 'doc.text', android: 'description', web: 'description' },
   regla: { ios: 'ruler', android: 'straighten', web: 'straighten' },
   ajustes: { ios: 'gearshape', android: 'settings', web: 'settings' },

@@ -18,6 +18,7 @@ import { Pestanas } from '@/components/pestanas';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
 import { useRefrescar } from '@/lib/refrescar';
+import { useSinSenal } from '@/lib/conexion';
 import { creacionesPendientes, eliminacionesPendientes, eliminarPresupuesto, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
 import { espacio, useTema } from '@/theme';
@@ -34,6 +35,7 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
 
   const [pestana, setPestana] = useState<Pestana>('pendientes');
   const { pendientes } = useCola();
+  const sinSenal = useSinSenal(); // sin señal lo explica el aviso de arriba: no se repite el error de carga en rojo
   const colaVacia = pendientes === 0;
 
   const cargar = useCallback(async () => {
@@ -131,7 +133,7 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
         ListHeaderComponent={
           <View style={e.cabecera}>
             <Sincronizacion />
-            {error ? <Text variant="bodySmall" style={{ color: t.error }} accessibilityRole="alert">{error}</Text> : null}
+            {error && !sinSenal ? <Text variant="bodySmall" style={{ color: t.error }} accessibilityRole="alert">{error}</Text> : null}
             {/* Una línea con cuántos hay y cuánto suman (en Pendientes, cómo se elimina uno) y, al lado, el ojo que oculta los montos de la
                 lista: igual que «Resumen» y su ojo en Inicio. La barra de arriba queda igual en las dos páginas. */}
             {visibles.length > 0 ? (

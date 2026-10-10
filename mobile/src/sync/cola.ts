@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { api, ApiError, subir } from '@/api/client';
 import type { Presupuesto } from '@/api/types';
+import { claveBorradorCierre } from '@/lib/borrador-cierre';
 import { guardarCodigo } from '@/lib/codigos';
 import { borrarArchivo, existeArchivo } from './archivos';
 import { agregarOp, borrarOp, cambiarOp, guardarKv, leerKv, limpiarTodo, listarKv, ops, type Op } from './db';
@@ -133,6 +134,7 @@ export async function eliminarPresupuesto(quoteId: string) {
     if (o.file_uri) borrarArchivo(o.file_uri);
   }
   await guardarKv(`q:${quoteId}`, 'null');
+  await guardarKv(claveBorradorCierre(quoteId), 'null');
   await encolar({ quote_id: quoteId, method: 'DELETE', path: `/quotes/${quoteId}` });
 }
 

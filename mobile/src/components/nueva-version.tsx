@@ -10,6 +10,8 @@ import { useDialogo } from '@/components/dialogo';
 import { BotonM, TextoM } from '@/components/material';
 import { Icono } from '@/components/ui';
 import { guardarCodigo } from '@/lib/codigos';
+import { AvisoSinSenal } from '@/components/sincronizacion';
+import { useSinSenal } from '@/lib/conexion';
 import { guardarBorrador } from '@/sync/cola';
 import { espacio, radio, useTema } from '@/theme';
 
@@ -18,6 +20,7 @@ import { espacio, radio, useTema } from '@/theme';
 export function NuevaVersion({ q }: { q: Presupuesto }) {
   const t = useTema();
   const { dialogo, decidir } = useDialogo();
+  const sinSenal = useSinSenal();
   const [trabajando, setTrabajando] = useState(false);
   const siguiente = (q.version ?? 1) + 1;
   const abrir = (id: string) => router.push({ pathname: '/presupuesto/[id]', params: { id } });
@@ -60,7 +63,8 @@ export function NuevaVersion({ q }: { q: Presupuesto }) {
       ) : (
         <>
           <TextoM variante="chico" suave>Puedes corregirlo y volver a enviarlo como la versión {siguiente}. Es un presupuesto nuevo: el rechazado no cambia.</TextoM>
-          <BotonM titulo={`Crear versión ${siguiente}`} onPress={confirmar} cargando={trabajando} />
+          <BotonM titulo={`Crear versión ${siguiente}`} onPress={confirmar} cargando={trabajando} disabled={sinSenal} />
+          {sinSenal ? <AvisoSinSenal texto="para crear la versión nueva, necesitas internet." /> : null}
         </>
       )}
       {dialogo}

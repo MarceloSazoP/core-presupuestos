@@ -9,6 +9,8 @@ import { api, mensajeDe } from '@/api/client';
 import { useDialogo } from '@/components/dialogo';
 import { BotonM, SeccionM, TarjetaM, TextoM } from '@/components/material';
 import { guardarCodigo, leerCodigo } from '@/lib/codigos';
+import { AvisoSinSenal } from '@/components/sincronizacion';
+import { useSinSenal } from '@/lib/conexion';
 import { asegurarSincronizado } from '@/sync/cola';
 import { espacio, MONO, radio, useTema } from '@/theme';
 
@@ -18,6 +20,7 @@ export default function Codigo() {
   const t = useTema();
   const { id, titulo, codeId } = useLocalSearchParams<{ id: string; titulo: string; codeId?: string }>();
   const [codigo, setCodigo] = useState<string | null>(null);
+  const sinSenal = useSinSenal(); // generar el código y leer el QR de la web van al servidor
   const [copiado, setCopiado] = useState(false);
   const [generando, setGenerando] = useState(false);
   const { dialogo, decidir } = useDialogo();
@@ -82,7 +85,8 @@ export default function Codigo() {
       ) : codeId ? (
         <TarjetaM>
           <TextoM>El código solo se muestra una vez y este teléfono no lo tiene guardado. Genera uno nuevo para usarlo en la web.</TextoM>
-          <BotonM titulo="Generar código" onPress={pedirGenerar} cargando={generando} />
+          <BotonM titulo="Generar código" onPress={pedirGenerar} cargando={generando} disabled={sinSenal} />
+          {sinSenal ? <AvisoSinSenal texto="para generar el código, necesitas internet." /> : null}
         </TarjetaM>
       ) : (
         <TarjetaM>
@@ -91,10 +95,11 @@ export default function Codigo() {
       )}
 
       <SeccionM titulo="Sin escribir el código" icono="qr" descripcion="Abre este presupuesto en el computador escaneando el QR de la portada de la web.">
-        <BotonM titulo="Leer el QR de la web" icono="qr" onPress={() => router.replace({ pathname: '/escanear', params: { id, titulo } })} />
+        <BotonM titulo="Leer el QR de la web" icono="qr" disabled={sinSenal} onPress={() => router.replace({ pathname: '/escanear', params: { id, titulo } })} />
+        {sinSenal ? <AvisoSinSenal texto="para abrirlo en la web, necesitas internet." /> : null}
       </SeccionM>
 
-      {codigo ? <BotonM titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} /> : null}
+      {codigo ? <BotonM titulo="Generar un código nuevo" variante="texto" onPress={pedirGenerar} cargando={generando} disabled={sinSenal} /> : null}
       {dialogo}
     </ScrollView>
   );
