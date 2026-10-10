@@ -33,7 +33,7 @@ export function EnviarCorreo({ destino, etiqueta = "Enviar a correo" }: { destin
         {etiqueta}
       </Button>
       <Typography variant="caption" color="text.secondary">
-        {destino ? `Se envía con el PDF adjunto a ${destino}.` : "Se envía con el PDF adjunto."}
+        {destino ? `Le llega a ${destino} con el botón para aceptarlo. El PDF se lo enviamos cuando lo acepte.` : "Le llega con el botón para aceptarlo. El PDF se lo enviamos cuando lo acepte."}
       </Typography>
       <Typography role="status" aria-live="polite" variant="body2" color={estado.ok ? "success.main" : "error.main"} sx={{ minHeight: 20 }}>
         {estado.mensaje}

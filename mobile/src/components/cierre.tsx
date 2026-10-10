@@ -288,7 +288,7 @@ export function useEnvio(q: Presupuesto, recargar: () => Promise<void>) {
   const confirmar = (titulo: string, ok: string, alConfirmar: () => void) =>
     decidir(titulo, undefined, [{ text: 'No', style: 'cancel' }, { text: ok, onPress: alConfirmar }]);
 
-  const mensaje = `Hola ${q.customer.name}, te comparto tu presupuesto ${q.number}: ${q.public_url}`;
+  const mensaje = `Hola ${q.customer.name}, te comparto tu presupuesto ${q.number}. Puedes revisarlo y aceptarlo aquí: ${q.public_url}`;
 
   async function compartir() {
     const r = await Share.share({ message: mensaje });

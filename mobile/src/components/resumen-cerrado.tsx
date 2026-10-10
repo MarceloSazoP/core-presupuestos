@@ -138,7 +138,7 @@ export function AccionesCerrado({ q, recargar, reserva, conCompartir }: { q: Pre
         <TextoM variante="chico" color="error" accessibilityRole="alert">{error}</TextoM>
       ) : null}
       <View style={e.fila}>
-        {q.public_url ? <BotonM titulo="Ver PDF" icono="documento" variante="secundario" onPress={verPdf} cargando={abriendo} disabled={sinSenal || abriendo} style={e.mitad} accessibilityLabel="Ver el PDF como lo recibe el cliente" /> : null}
+        {q.public_url ? <BotonM titulo="Ver PDF" icono="documento" variante="secundario" onPress={verPdf} cargando={abriendo} disabled={sinSenal || abriendo} style={e.mitad} accessibilityLabel="Ver el PDF del presupuesto" /> : null}
         {segundo === 'compartir' ? (
           <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} disabled={sinSenal || !q.public_url} style={e.mayor} />
         ) : segundo === 'llamar' ? (

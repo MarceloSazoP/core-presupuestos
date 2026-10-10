@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import FileDownloadOutlined from "@mui/icons-material/FileDownloadOutlined";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Link from "@mui/material/Link";
@@ -14,12 +12,13 @@ import { porcentajeDe } from "@/lib/descuento";
 import { cant, dinero } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
 import { tasaLegible } from "@/lib/paises";
+import { Aceptar } from "./aceptar";
 import { LogoProfesional } from "./logo-profesional";
 
 export const metadata: Metadata = { title: "Presupuesto · CORE Presupuestos", robots: { index: false, follow: false } };
 
-// Vista pública del cliente (Contrato API §10): solo lectura, sin cuenta. Se abre sobre todo en el teléfono, desde el
-// enlace que llega por WhatsApp o correo.
+// Vista pública del cliente (Contrato API §10): sin cuenta, solo para revisar y aceptar. Se abre sobre todo en el teléfono, desde el
+// enlace que llega por WhatsApp o correo. No ofrece el PDF: es el documento oficial y el cliente lo recibe por correo al aceptar.
 type Publico = {
   number: string;
   version?: number;
@@ -44,6 +43,8 @@ type Publico = {
   warranty: { text: string };
   validity_days: number;
   observations: string | null;
+  accepted_on: string | null;
+  can_accept: boolean;
 };
 
 // La fecha de emisión es la fijada al terminar (en la zona de quien emitió); los presupuestos anteriores solo traen la hora.
@@ -53,8 +54,8 @@ const dia = (ymd: string) => fecha(`${ymd}T12:00:00Z`, "UTC");
 const ROTULO = { typography: "overline", color: "text.secondary", lineHeight: 2 } as const;
 const FILA_TOTAL = { display: "flex", justifyContent: "space-between", gap: 2, color: "text.secondary" } as const;
 
-export default async function VistaPublica({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params;
+export default async function VistaPublica({ params, searchParams }: { params: Promise<{ token: string }>; searchParams: Promise<{ aceptar?: string }> }) {
+  const [{ token }, { aceptar }] = await Promise.all([params, searchParams]);
   let q: Publico;
   try {
     q = await api<Publico>(`/public/quotes/${encodeURIComponent(token)}`);
@@ -101,6 +102,17 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
             <Typography variant="body2" color="text.secondary">
               {q.issued_on ? dia(q.issued_on) : fecha(q.finalized_at, q.timezone)}
             </Typography>
+            {/* El timbre, como el del PDF: verde, con la fecha de aceptación. */}
+            {q.accepted_on ? (
+              <Box sx={{ display: "inline-flex", flexDirection: "column", alignItems: "center", mt: 1.5, px: 2, py: 0.5, border: 2, borderColor: "success.main", borderRadius: 1, color: "success.main" }}>
+                <Typography component="span" sx={{ fontWeight: 700, letterSpacing: "0.12em" }}>
+                  ACEPTADO
+                </Typography>
+                <Typography component="span" variant="caption">
+                  el {dia(q.accepted_on)}
+                </Typography>
+              </Box>
+            ) : null}
           </Box>
         </Box>
 
@@ -210,44 +222,18 @@ export default async function VistaPublica({ params }: { params: Promise<{ token
         </Box>
       </Paper>
 
-      {/* En pantallas anchas el botón va bajo el documento; en el teléfono, en una barra fija abajo (siempre a mano). */}
-      <Button href={`${base}/pdf`} download variant="contained" size="large" startIcon={<FileDownloadOutlined />} sx={{ display: { xs: "none", sm: "inline-flex" }, alignSelf: "center", px: 4 }}>
-        Descargar PDF
-      </Button>
+      <Aceptar
+        token={token}
+        numero={q.number}
+        total={clp(q.total)}
+        profesional={q.professional}
+        aceptadoEl={q.accepted_on ? dia(q.accepted_on) : null}
+        puede={q.can_accept}
+        abrir={aceptar === "1"}
+      />
       <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
         Presupuesto comercial. No es un documento tributario.
       </Typography>
-
-      <Paper
-        square
-        elevation={8}
-        sx={{
-          display: { xs: "flex", sm: "none" },
-          position: "sticky",
-          bottom: 0,
-          zIndex: 10,
-          mx: -2,
-          mb: -2,
-          px: 2,
-          pt: 1.5,
-          pb: "max(12px, env(safe-area-inset-bottom, 0px))", // el indicador de inicio del iPhone no tapa el botón
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 2,
-        }}
-      >
-        <Box sx={{ display: "flex", flexDirection: "column", lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>
-          <Typography variant="caption" color="text.secondary">
-            Total
-          </Typography>
-          <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
-            {clp(q.total)}
-          </Typography>
-        </Box>
-        <Button href={`${base}/pdf`} download variant="contained" startIcon={<FileDownloadOutlined />}>
-          Descargar PDF
-        </Button>
-      </Paper>
     </Box>
   );
 }

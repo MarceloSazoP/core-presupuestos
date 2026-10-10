@@ -531,7 +531,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
                     {inicial.cliente.correo}
                     <Typography component="span" variant="body2" color="text.secondary">
                       {" "}
-                      · con el PDF
+                      · con el botón para aceptar
                     </Typography>
                   </>
                 ) : (

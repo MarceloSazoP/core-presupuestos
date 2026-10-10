@@ -54,8 +54,8 @@ const PASOS = [
   },
   {
     titulo: "Envía al cliente",
-    detalle: "El PDF sale por correo, con tu logo y tus datos, y el aviso por WhatsApp va en el mismo paso.",
-    muestra: ["PDF adjunto", "Correo", "WhatsApp"],
+    detalle: "Le llega por correo o WhatsApp, con tu logo y tus datos y un botón para aceptarlo. Cuando acepta, recibe el PDF con el timbre «Aceptado» y tú lo ves en la app.",
+    muestra: ["Correo con «Aceptar»", "WhatsApp", "PDF al aceptar"],
   },
   {
     titulo: "Haz seguimiento",
@@ -75,7 +75,7 @@ const ICONOS = {
   boleta: "M18 17H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2zM3 22l1.5-1.5L6 22l1.5-1.5L9 22l1.5-1.5L12 22l1.5-1.5L15 22l1.5-1.5L18 22l1.5-1.5L21 22V2l-1.5 1.5L18 2l-1.5 1.5L15 2l-1.5 1.5L12 2l-1.5 1.5L9 2 7.5 3.5 6 2 4.5 3.5 3 2v20z",
   ver: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z",
   enviar: "M2.01 21 23 12 2.01 3 2 10l15 2-15 2z",
-  descargar: "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z",
+  aceptar: "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
   candado: "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z",
   enlace: "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z",
 };
@@ -136,7 +136,7 @@ const PREGUNTAS = [
   },
   {
     pregunta: "¿Mi cliente tiene que instalar algo?",
-    respuesta: "No. Le llega un enlace por WhatsApp o por correo y lo abre en su teléfono o en su computador. Puede ver el presupuesto y descargar el PDF, pero no modificarlo.",
+    respuesta: "No. Le llega un enlace por WhatsApp o por correo y lo abre en su teléfono o en su computador. Ahí revisa el presupuesto y lo acepta con un toque; al aceptarlo, recibe el PDF por correo. No puede modificarlo.",
   },
   {
     pregunta: "¿Puedo terminarlo en el computador?",
@@ -325,15 +325,15 @@ export default function Landing() {
               { icono: ICONOS.boleta, titulo: "Ítems y total", detalle: "Cantidad, unidad y precio en cada línea. El total se calcula solo." },
               { icono: ICONOS.documento, titulo: "Descuento e impuesto", detalle: "El IVA (o el impuesto de tu país) con su tasa, junto con la garantía y la vigencia." },
               { icono: ICONOS.ver, titulo: "Vista previa del PDF", detalle: "Míralo tal como le llegará a tu cliente, antes de enviarlo." },
-              { icono: ICONOS.enviar, titulo: "Terminar y enviar", detalle: "Por correo con el PDF, o por WhatsApp, desde ahí mismo." },
+              { icono: ICONOS.enviar, titulo: "Terminar y enviar", detalle: "Por correo, con el botón para que tu cliente lo acepte, o por WhatsApp." },
             ]}
           />
           <Lado
             invertido
             visual={
-              <div className="flex justify-center rounded-xl bg-niebla px-6 py-8">
+              <div className="flex justify-center">
                 <div className="w-full max-w-[15rem]">
-                  <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y Descargar PDF" />
+                  <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y el botón Aceptar" />
                 </div>
               </div>
             }
@@ -343,7 +343,7 @@ export default function Landing() {
             puntos={[
               { icono: ICONOS.enlace, titulo: "Sin instalar nada", detalle: "Se abre en el navegador del teléfono, sin crear una cuenta." },
               { icono: ICONOS.clientes, titulo: "Fácil de leer", detalle: "Quién lo envía, el detalle de los trabajos y el total." },
-              { icono: ICONOS.descargar, titulo: "Descarga el PDF", detalle: "Con un toque, para guardarlo o reenviarlo." },
+              { icono: ICONOS.aceptar, titulo: "Lo acepta con un toque", detalle: "Y le llega el PDF con el timbre «Aceptado». Tú lo ves al instante en la app." },
               { icono: ICONOS.candado, titulo: "Solo lectura", detalle: "Puede verlo, pero no cambiar nada." },
             ]}
           />
@@ -428,7 +428,7 @@ export default function Landing() {
         <div className="flotante grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:p-10">
           <div className="flex max-w-2xl flex-col gap-2">
             <h2 className="text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">¿Tu profesional te envió un código?</h2>
-            <p className="text-muted">Ingrésalo para ver tu presupuesto, descargar el PDF o recibirlo por correo.</p>
+            <p className="text-muted">Ingrésalo para ver tu presupuesto y aceptarlo.</p>
           </div>
           <a href="#consulta" className="boton">
             Consultar mi presupuesto
