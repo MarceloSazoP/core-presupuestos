@@ -2,7 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import { PartesDeslizables } from '@/components/partes-deslizables';
 import { avisar } from '@/lib/toast';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Searchbar, Text } from 'react-native-paper';
@@ -14,7 +14,9 @@ import { Icono } from '@/components/ui';
 import { coincide } from '@/lib/buscar';
 import type { EstadoElegible } from '@/lib/estados';
 import { LISTA, useDinero } from '@/lib/montos';
-import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
+import { alCambiar } from '@/lib/eventos';
+import { avisarAceptado, cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
+import { pushActivo } from '@/lib/push';
 import { Pestanas } from '@/components/pestanas';
 import { Sincronizacion } from '@/components/sincronizacion';
 import { contar, PESTANAS, pestanaDe, type Pestana } from '@/lib/pestanas';
@@ -42,6 +44,10 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
   const sinSenal = useSinSenal(); // sin señal lo explica el aviso de arriba: no se repite el error de carga en rojo
   const colaVacia = pendientes === 0;
 
+  // El estado comercial de cada uno en la última lectura: si uno pasa a aceptado mientras se mira (el cliente lo aceptó desde su
+  // correo), la lista se va a «Aceptados» si se estaba mirando la pestaña donde estaba y, sin push en este teléfono, se avisa aquí.
+  const estadosAntes = useRef<Map<string, string> | null>(null);
+
   const cargar = useCallback(async () => {
     let base: ResumenPresupuesto[] | null = null;
     try {
@@ -49,6 +55,14 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
       void guardarKv('lista', JSON.stringify(base));
       void reconciliar(base); // mantiene al día los recordatorios de contacto
       setError(null);
+      const antes = estadosAntes.current;
+      estadosAntes.current = new Map(base.map((q) => [q.id, q.commercial_status]));
+      const aceptados = antes ? base.filter((q) => q.commercial_status === 'ACCEPTED' && antes.has(q.id) && antes.get(q.id) !== 'ACCEPTED') : [];
+      if (aceptados.length) {
+        const dejadas = new Set(aceptados.map((q) => pestanaDe({ doc_status: q.doc_status, commercial_status: antes!.get(q.id)! })));
+        setPestana((p) => (dejadas.has(p) ? 'aceptados' : p));
+        if (!pushActivo()) for (const q of aceptados) void avisarAceptado(q);
+      }
     } catch (err) {
       setError(mensajeDe(err)); // sin señal en terreno se muestra la última lista guardada
       base = JSON.parse((await leerKv('lista')) ?? 'null') as ResumenPresupuesto[] | null;
@@ -75,6 +89,7 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
   const cambiarEstado = useCallback(async (q: ResumenPresupuesto, estado: EstadoElegible) => {
     try {
       await api(`/quotes/${q.id}/commercial-status`, { method: 'PUT', body: { status: estado } });
+      estadosAntes.current?.set(q.id, estado); // un cambio hecho aquí no se avisa como si lo hubiera hecho el cliente
       // Aceptar o rechazar cierra el seguimiento: el servidor borra el próximo contacto.
       const cierra = estado === 'ACCEPTED' || estado === 'REJECTED';
       setLista((l) => l && l.map((x) => (x.id === q.id ? { ...x, commercial_status: estado, next_contact_date: cierra ? null : x.next_contact_date } : x)));
@@ -100,6 +115,7 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
   useFocusEffect(useCallback(() => void cargar(), [cargar])); // al volver de crear o abrir uno, se actualiza (aunque se esté en Inicio)
   useEffect(() => void vaciar().then(cargar), [cargar, colaVacia]); // y al terminar de sincronizar
   useRefrescar(() => void cargar()); // y cuando cambia algo en la web
+  useEffect(() => alCambiar(() => void cargar()), [cargar]); // y al instante, si llega el aviso de que un cliente aceptó
 
   // Deslizar a los lados, sobre la lista o sobre cualquier tarjeta, pasa a la pestaña de al lado (Pendientes ↔ Enviados ↔ …). Desde la
   // primera, hacia la derecha, vuelve a Inicio.

@@ -5,6 +5,7 @@ import { TituloConIcono } from '@/components/titulo-con-icono';
 import { iniciarAvisos, marcarLeido, registrarAviso, sincronizarAvisos, traerPendientes } from '@/lib/avisos';
 import { deNotificacion } from '@/lib/avisos-datos';
 import { Notifications } from '@/lib/notificaciones';
+import { registrarPush } from '@/lib/push';
 import { iniciarCola, vaciar } from '@/sync/cola';
 
 // Pila nativa de Expo Router (UINavigationController en iOS): título grande, gesto de volver y modal del sistema.
@@ -12,6 +13,7 @@ export default function AppLayout() {
   useEffect(() => {
     iniciarCola(); // al abrir la app
     void iniciarAvisos(); // la bandeja de avisos del teléfono
+    void registrarPush(); // renueva el aviso push de «tu cliente aceptó» si el permiso ya está dado
     const s = AppState.addEventListener('change', (e) => {
       if (e !== 'active') return;
       void vaciar(); // al volver a primer plano

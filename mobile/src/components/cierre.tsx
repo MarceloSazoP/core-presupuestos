@@ -24,6 +24,7 @@ import { AvisoSinSenal } from '@/components/sincronizacion';
 import { borradorVigente, claveBorradorCierre } from '@/lib/borrador-cierre';
 import { useSinSenal } from '@/lib/conexion';
 import { aFechaLocal, diaCorto } from '@/lib/fechas';
+import { registrarPush } from '@/lib/push';
 import { huellaCierre } from '@/lib/huellas';
 import { asegurarSincronizado } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
@@ -280,6 +281,7 @@ export function useEnvio(q: Presupuesto, recargar: () => Promise<void>) {
       await asegurarSincronizado(q.id);
       await api(`/quotes/${q.id}/${ruta}`, { method: 'POST', body });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      void registrarPush(true); // recién enviado es cuando tiene sentido pedir permiso para avisar que el cliente lo aceptó
       await recargar();
     } catch (err) {
       setError(mensajeDe(err));

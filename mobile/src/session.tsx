@@ -4,6 +4,7 @@ import type { Usuario } from '@/api/types';
 import { borrar, guardar, leer } from '@/lib/almacen';
 import { zonaDelDispositivo } from '@/lib/dispositivo';
 import { recargarAvisos } from '@/lib/avisos';
+import { olvidarPush } from '@/lib/push';
 import { usarDatosDe } from '@/sync/cola';
 
 // La sesión vive en el almacenamiento seguro del teléfono (Keychain en iOS): el token y los datos del perfil, para
@@ -33,6 +34,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     setUsuario(null);
     setEstado('fuera');
     await Promise.all([borrar(K_TOKEN), borrar(K_USUARIO)]);
+    await olvidarPush(t); // este teléfono deja de recibir los avisos de esta cuenta
     if (t) await api('/auth/logout', { method: 'POST', token: t }).catch(() => {}); // revoca la sesión en el servidor si hay red
   }, []);
 

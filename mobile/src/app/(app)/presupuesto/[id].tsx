@@ -28,6 +28,7 @@ import { Icono } from '@/components/ui';
 import { PestanasParte } from '@/components/pestanas-parte';
 import { huellaCierre, huellaLevantamiento } from '@/lib/huellas';
 import { useRefrescar } from '@/lib/refrescar';
+import { alCambiar } from '@/lib/eventos';
 import { eliminarPresupuesto, guardarBorrador, hayPendientesDe, leerBorrador, useCola, vaciar } from '@/sync/cola';
 import { espacio, MIN_TOQUE, radio, useTema } from '@/theme';
 
@@ -73,6 +74,7 @@ export default function Detalle() {
   }, [id]);
 
   useRefrescar(() => void recargar()); // cambios hechos en la web aparecen aquí sin salir de la pantalla
+  useEffect(() => alCambiar((quoteId) => quoteId === id && void recargar()), [id, recargar]); // y al instante, si el cliente lo acepta
 
   const cambiar = useCallback((f: (p: Presupuesto) => Presupuesto) => setQ((p) => (p ? f(p) : p)), []);
 

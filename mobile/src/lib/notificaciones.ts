@@ -43,6 +43,16 @@ export async function reconciliar(quotes: ResumenPresupuesto[]) {
   }
 }
 
+// «Tu cliente aceptó»: con push, el aviso llega del servidor (lib/push.ts). Sin push en este teléfono (Expo Go en Android, por ejemplo),
+// sale de aquí cuando la lista lo detecta con la app abierta. El mismo texto que el del servidor.
+export async function avisarAceptado(q: { id: string; number: string | null; customer: { name: string } }) {
+  if (!disponible || !(await Notifications.getPermissionsAsync()).granted) return;
+  await Notifications.scheduleNotificationAsync({
+    content: { title: 'Presupuesto aceptado', body: `${q.customer.name} aceptó el presupuesto${q.number ? ` ${q.number}` : ''}.`, data: { quoteId: q.id, tipo: 'aceptado' } },
+    trigger: null, // ahora
+  }).catch(() => {});
+}
+
 // Al eliminar un presupuesto su aviso no debe sonar.
 export const cancelarRecordatorio = (quoteId: string) => (disponible ? Notifications.cancelScheduledNotificationAsync(PREFIJO + quoteId).catch(() => {}) : Promise.resolve());
 
