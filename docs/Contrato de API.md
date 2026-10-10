@@ -354,7 +354,7 @@ En **una transacción**: asigna `number` (`CP-AAAA-NNNN`), construye el snapshot
 **200** → `Quote` con `public_url`, `number`, `finalized_at`.
 
 ### `POST /quotes/{id}/send-email`
-Solo `FINALIZED`. Envía correo con el mensaje, **el presupuesto completo en el cuerpo** (ítems, totales y condiciones: no se cuenta con que el cliente abra el enlace) y los botones **Aceptar el presupuesto** (abre la vista pública para confirmar, §10), **Llamar por teléfono** y **Escribir por WhatsApp**; el botón de aceptar es el único enlace a la vista en línea. El pie dice que es un mensaje automático de CORE Presupuestos (con enlace a www.corepresupuestos.cl). **No lleva el PDF** (decisión del 2026-10-10): el PDF es el documento oficial del profesional y el cliente lo recibe al aceptar. Si el presupuesto ya está aceptado, el correo va sin el botón de aceptar y con el PDF timbrado «ACEPTADO» adjunto.
+Solo `FINALIZED`. Envía correo con el mensaje, **el presupuesto completo en el cuerpo** (ítems, totales y condiciones: no se cuenta con que el cliente abra el enlace) y los botones **Aceptar el presupuesto** (es la aceptación: abre la vista pública, que acepta sola, §10), **Llamar por teléfono** y **Escribir por WhatsApp**; el botón de aceptar es el único enlace a la vista en línea. El pie dice que es un mensaje automático de CORE Presupuestos (con enlace a www.corepresupuestos.cl). **No lleva el PDF** (decisión del 2026-10-10): el PDF es el documento oficial del profesional y el cliente lo recibe al aceptar. Si el presupuesto ya está aceptado, el correo va sin el botón de aceptar y con el PDF timbrado «ACEPTADO» adjunto.
 ```json
 { "to": "cliente@mail.cl", "message": "Hola Juan, te adjunto el presupuesto." }
 ```
@@ -459,10 +459,10 @@ Sin autenticación; el token de la URL es la credencial. Nunca expone `user_id`,
   "service_description": "", "service_address": null,
   "items": [], "subtotal": 0, "discount": 0, "include_vat": false, "vat": 0, "vat_rate": 19, "total": 0,
   "warranty": { "kind": "M3", "text": "3 meses" }, "validity_days": 15, "observations": null,
-  "accepted_on": null, "can_accept": true }
+  "accepted_on": null, "can_accept": true, "customer_has_email": true }
 ```
 
-`accepted_on` es la fecha de aceptación (`YYYY-MM-DD`, en la zona del presupuesto) o `null`. `can_accept` dice si el botón «Aceptar» se ofrece: el presupuesto no está aceptado ni rechazado, no tiene una versión más nueva y no venció (`valid_until` ≥ hoy en su zona).
+`accepted_on` es la fecha de aceptación (`YYYY-MM-DD`, en la zona del presupuesto) o `null`. `customer_has_email` dice si al aceptar le llegará el PDF por correo (sin mostrar el correo). `can_accept` dice si el botón «Aceptar» se ofrece: el presupuesto no está aceptado ni rechazado, no tiene una versión más nueva y no venció (`valid_until` ≥ hoy en su zona).
 
 | Ruta | Descripción |
 |------|-------------|
@@ -473,12 +473,12 @@ Token inexistente o revocado ⇒ **404** idéntico (sin distinguir). Cabeceras: 
 
 ### `POST /public/quotes/{token}/accept` (decisión del 2026-10-10)
 
-El cliente acepta el presupuesto desde su enlace. El correo del presupuesto lleva el botón «Aceptar el presupuesto», que abre la vista pública (`/q/{token}?aceptar=1`) con la confirmación; **aceptar exige ese segundo paso** (este `POST`), porque los filtros de correo abren los enlaces solos y un `GET` aceptaría sin que nadie lo pidiera. Cuerpo vacío.
+El cliente acepta el presupuesto desde su enlace. **Para el cliente, el botón «Aceptar el presupuesto» del correo es la aceptación** (decisión del 2026-10-10): abre la vista pública (`/q/{token}?aceptar=1`), que hace este `POST` sola, con JavaScript del navegador, y muestra «Presupuesto aceptado» y que el PDF le llega por correo, sin pedir otra confirmación. **La aceptación nunca ocurre en el `GET`** de la vista: los filtros de correo abren los enlaces solos para revisarlos y no ejecutan el script, así que no aceptan nada. Abierta sin `?aceptar=1` (por ejemplo, desde WhatsApp), la vista muestra el botón «Aceptar el presupuesto», que acepta directo. La vista no ofrece llamar ni escribir: eso va en el correo. Cuerpo vacío.
 
 **El PDF no se entrega por la vista pública** (decisión del 2026-10-10): es el documento oficial del profesional, que lo ve en la app y en su editor web (vista previa y descarga). El cliente lo recibe solo por correo al aceptar, con el timbre «ACEPTADO» y la fecha; se genera desde el snapshot y el PDF original no cambia. El PDF del profesional (`GET /quotes/{id}/pdf`) también lleva el timbre mientras el estado sea `ACCEPTED`.
 
 - **200** — la vista de arriba con `accepted_on` y `confirmation_sent` (si se le envió la confirmación al cliente). Efectos, en una transacción: `commercial_status = ACCEPTED`, `accepted_at = now()`, `next_contact_date = NULL` y un `FollowUp` con la nota «Aceptado por el cliente desde el enlace». Queda en la auditoría (`QUOTE_ACCEPTED_BY_CUSTOMER`) y avisa el cambio en vivo (la app y la web se actualizan solas).
-- Después, fuera de la transacción: un correo al cliente (si tiene correo) y otro al profesional, cada uno con el PDF timbrado «ACEPTADO». Si un correo falla, la aceptación ya quedó: se registra el error y no se devuelve 502.
+- Después, fuera de la transacción: un correo al cliente (si tiene correo) y otro al profesional, cada uno con el PDF timbrado «ACEPTADO». El correo de la propuesta y el de aceptación al cliente llevan arriba el logo del profesional (si lo tiene), incrustado en el correo. Si un correo falla, la aceptación ya quedó: se registra el error y no se devuelve 502.
 - Ya aceptado ⇒ **200** sin repetir nada (idempotente; no vuelve a enviar correos).
 - Rechazado, con una versión más nueva o vencido ⇒ **409** `INVALID_STATE`, con un mensaje que invita a comunicarse con el profesional.
 - Mismo límite por IP que el resto de `/public`.

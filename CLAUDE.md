@@ -880,7 +880,7 @@ RECHAZADO
 
 
 
-La aceptación o rechazo es manual. Excepción (decisión del 2026-10-10): el cliente puede **aceptar** desde el botón del correo, confirmando en su vista del presupuesto; nunca rechazar ni editar (`docs/Contrato de API.md` §10).
+La aceptación o rechazo es manual. Excepción (decisión del 2026-10-10): el cliente puede **aceptar** con el botón del correo (abre su vista del presupuesto, que lo registra); nunca rechazar ni editar (`docs/Contrato de API.md` §10).
 
 
 

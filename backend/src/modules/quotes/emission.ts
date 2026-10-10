@@ -34,7 +34,7 @@ function problems(q: QuoteRow, items: ItemRow[], user: UserRow): Detail[] {
   return d;
 }
 
-async function readImage(fileId: string | null): Promise<Image | undefined> {
+export async function readImage(fileId: string | null): Promise<Image | undefined> {
   if (!fileId) return undefined;
   const { rows } = await query<{ storage_key: string; mime_type: string }>('SELECT storage_key, mime_type FROM files WHERE id = $1', [fileId]);
   return rows[0] ? { data: await read(rows[0].storage_key), mime: rows[0].mime_type } : undefined;
@@ -242,11 +242,13 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     // aceptar y con el PDF timbrado.
     const pdf = await pdfDelPresupuesto(q.id);
     const estado = pdf.aceptado ? 'aceptado' : q.commercial_status === 'REJECTED' ? 'cerrado' : 'aceptable';
+    const logo = await readImage(s.professional.logo_file_id); // el del snapshot: el que lleva el presupuesto
     await deps.sendMail({
       to,
       subject: `Presupuesto ${s.number} de ${s.professional.name}`,
       text: textoPresupuesto(s, url, b.message, estado),
-      html: correoPresupuesto(s, url, b.message, estado),
+      html: correoPresupuesto(s, url, b.message, estado, !!logo),
+      logo: logo && { content: logo.data, contentType: logo.mime },
       attachment: pdf.aceptado ? { filename: `${s.number}-aceptado.pdf`, content: pdf.aceptado } : undefined,
     });
     await registerSend(req, q, 'EMAIL'); // solo si el envío salió bien

@@ -3,7 +3,13 @@ import { config } from '../config';
 import { AppError } from '../errors';
 
 // `html`: el cuerpo con formato. `cid` en el adjunto lo vuelve una imagen incrustada que el HTML cita (`<img src="cid:…">`): se ve dentro del correo, no como archivo.
-export type Correo = { to: string; subject: string; text: string; html?: string; attachment?: { filename: string; content: Buffer; contentType?: string; cid?: string } };
+// `logo`: el logo del profesional, incrustado con el cid «logo» (lo cita la plantilla), además del adjunto.
+type Adjunto = { filename: string; content: Buffer; contentType?: string; cid?: string };
+export type Correo = { to: string; subject: string; text: string; html?: string; attachment?: Adjunto; logo?: { content: Buffer; contentType: string } };
+const adjuntos = (m: Correo): Adjunto[] => [
+  ...(m.attachment ? [m.attachment] : []),
+  ...(m.logo ? [{ filename: `logo.${m.logo.contentType.split('/')[1] ?? 'png'}`, content: m.logo.content, contentType: m.logo.contentType, cid: 'logo' }] : []),
+];
 export type SendMail = (m: Correo) => Promise<void>;
 
 let transporte: Transporter | null = null;
@@ -29,7 +35,7 @@ export async function mandarCorreo(m: Correo): Promise<void> {
       }))
         .sendMail({
           from: `"CorePresupuesto" <${from ?? SMTP_USER}>`, to: m.to, subject: m.subject, text: m.text, ...(m.html && { html: m.html }),
-          ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content, contentType: m.attachment.contentType ?? 'application/pdf', ...(m.attachment.cid && { cid: m.attachment.cid }) }] }),
+          attachments: adjuntos(m).map((a) => ({ filename: a.filename, content: a.content, contentType: a.contentType ?? 'application/pdf', ...(a.cid && { cid: a.cid }) })),
         });
       return;
     } catch (e) {
@@ -40,7 +46,7 @@ export async function mandarCorreo(m: Correo): Promise<void> {
   if (!key || !from) throw fail('El envío por correo no está configurado.');
   const body = JSON.stringify({
     from, to: [m.to], subject: m.subject, text: m.text, ...(m.html && { html: m.html }),
-    ...(m.attachment && { attachments: [{ filename: m.attachment.filename, content: m.attachment.content.toString('base64'), ...(m.attachment.cid && { content_id: m.attachment.cid }) }] }),
+    attachments: adjuntos(m).map((a) => ({ filename: a.filename, content: a.content.toString('base64'), ...(a.cid && { content_id: a.cid }) })),
   });
   for (let intento = 0; intento < 2; intento++) {
     try {

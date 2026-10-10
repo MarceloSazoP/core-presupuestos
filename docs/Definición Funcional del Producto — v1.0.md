@@ -614,7 +614,8 @@ Si el usuario dispone de correo y el cliente tiene correo registrado, el sistema
 
 * Mensaje de presentación.
 * El presupuesto completo en el cuerpo del correo: ítems, totales y condiciones.
-* Los botones **Aceptar el presupuesto** (abre la vista en línea para confirmar), **Llamar** y **WhatsApp**.
+* Los botones **Aceptar el presupuesto** (es la aceptación), **Llamar** y **WhatsApp**.
+* El logo del profesional arriba, si lo tiene.
 * QR opcional.
 
 El PDF no va en este correo (decisión del 2026-10-10): el cliente lo recibe al aceptar, timbrado «ACEPTADO» (ver §31).
@@ -869,7 +870,7 @@ Cuando el cliente acepta, el usuario puede marcar:
 
 > **ACEPTADO**
 
-**El cliente también puede aceptarlo él mismo (decisión del 2026-10-10).** El correo del presupuesto trae dos botones: **Aceptar el presupuesto** y **Llamar** al profesional (no hay botón de rechazar). Aceptar abre la vista del presupuesto y pide confirmar; al confirmar, el presupuesto queda **ACEPTADO** en la app y en la web, y el cliente recibe otro correo con el mismo presupuesto y un timbre **ACEPTADO** con la fecha (el profesional recibe una copia). Ahí termina el flujo. **El PDF es el documento oficial del profesional:** el primer correo no lo lleva y la vista web del cliente no lo entrega; el cliente lo recibe solo en el correo de aceptación, timbrado, y el profesional lo ve en la app y en su editor web. No se puede aceptar un presupuesto vencido, rechazado o reemplazado por una versión nueva: la vista invita a llamar al profesional.
+**El cliente también puede aceptarlo él mismo (decisión del 2026-10-10).** El correo del presupuesto trae dos botones: **Aceptar el presupuesto** y **Llamar** al profesional (no hay botón de rechazar). El botón **Aceptar** del correo es la aceptación: abre la vista del presupuesto, que muestra «Presupuesto aceptado» y que el PDF le llega por correo, sin pedir otra confirmación. El presupuesto queda **ACEPTADO** en la app y en la web, y el cliente recibe otro correo con el mismo presupuesto y un timbre **ACEPTADO** con la fecha (el profesional recibe una copia). Ahí termina el flujo. **El PDF es el documento oficial del profesional:** el primer correo no lo lleva y la vista web del cliente no lo entrega; el cliente lo recibe solo en el correo de aceptación, timbrado, y el profesional lo ve en la app y en su editor web. No se puede aceptar un presupuesto vencido, rechazado o reemplazado por una versión nueva: la vista invita a hablar con el profesional.
 
 Esto permitirá posteriormente utilizar el dato en indicadores como:
 

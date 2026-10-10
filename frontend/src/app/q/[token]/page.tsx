@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -45,6 +48,7 @@ type Publico = {
   observations: string | null;
   accepted_on: string | null;
   can_accept: boolean;
+  customer_has_email: boolean;
 };
 
 // La fecha de emisión es la fijada al terminar (en la zona de quien emitió); los presupuestos anteriores solo traen la hora.
@@ -66,9 +70,21 @@ export default async function VistaPublica({ params, searchParams }: { params: P
   const base = `/q/${encodeURIComponent(token)}`;
   const clp = (n: number) => dinero(n, q.currency); // los montos, con la moneda del presupuesto
   const porcentajeDescuento = porcentajeDe(q.discount, q.subtotal); // null: un monto fijo, sin porcentaje que mostrar
+  // Desde el botón del correo (?aceptar=1) la página acepta sola: el aviso va arriba. Si no, el botón va después del documento.
+  const desdeCorreo = aceptar === "1" && !q.accepted_on;
+  const aceptarEl = <Aceptar token={token} total={clp(q.total)} profesional={q.professional.name} aceptado={!!q.accepted_on} puede={q.can_accept} desdeCorreo={desdeCorreo} />;
 
   return (
     <Box component="main" sx={{ mx: "auto", width: "100%", maxWidth: "52rem", px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 4 }, display: "flex", flexDirection: "column", gap: 3 }}>
+      {/* Aceptado: la confirmación va primero, grande, y dice que el PDF le llega por correo. */}
+      {q.accepted_on ? (
+        <Alert severity="success" icon={<CheckCircleOutlined fontSize="inherit" />} sx={{ fontSize: "1.0625rem", py: 2, "& .MuiAlert-icon": { fontSize: 32 } }}>
+          <AlertTitle sx={{ fontSize: "1.25rem", fontWeight: 600 }}>Presupuesto aceptado</AlertTitle>
+          {q.customer_has_email ? "Te enviamos a tu correo el presupuesto en formato PDF." : `Quedó registrado el ${dia(q.accepted_on)}.`}
+        </Alert>
+      ) : null}
+      {desdeCorreo ? aceptarEl : null}
+
       <Paper component="article" elevation={2} sx={{ p: { xs: 2.5, sm: 5 }, display: "flex", flexDirection: "column", gap: 3 }}>
         <Box component="header" sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", gap: 2.5, pb: 2.5, borderBottom: 2, borderColor: "text.primary" }}>
           <Stack spacing={1.5} sx={{ minWidth: 0 }}>
@@ -222,15 +238,7 @@ export default async function VistaPublica({ params, searchParams }: { params: P
         </Box>
       </Paper>
 
-      <Aceptar
-        token={token}
-        numero={q.number}
-        total={clp(q.total)}
-        profesional={q.professional}
-        aceptadoEl={q.accepted_on ? dia(q.accepted_on) : null}
-        puede={q.can_accept}
-        abrir={aceptar === "1"}
-      />
+      {desdeCorreo ? null : aceptarEl}
       <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
         Presupuesto comercial. No es un documento tributario.
       </Typography>

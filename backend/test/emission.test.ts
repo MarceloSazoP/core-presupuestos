@@ -202,7 +202,7 @@ describe('API: finalizar, vista pública y envíos (Contrato API §7, §10 y §1
     assert.equal(r.headers.get('cache-control'), 'no-store');
     assert.equal(r.headers.get('x-robots-tag'), 'noindex');
     const j = await r.json();
-    assert.deepEqual(Object.keys(j).sort(), ['accepted_on', 'can_accept', 'country', 'currency', 'customer', 'discount', 'finalized_at', 'include_vat', 'issued_on', 'items', 'number', 'observations', 'previous_number', 'professional', 'service_address', 'service_description', 'subtotal', 'timezone', 'total', 'valid_until', 'validity_days', 'vat', 'vat_label', 'vat_rate', 'version', 'warranty']);
+    assert.deepEqual(Object.keys(j).sort(), ['accepted_on', 'can_accept', 'country', 'currency', 'customer', 'customer_has_email', 'discount', 'finalized_at', 'include_vat', 'issued_on', 'items', 'number', 'observations', 'previous_number', 'professional', 'service_address', 'service_description', 'subtotal', 'timezone', 'total', 'valid_until', 'validity_days', 'vat', 'vat_label', 'vat_rate', 'version', 'warranty']);
     const texto = JSON.stringify(j);
     for (const prohibido of ['NOTA INTERNA', a.user.id, q.id, 'juan@cliente.cl', '+56933333333', 'short_id', 'logo_file_id']) assert.ok(!texto.includes(prohibido), prohibido);
     assert.deepEqual([j.accepted_on, j.can_accept], [null, true]);

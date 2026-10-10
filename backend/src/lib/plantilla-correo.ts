@@ -17,9 +17,10 @@ type Carcasa = {
   cuerpo: string; // HTML ya armado (párrafos, tablas, botones…)
   base?: number; // tamaño de letra del cuerpo en px; 17 por defecto (los correos para quien puede estar leyendo con dificultad suben a 19)
   pie?: string; // texto del pie, además del aviso fijo
+  logo?: string; // el texto alternativo del logo del profesional, que va incrustado arriba (cid «logo», ver mail.ts)
 };
 
-export function correoCorporativo({ preheader, titulo, cuerpo, base = 17, pie }: Carcasa): string {
+export function correoCorporativo({ preheader, titulo, cuerpo, base = 17, pie, logo }: Carcasa): string {
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escapar(titulo)}</title></head>
 <body style="margin:0;padding:0;background:${FONDO};">
@@ -28,6 +29,7 @@ export function correoCorporativo({ preheader, titulo, cuerpo, base = 17, pie }:
   <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid ${LINEA};border-radius:6px;">
     <tr><td style="height:4px;background:${AZUL};border-radius:6px 6px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>
     <tr><td style="padding:28px 32px 8px;font-family:${FUENTE};font-size:${base}px;line-height:1.55;color:${TEXTO};">
+      ${logo ? `<img src="cid:logo" alt="${escapar(logo)}" height="56" style="display:block;height:56px;width:auto;max-width:240px;margin:0 0 20px;border:0;">` : ''}
       <h1 style="margin:0 0 16px;font-size:${base + 5}px;line-height:1.3;color:${AZUL};font-weight:bold;">${escapar(titulo)}</h1>
       ${cuerpo}
     </td></tr>

@@ -90,11 +90,13 @@ export type EstadoCorreo = 'aceptable' | 'aceptado' | 'cerrado';
 const saludo = (s: Snapshot) => `Hola ${s.customer.name}, te envío el presupuesto ${s.number}. Puedes revisarlo aquí mismo y aceptarlo desde este correo.`;
 const invitacion = (s: Snapshot) => `¿Tienes dudas o quieres cambiar algo? Habla con ${escapar(s.professional.name)}:`;
 
-export function correoPresupuesto(s: Snapshot, url: string, mensaje?: string, estado: EstadoCorreo = 'aceptable'): string {
+// `conLogo`: el logo del profesional va incrustado arriba (el correo lleva la imagen con el cid «logo»).
+export function correoPresupuesto(s: Snapshot, url: string, mensaje?: string, estado: EstadoCorreo = 'aceptable', conLogo = false): string {
   const aceptar = estado === 'aceptable' ? boton('Aceptar el presupuesto', urlAceptar(url)) : '';
   return correoCorporativo({
     preheader: `Presupuesto ${s.number} de ${s.professional.name}: ${formatoMonto(s.total, s.currency ?? 'CLP')}.`,
     titulo: `Presupuesto ${s.number}`,
+    logo: conLogo ? s.professional.name : undefined,
     cuerpo:
       parrafo(escapar(mensaje ?? saludo(s)).replace(/\n/g, '<br>')) +
       aceptar + // arriba también: quien ya lo conversó no tiene que bajar hasta el final
@@ -119,7 +121,7 @@ export const textoPresupuesto = (s: Snapshot, url: string, mensaje?: string, est
 
 // La confirmación de que el cliente aceptó: al cliente, el mismo presupuesto completo con el sello y los botones para hablar con el
 // profesional; al profesional, el aviso con un resumen. Los dos llevan el PDF con el timbre «ACEPTADO». `dia`: DD-MM-AAAA.
-export function correosAceptado(s: Snapshot, dia: string) {
+export function correosAceptado(s: Snapshot, dia: string, conLogo = false) {
   const total = formatoMonto(s.total, s.currency ?? 'CLP');
   return {
     cliente: {
@@ -134,6 +136,7 @@ export function correosAceptado(s: Snapshot, dia: string) {
       html: correoCorporativo({
         preheader: `Aceptaste el presupuesto ${s.number}: ${total}.`,
         titulo: `Presupuesto ${s.number} aceptado`,
+        logo: conLogo ? s.professional.name : undefined,
         cuerpo:
           sello('ACEPTADO', `el ${dia}`) +
           parrafo(`Hola ${escapar(s.customer.name)}, confirmamos que aceptaste el presupuesto ${escapar(s.number)}. Te adjuntamos el PDF con el timbre de aceptado.`) +

@@ -85,6 +85,27 @@ describe('API: el cliente acepta el presupuesto desde el enlace', () => {
     assert.equal((await app.api('GET', `/quotes/${vencido.id}`, { token: a.token })).json.commercial_status, 'SENT', 'no cambia nada');
   });
 
+  it('con logo, la propuesta y la confirmación al cliente lo llevan incrustado arriba; el aviso al profesional, no', async () => {
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    await app.upload('PUT', '/me/logo', { token: a.token, file: PNG });
+    const q = (await app.api('POST', '/quotes', { token: a.token, body: { customer: { name: 'Juan', phone: '+56933333333', email: 'juan@cliente.cl' } } })).json;
+    await app.api('PATCH', `/quotes/${q.id}`, { token: a.token, body: { service_description: 'Instalación', validity_days: 15 } });
+    await app.api('PUT', `/quotes/${q.id}/items`, { token: a.token, body: { items: [{ description: 'Mano de obra', quantity: 1, unit_price: 100000 }] } });
+    await app.api('POST', `/quotes/${q.id}/finalize`, { token: a.token, body: {} });
+    await app.api('POST', `/quotes/${q.id}/send-email`, { token: a.token, body: {} });
+    const propuesta = app.mails.at(-1)!;
+    assert.deepEqual(propuesta.logo?.content, PNG);
+    assert.ok(propuesta.html!.includes('src="cid:logo"'));
+
+    app.mails.length = 0;
+    const token = (await pool.query(`SELECT token FROM quote_access WHERE quote_id = $1 AND kind = 'PUBLIC'`, [q.id])).rows[0].token as string;
+    await aceptar(token);
+    const cliente = app.mails.find((m) => m.to === 'juan@cliente.cl')!;
+    const profesional = app.mails.find((m) => m.to === 'a@test.cl')!;
+    assert.ok(cliente.logo && cliente.html!.includes('src="cid:logo"'));
+    assert.ok(!profesional.logo && !profesional.html!.includes('cid:logo'));
+  });
+
   it('si el correo falla, la aceptación queda igual', async () => {
     const q = await enviado();
     app.mailState.fail = true;

@@ -7,7 +7,7 @@ import { correosAceptado } from '../../lib/correo-presupuesto';
 import type { SendMail } from '../../lib/mail';
 import type { Snapshot } from '../../lib/snapshot';
 import { send } from '../../lib/storage';
-import { pdfDelPresupuesto } from '../quotes/emission';
+import { pdfDelPresupuesto, readImage } from '../quotes/emission';
 
 // Vista pública del cliente (Contrato API §10): sin autenticación, el token de la URL es la credencial. Solo expone
 // el snapshot (nunca user_id, IDs internos, levantamiento, fotos, notas ni seguimiento) y sin teléfono ni correo del cliente.
@@ -59,6 +59,7 @@ const view = (d: Doc) => {
     warranty: s.warranty, validity_days: s.validity_days, observations: s.observations,
     accepted_on: d.accepted_on,
     can_accept: !d.accepted_on && !noAceptable(d),
+    customer_has_email: !!d.customer_email, // para decirle si le llega el PDF por correo (sin mostrar el correo)
   };
 };
 
@@ -100,12 +101,15 @@ export function publicRoutes(sendMail: SendMail, ipLimit = 60) {
     if (!aceptado) return void res.json({ ...view(ahora), confirmation_sent: false }); // otro lo aceptó (o rechazó) recién
     await audit(req, 'QUOTE_ACCEPTED_BY_CUSTOMER', { userId: d.user_id, quoteId: d.quote_id });
 
-    const correos = correosAceptado(ahora.snapshot, fecha(ahora.accepted_on!));
+    const imagen = await readImage(ahora.snapshot.professional.logo_file_id);
+    const logo = imagen && { content: imagen.data, contentType: imagen.mime };
+    const correos = correosAceptado(ahora.snapshot, fecha(ahora.accepted_on!), !!logo);
     const adjunto = { filename: `${ahora.snapshot.number}-aceptado.pdf`, content: (await pdfDelPresupuesto(d.quote_id)).aceptado! };
-    const enviar = (to: string, m: { subject: string; text: string; html: string }) =>
-      sendMail({ to, ...m, attachment: adjunto }).then(() => true, (e: unknown) => (console.error('Correo de aceptación:', e), false));
+    // El del cliente lleva el logo arriba (si lo hay); el aviso al profesional, no.
+    const enviar = (to: string, m: { subject: string; text: string; html: string }, conLogo = false) =>
+      sendMail({ to, ...m, attachment: adjunto, ...(conLogo && logo && { logo }) }).then(() => true, (e: unknown) => (console.error('Correo de aceptación:', e), false));
     const [confirmation_sent] = await Promise.all([
-      ahora.customer_email ? enviar(ahora.customer_email, correos.cliente) : false,
+      ahora.customer_email ? enviar(ahora.customer_email, correos.cliente, true) : false,
       enviar(ahora.snapshot.professional.email, correos.profesional),
     ]);
     res.json({ ...view(ahora), confirmation_sent });
