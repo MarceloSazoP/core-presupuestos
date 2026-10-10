@@ -23,6 +23,7 @@ import { tasaLegible } from '@/lib/paises';
 import { AvisoSinSenal } from '@/components/sincronizacion';
 import { borradorVigente, claveBorradorCierre } from '@/lib/borrador-cierre';
 import { useSinSenal } from '@/lib/conexion';
+import { aFechaLocal, diaCorto } from '@/lib/fechas';
 import { huellaCierre } from '@/lib/huellas';
 import { asegurarSincronizado } from '@/sync/cola';
 import { guardarKv, leerKv } from '@/sync/db';
@@ -305,8 +306,10 @@ export function useEnvio(q: Presupuesto, recargar: () => Promise<void>) {
     confirmar('¿Enviaste el mensaje?', 'Sí, enviado', () => void marcar('mark-sent', { channel: 'WHATSAPP' }));
   }
 
+  // El servidor arma el correo según el estado (Contrato API §7): aquí solo cambia cómo se pregunta.
+  const aceptado = q.commercial_status === 'ACCEPTED';
   const correo = () =>
-    confirmar(`¿Enviar a ${q.customer.email}?`, 'Enviar', () => {
+    confirmar(aceptado ? `¿Enviar una copia a ${q.customer.email}?` : q.sent_at ? `¿Reenviar a ${q.customer.email}?` : `¿Enviar a ${q.customer.email}?`, aceptado ? 'Enviar copia' : 'Enviar', () => {
       setOcupado(true);
       void marcar('send-email').finally(() => setOcupado(false));
     });
@@ -314,18 +317,30 @@ export function useEnvio(q: Presupuesto, recargar: () => Promise<void>) {
   return { compartir, whatsapp, correo, error, ocupado, dialogo };
 }
 
-// Presupuesto terminado: la tarjeta para enviarlo. En qué estado va (enviado o no) lo dice el resumen de arriba.
+// Presupuesto terminado: la tarjeta para enviarlo, con el texto y los botones de su estado. Sin enviar: enviar por primera vez. Enviado
+// o en seguimiento: reenviar (el correo sigue con el botón para aceptar). Aceptado: solo una copia por correo, que va con el PDF
+// timbrado. Rechazado no la muestra: ahí va la versión nueva.
+const ENVIO = {
+  nuevo: { titulo: 'Enviar al cliente', correo: 'Enviar por correo', whatsapp: 'WhatsApp', texto: () => 'Le llega el presupuesto con un botón para aceptarlo. El PDF se lo enviamos cuando lo acepte.' },
+  enviado: { titulo: 'Reenviar al cliente', correo: 'Reenviar por correo', whatsapp: 'Reenviar por WhatsApp', texto: (dia: string) => `Se lo enviaste el ${dia}. Si no lo encuentra, reenvíaselo: sigue con el botón para aceptarlo.` },
+  aceptado: { titulo: 'Copia para el cliente', correo: 'Enviar copia a correo', whatsapp: null, texto: (dia: string) => `Tu cliente lo aceptó el ${dia}. Si necesita el PDF otra vez, envíale una copia: va con el timbre «Aceptado».` },
+} as const;
+const diaDe = (iso: string | null | undefined) => (iso ? diaCorto(aFechaLocal(new Date(iso))) : '');
+
 export function Envio({ q, recargar }: { q: Presupuesto; recargar: () => Promise<void> }) {
   const { compartir, whatsapp, correo, error, ocupado, dialogo } = useEnvio(q, recargar);
   const sinSenal = useSinSenal();
+  if (q.commercial_status === 'REJECTED') return null;
+  const aceptado = q.commercial_status === 'ACCEPTED';
+  const e = aceptado ? ENVIO.aceptado : q.commercial_status === 'NONE' ? ENVIO.nuevo : ENVIO.enviado;
 
   return (
     <TarjetaM>
-      <TextoM variante="subtitulo" accessibilityRole="header">Enviar al cliente</TextoM>
-      <TextoM suave>Tu cliente recibe el PDF y un enlace de solo lectura. No puede editar nada.</TextoM>
-      {q.public_url ? <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} disabled={sinSenal} /> : null}
-      <BotonM titulo="WhatsApp" icono="mensaje" variante="secundario" onPress={() => void whatsapp()} disabled={sinSenal} />
-      {q.customer.email ? <BotonM titulo="Enviar por correo" icono="correo" variante="secundario" onPress={correo} cargando={ocupado} disabled={ocupado || sinSenal} /> : <TextoM variante="chico" suave>El cliente no tiene correo guardado.</TextoM>}
+      <TextoM variante="subtitulo" accessibilityRole="header">{e.titulo}</TextoM>
+      <TextoM suave>{e.texto(diaDe(aceptado ? q.accepted_at : q.sent_at))}</TextoM>
+      {q.public_url && !aceptado ? <BotonM titulo="Compartir" icono="compartir" onPress={() => void compartir()} disabled={sinSenal} /> : null}
+      {e.whatsapp ? <BotonM titulo={e.whatsapp} icono="mensaje" variante="secundario" onPress={() => void whatsapp()} disabled={sinSenal} /> : null}
+      {q.customer.email ? <BotonM titulo={e.correo} icono="correo" variante={aceptado ? 'primario' : 'secundario'} onPress={correo} cargando={ocupado} disabled={ocupado || sinSenal} /> : <TextoM variante="chico" suave>El cliente no tiene correo guardado.</TextoM>}
       {sinSenal ? (
         <AvisoSinSenal texto="para enviar el presupuesto, necesitas internet." />
       ) : error ? (

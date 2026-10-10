@@ -84,38 +84,50 @@ const textoCompleto = (s: Snapshot) =>
 const contacto = (s: Snapshot) => botonesSecundarios([['Llamar por teléfono', `tel:${s.professional.phone}`], ['Escribir por WhatsApp', whatsapp(s.professional.phone)]]);
 const pie = (s: Snapshot) => `<strong>${escapar(s.professional.name)}</strong> · ${escapar(s.professional.phone)} · ${escapar(s.professional.email)}`;
 
-// `estado`: «aceptable» ofrece el botón de aceptar; «aceptado» va sin él y con el PDF timbrado adjunto; «cerrado» (rechazado) va
-// sin botón ni PDF.
-export type EstadoCorreo = 'aceptable' | 'aceptado' | 'cerrado';
-const saludo = (s: Snapshot) => `Hola ${s.customer.name}, te envío el presupuesto ${s.number}. Puedes revisarlo aquí mismo y aceptarlo desde este correo.`;
+// En qué estado va el presupuesto al enviarlo, y con eso el correo entero: «aceptable» ofrece el botón de aceptar; «aceptado» (con su
+// día, DD-MM-AAAA) lleva el sello, el PDF timbrado adjunto y ningún botón de aceptar; «cerrado» (rechazado) es solo el reenvío.
+export type EstadoCorreo = { tipo: 'aceptable' } | { tipo: 'aceptado'; dia: string } | { tipo: 'cerrado' };
+const ACEPTABLE: EstadoCorreo = { tipo: 'aceptable' };
+
+const saludo = (s: Snapshot, e: EstadoCorreo) =>
+  e.tipo === 'aceptado'
+    ? `Hola ${s.customer.name}, te reenvío el presupuesto ${s.number}, que aceptaste el ${e.dia}. Va adjunto el PDF con el timbre de aceptado.`
+    : e.tipo === 'cerrado'
+      ? `Hola ${s.customer.name}, te reenvío el presupuesto ${s.number}.`
+      : `Hola ${s.customer.name}, te envío el presupuesto ${s.number}. Puedes revisarlo aquí mismo y aceptarlo desde este correo.`;
+
 const invitacion = (s: Snapshot) => `¿Tienes dudas o quieres cambiar algo? Habla con ${escapar(s.professional.name)}:`;
 
+export const asuntoPresupuesto =(s: Snapshot, e: EstadoCorreo = ACEPTABLE) =>
+  e.tipo === 'aceptado' ? `Presupuesto ${s.number} aceptado · ${s.professional.name}` : `Presupuesto ${s.number} de ${s.professional.name}`;
+
 // `conLogo`: el logo del profesional va incrustado arriba (el correo lleva la imagen con el cid «logo»).
-export function correoPresupuesto(s: Snapshot, url: string, mensaje?: string, estado: EstadoCorreo = 'aceptable', conLogo = false): string {
-  const aceptar = estado === 'aceptable' ? boton('Aceptar el presupuesto', urlAceptar(url)) : '';
+export function correoPresupuesto(s: Snapshot, url: string, mensaje?: string, estado: EstadoCorreo = ACEPTABLE, conLogo = false): string {
+  const aceptar = estado.tipo === 'aceptable' ? boton('Aceptar el presupuesto', urlAceptar(url)) : '';
   return correoCorporativo({
-    preheader: `Presupuesto ${s.number} de ${s.professional.name}: ${formatoMonto(s.total, s.currency ?? 'CLP')}.`,
-    titulo: `Presupuesto ${s.number}`,
+    preheader: `Presupuesto ${s.number}${estado.tipo === 'aceptado' ? ' aceptado' : ''} de ${s.professional.name}: ${formatoMonto(s.total, s.currency ?? 'CLP')}.`,
+    titulo: estado.tipo === 'aceptado' ? `Presupuesto ${s.number} aceptado` : `Presupuesto ${s.number}`,
     logo: conLogo ? s.professional.name : undefined,
     cuerpo:
-      parrafo(escapar(mensaje ?? saludo(s)).replace(/\n/g, '<br>')) +
+      (estado.tipo === 'aceptado' ? sello('ACEPTADO', `el ${estado.dia}`) : '') +
+      parrafo(escapar(mensaje ?? saludo(s, estado)).replace(/\n/g, '<br>')) +
       aceptar + // arriba también: quien ya lo conversó no tiene que bajar hasta el final
       presupuestoCompleto(s) +
       aceptar +
-      parrafo(invitacion(s)) +
+      parrafo(estado.tipo === 'aceptable' ? invitacion(s) : `¿Quieres hablar con ${escapar(s.professional.name)}?`) +
       contacto(s) +
-      (estado === 'aceptado' ? parrafo('El PDF con el timbre de aceptado va adjunto.', { suave: true }) : ''),
+      (estado.tipo === 'aceptado' && mensaje ? parrafo('El PDF con el timbre de aceptado va adjunto.', { suave: true }) : ''),
     pie: pie(s),
   });
 }
 
-export const textoPresupuesto = (s: Snapshot, url: string, mensaje?: string, estado: EstadoCorreo = 'aceptable') =>
+export const textoPresupuesto = (s: Snapshot, url: string, mensaje?: string, estado: EstadoCorreo = ACEPTABLE) =>
   [
-    mensaje ?? saludo(s),
+    mensaje ?? saludo(s, estado),
     '',
     textoCompleto(s),
     '',
-    ...(estado === 'aceptable' ? [`Para aceptarlo: ${urlAceptar(url)}`] : []),
+    ...(estado.tipo === 'aceptable' ? [`Para aceptarlo: ${urlAceptar(url)}`] : []),
     `¿Dudas? Llama o escribe a ${s.professional.name}: ${s.professional.phone}`,
   ].join('\n');
 

@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { correoPresupuesto, textoPresupuesto } from '../../lib/correo-presupuesto';
+import { asuntoPresupuesto, correoPresupuesto, textoPresupuesto, type EstadoCorreo } from '../../lib/correo-presupuesto';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Request, Response, Router } from 'express';
@@ -58,7 +58,8 @@ async function activeToken(quoteId: string): Promise<string> {
 
 // El PDF de un presupuesto terminado. Mientras esté aceptado (por el cliente o a mano) se genera desde el snapshot con el timbre
 // «ACEPTADO» y la fecha; si no, es el que se guardó al terminar, que nunca cambia (Contrato API §10).
-export async function pdfDelPresupuesto(quoteId: string): Promise<{ number: string; storageKey: string; aceptado: Buffer | null }> {
+// `dia`: el día de la aceptación (DD-MM-AAAA), para el sello del correo.
+export async function pdfDelPresupuesto(quoteId: string): Promise<{ number: string; storageKey: string; aceptado: Buffer | null; dia: string | null }> {
   const { rows } = await query<{ storage_key: string; snapshot: Snapshot; aceptado: string | null; token: string | null }>(
     `SELECT f.storage_key, d.snapshot,
             CASE WHEN q.commercial_status = 'ACCEPTED'
@@ -67,14 +68,14 @@ export async function pdfDelPresupuesto(quoteId: string): Promise<{ number: stri
        FROM quotes q JOIN quote_documents d ON d.quote_id = q.id JOIN files f ON f.id = d.pdf_file_id
       WHERE q.id = $1`, [quoteId]);
   const { storage_key, snapshot: s, aceptado, token } = rows[0]!;
-  if (!aceptado) return { number: s.number, storageKey: storage_key, aceptado: null };
+  if (!aceptado) return { number: s.number, storageKey: storage_key, aceptado: null, dia: null };
   const pdf = await buildPdf(s, {
     logo: await readImage(s.professional.logo_file_id),
     signature: s.include_signature ? await readImage(s.professional.signature_file_id) : undefined,
     qr: s.include_qr && token ? await QRCode.toBuffer(publicUrl(token), { margin: 1, width: 300 }) : undefined,
     aceptado,
   });
-  return { number: s.number, storageKey: storage_key, aceptado: pdf };
+  return { number: s.number, storageKey: storage_key, aceptado: pdf, dia: aceptado };
 }
 
 // Descargar ese PDF: el aceptado se entrega entero; el guardado, desde el almacenamiento (admite rangos).
@@ -241,11 +242,11 @@ export function addEmissionRoutes(r: Router, deps: { sendMail: SendMail; mailLim
     // Sin PDF (es el documento oficial: el cliente lo recibe al aceptar, Contrato API §7). Si ya está aceptado, va sin el botón de
     // aceptar y con el PDF timbrado.
     const pdf = await pdfDelPresupuesto(q.id);
-    const estado = pdf.aceptado ? 'aceptado' : q.commercial_status === 'REJECTED' ? 'cerrado' : 'aceptable';
+    const estado: EstadoCorreo = pdf.dia ? { tipo: 'aceptado', dia: pdf.dia } : q.commercial_status === 'REJECTED' ? { tipo: 'cerrado' } : { tipo: 'aceptable' };
     const logo = await readImage(s.professional.logo_file_id); // el del snapshot: el que lleva el presupuesto
     await deps.sendMail({
       to,
-      subject: `Presupuesto ${s.number} de ${s.professional.name}`,
+      subject: asuntoPresupuesto(s, estado),
       text: textoPresupuesto(s, url, b.message, estado),
       html: correoPresupuesto(s, url, b.message, estado, !!logo),
       logo: logo && { content: logo.data, contentType: logo.mime },

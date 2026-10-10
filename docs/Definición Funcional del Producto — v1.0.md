@@ -872,6 +872,8 @@ Cuando el cliente acepta, el usuario puede marcar:
 
 **El cliente también puede aceptarlo él mismo (decisión del 2026-10-10).** El correo del presupuesto trae dos botones: **Aceptar el presupuesto** y **Llamar** al profesional (no hay botón de rechazar). El botón **Aceptar** del correo es la aceptación: abre la vista del presupuesto, que muestra «Presupuesto aceptado» y que el PDF le llega por correo, sin pedir otra confirmación. El presupuesto queda **ACEPTADO** en la app y en la web, y el cliente recibe otro correo con el mismo presupuesto y un timbre **ACEPTADO** con la fecha (el profesional recibe una copia). Ahí termina el flujo. **El PDF es el documento oficial del profesional:** el primer correo no lo lleva y la vista web del cliente no lo entrega; el cliente lo recibe solo en el correo de aceptación, timbrado, y el profesional lo ve en la app y en su editor web. No se puede aceptar un presupuesto vencido, rechazado o reemplazado por una versión nueva: la vista invita a hablar con el profesional.
 
+En la app, la tarjeta de envío cambia con el estado: **Enviar al cliente** (sin enviar), **Reenviar al cliente** (enviado o en seguimiento, con «Reenviar por correo» y «Reenviar por WhatsApp») y **Copia para el cliente** (aceptado, con un solo botón: «Enviar copia a correo», que manda el PDF timbrado). Un presupuesto rechazado no la muestra: ahí va la versión nueva.
+
 Esto permitirá posteriormente utilizar el dato en indicadores como:
 
 * Monto ganado del mes.

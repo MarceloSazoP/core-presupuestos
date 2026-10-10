@@ -67,6 +67,15 @@ describe('API: el cliente acepta el presupuesto desde el enlace', () => {
 
     assert.equal((await aceptar(q.token)).status, 200, 'aceptar de nuevo no falla');
     assert.equal(app.mails.length, 2, 'ni vuelve a enviar correos');
+
+    // Reenviar uno aceptado: el correo cambia entero (asunto, sello, saludo y PDF), sin el botón de aceptar.
+    await app.api('POST', `/quotes/${q.id}/send-email`, { token: a.token, body: {} });
+    const copia = app.mails.at(-1)!;
+    assert.match(copia.subject, /aceptado/);
+    assert.ok(copia.html!.includes('ACEPTADO') && copia.text.includes('que aceptaste el'));
+    assert.ok(!copia.html!.includes('?aceptar=1') && !copia.text.includes('?aceptar=1'), 'sin el botón de aceptar');
+    assert.match(copia.attachment!.filename, /-aceptado\.pdf$/);
+    app.mails.length = 2;
     const eventos = await pool.query(`SELECT count(*)::int AS n FROM audit_events WHERE event = 'QUOTE_ACCEPTED_BY_CUSTOMER'`);
     assert.equal(eventos.rows[0].n, 1);
   });
