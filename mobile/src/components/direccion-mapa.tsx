@@ -2,7 +2,7 @@ import { randomUUID } from 'expo-crypto';
 import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker } from '@/components/mapa';
 import { IconButton, Text, TouchableRipple, useTheme } from 'react-native-paper';
 import { api } from '@/api/client';
 import { BotonVolver, CampoM, DeslizarParaVolver } from '@/components/material';
