@@ -2,42 +2,43 @@
 @layer theme, base, mui, components, utilities;
 @import "tailwindcss";
 
-/* Claro: sistema «aurora»: lienzo lavanda con una aurora suave arriba, tarjetas blancas que flotan con una sombra de tres capas,
-   texto tinta medianoche y un solo acento magenta. Pares texto/fondo verificados a ≥ 4,5:1: por eso el texto secundario es un violeta
-   más oscuro que el «Pebble» del diseño (ese da 1,9:1 y queda solo para bordes). El oscuro es el sistema «neón» (más abajo). */
+/* Claro: sistema «Brex»: lienzo blanco de instrumento de precisión, gris niebla para separar secciones, tinta negra, bordes finos en
+   vez de sombras (solo lo que flota encima, como un aviso, lleva sombra) y un solo naranjo que marca la acción principal. Contrastes
+   verificados a ≥ 4,5:1: el naranjo de Brex (#ff5900) con blanco encima da 3,1:1, así que el botón usa uno más hondo (#cc4700, 4,7:1) y
+   los enlaces otro más (#b83f00, 5,6:1); el gris «Mist» (1,9:1) queda para líneas decorativas y los campos se bordean con «Steel» (3,3:1).
+   El oscuro es el sistema «neón» (más abajo). */
 :root {
   color-scheme: light dark;
-  --background: #e0dde2; /* Lavender Mist */
-  --foreground: #1d2630; /* Midnight Ink: 11,4:1 sobre el lienzo */
-  --muted: #565e80; /* 4,7:1 sobre el lienzo, 6,4:1 sobre blanco */
+  --background: #ffffff; /* Paper */
+  --foreground: #000000; /* Ink */
+  --muted: #60646c; /* Graphite: 5,9:1 sobre blanco, 5,4:1 sobre niebla */
   --card: #ffffff;
-  --borde: #a5afcb; /* Silver Lining: divisiones finas */
+  --niebla: #f3f3f7; /* Fog: secciones y fondos de campos en franjas */
+  --borde: #b9bbc6; /* Mist: divisiones y bordes de tarjeta */
   --campo-fondo: #ffffff;
-  --magenta: #995bb9; /* Aurora Magenta: íconos y el degradado de los titulares */
-  --marino: #3a4766; /* Tidewater Navy */
-  --aurora: radial-gradient(140% 119% at 50% 0%, rgb(105 201 102 / 0.4) 14%, rgb(39 187 219 / 0.33) 36%, rgb(139 71 206 / 0.2) 52%, rgb(218 64 134 / 0.1) 70%, rgb(255 149 116 / 0) 82%, transparent 100%);
-  --degradado-titular: linear-gradient(90deg, #995bb9, #5b638c 55%, #3a4766);
-  --sombra-flotante: 0 4px 15px rgb(97 110 124 / 0.114), inset 0 1px 1px rgb(255 255 255 / 0.39), 0 1px 1px rgb(34 50 94 / 0.08);
+  --ember: #ff5900; /* el naranjo de la marca, solo como acento puntual */
+  --sombra-flotante: none;
   /* Notas de la visita: la copia amarilla del talonario (solo para el profesional, no van al PDF) */
   --nota-fondo: oklch(0.975 0.045 95);
   --nota-borde: oklch(0.86 0.08 92);
   --nota-sello: oklch(0.45 0.09 75);
-  --borde-campo: #7f879c; /* borde de campos: 3,6:1 contra el blanco (WCAG 1.4.11); --borde es para divisiones */
-  --acento: #3a4766; /* fondo del botón principal (Tidewater Navy): el blanco encima da 9,2:1 */
-  --acento-texto: #7d4699; /* magenta legible para enlaces y foco: 4,9:1 sobre el lienzo */
+  --borde-campo: #8b8d98; /* Steel: borde de campos, 3,3:1 contra el blanco (WCAG 1.4.11) */
+  --acento: #cc4700; /* el botón principal: blanco encima a 4,7:1 */
+  --acento-texto: #b83f00; /* enlaces y foco: 5,6:1 sobre blanco */
   --error: oklch(0.5 0.19 27);
   --ok: oklch(0.48 0.12 150);
   --aviso: oklch(0.5 0.11 70);
   --ease: cubic-bezier(0.25, 1, 0.5, 1);
   /* Forma y letra que cambian con el modo (el oscuro «neón» las redefine): */
-  --fuente: var(--font-dm-sans);
-  --rasgos: normal;
-  --radio-boton: 9999px;
-  --radio-tarjeta: 18px;
-  --borde-tarjeta: transparent;
+  --fuente: var(--font-inter);
+  --rasgos: "calt" 0, "liga" 0, "ss03", "cv01", "cv10"; /* Inter sin ligaduras ni alternativas: neutra, de ingeniería */
+  --radio-boton: 12px;
+  --radio-tarjeta: 12px;
+  --borde-tarjeta: #b9bbc6;
   --mayus: none; /* mayúsculas de botones y títulos */
-  --espaciado-boton: normal;
-  --espaciado-titulo: -0.02em;
+  --espaciado-boton: -0.01em;
+  --espaciado-titulo: -0.025em;
+  --espaciado-texto: -0.01em; /* el interletrado comprimido de Inter, en todos los tamaños */
 }
 
 /* Tema: sigue al sistema, salvo que el botón fije data-theme en <html> (se recuerda en localStorage). */
@@ -55,7 +56,6 @@
     --borde-tarjeta: #ffffff;
     --acento: #e41c61; /* rosado de acción: blanco encima 4,5:1 */
     --acento-texto: #ff4d88; /* enlaces y foco sobre negro: 6,7:1 */
-    --aurora: none;
     --sombra-flotante: none;
     --fuente: var(--font-source-code-pro);
     --rasgos: "zero"; /* cero tachado */
@@ -64,6 +64,10 @@
     --mayus: uppercase;
     --espaciado-boton: 0.1em;
     --espaciado-titulo: 0.08em;
+  --espaciado-texto: normal;
+  --niebla: #0d0d0d;
+    --espaciado-texto: normal;
+    --niebla: #0d0d0d;
     --nota-fondo: oklch(0.235 0.03 90);
     --nota-borde: oklch(0.38 0.055 90);
     --nota-sello: oklch(0.84 0.11 88);
@@ -87,7 +91,6 @@
   --borde-tarjeta: #ffffff;
   --acento: #e41c61; /* rosado de acción: blanco encima 4,5:1 */
   --acento-texto: #ff4d88; /* enlaces y foco sobre negro: 6,7:1 */
-  --aurora: none;
   --sombra-flotante: none;
   --fuente: var(--font-source-code-pro);
   --rasgos: "zero"; /* cero tachado */
@@ -115,8 +118,8 @@
   --color-error: var(--error);
   --color-ok: var(--ok);
   --color-aviso: var(--aviso);
-  --color-magenta: var(--magenta);
-  --color-marino: var(--marino);
+  --color-niebla: var(--niebla);
+  --color-ember: var(--ember);
   --font-sans: var(--fuente);
 }
 
@@ -128,11 +131,11 @@ html {
 }
 
 body {
-  /* La aurora solo arriba: se desvanece antes de la mitad de la primera pantalla. */
-  background: var(--aurora) top / 100% min(100svh, 56rem) no-repeat, var(--background);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-feature-settings: var(--rasgos);
+  letter-spacing: var(--espaciado-texto);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.5;
@@ -175,65 +178,61 @@ button {
   -webkit-touch-callout: none;
 }
 
-/* Portada: fija en claro a propósito (es la cara de la marca), con el sistema «aurora» aunque el equipo esté en oscuro. */
+/* Portada: fija en claro a propósito (es la cara de la marca), con el sistema «Brex» aunque el equipo esté en oscuro. */
 .marca {
   color-scheme: light;
-  --background: #e0dde2;
-  --foreground: #1d2630;
-  --muted: #565e80;
+  --background: #ffffff;
+  --foreground: #000000;
+  --muted: #60646c;
   --card: #ffffff;
-  --borde: #a5afcb;
-  --borde-campo: #7f879c;
+  --niebla: #f3f3f7;
+  --borde: #b9bbc6;
+  --borde-campo: #8b8d98;
   --campo-fondo: #ffffff;
-  --acento: #3a4766;
-  --acento-texto: #7d4699;
-  --aurora: radial-gradient(140% 119% at 50% 0%, rgb(105 201 102 / 0.4) 14%, rgb(39 187 219 / 0.33) 36%, rgb(139 71 206 / 0.2) 52%, rgb(218 64 134 / 0.1) 70%, rgb(255 149 116 / 0) 82%, transparent 100%);
-  --sombra-flotante: 0 4px 15px rgb(97 110 124 / 0.114), inset 0 1px 1px rgb(255 255 255 / 0.39), 0 1px 1px rgb(34 50 94 / 0.08);
-  --fuente: var(--font-dm-sans);
-  --rasgos: normal;
-  --radio-boton: 9999px;
-  --radio-tarjeta: 18px;
-  --borde-tarjeta: transparent;
+  --acento: #cc4700;
+  --acento-texto: #b83f00;
+  --sombra-flotante: none;
+  --fuente: var(--font-inter);
+  --rasgos: "calt" 0, "liga" 0, "ss03", "cv01", "cv10";
+  --radio-boton: 12px;
+  --radio-tarjeta: 12px;
+  --borde-tarjeta: #b9bbc6;
   --mayus: none;
-  --espaciado-boton: normal;
-  --espaciado-titulo: -0.02em;
+  --espaciado-boton: -0.01em;
+  --espaciado-titulo: -0.025em;
+  --espaciado-texto: -0.01em;
   --error: oklch(0.5 0.19 27);
   --ok: oklch(0.48 0.12 150);
   --aviso: oklch(0.5 0.11 70);
-  background: var(--aurora) top / 100% min(100svh, 56rem) no-repeat, var(--background);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--fuente), system-ui, sans-serif;
-  font-feature-settings: normal;
+  font-feature-settings: var(--rasgos);
+  letter-spacing: var(--espaciado-texto);
 }
 
 @layer components {
-  /* Superficie que flota sobre el lienzo: blanca, sin borde, con la sombra de tres capas. Solo para lo que flota, no para filas. */
+  /* Superficie de la portada: blanca, plana, con borde fino y 12 px (sin sombra: la separan el borde y el gris niebla). */
   .flotante {
     background: var(--card);
-    border-radius: 22px;
-    box-shadow: var(--sombra-flotante);
-  }
-  /* Titular grande con el degradado magenta → marino (solo titulares grandes y el ícono de la marca). */
-  .titular {
-    background: var(--degradado-titular);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-tarjeta);
   }
   .icono-marca {
     @apply inline-grid shrink-0 place-items-center rounded-lg text-white;
-    background: var(--degradado-titular);
+    background: var(--foreground);
   }
-  /* Ícono de una característica: magenta sobre un cuadro gris azulado suave. */
+  /* Ícono de una característica: tinta sobre un cuadro gris niebla (íconos sobrios, sin color de marca). */
   .icono-suave {
     @apply grid size-11 shrink-0 place-items-center rounded-xl;
-    color: var(--magenta);
-    background: color-mix(in oklab, #a5afcb 30%, transparent);
+    color: var(--foreground);
+    background: var(--niebla);
   }
+  /* Etiqueta: 6 px, gris niebla y texto en tinta. */
   .pastilla {
-    @apply inline-flex w-fit items-center gap-2 rounded-full px-3.5 py-1 text-sm font-semibold;
-    background: var(--card);
-    box-shadow: var(--sombra-flotante);
+    @apply inline-flex w-fit items-center gap-2 px-3 py-1 text-sm font-medium;
+    border-radius: 6px;
+    background: var(--niebla);
   }
   @keyframes asentar {
     from {
