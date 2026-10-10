@@ -1,9 +1,12 @@
+import Constants from 'expo-constants';
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
+import { apiLocal } from '@/lib/api-local';
 
 // Cliente de la API (Contrato de API). Sin lógica de negocio: la app captura y presenta, las reglas viven en el backend.
-// En un iPhone real `localhost` es el propio teléfono: EXPO_PUBLIC_API_URL debe apuntar a la IP del computador.
-const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3013/api/v1';
+// EXPO_PUBLIC_API_URL manda si está fijada (p. ej. la API de Vercel). Si no, en desarrollo se usa el computador que sirve Metro
+// (en un teléfono, `localhost` sería el propio teléfono).
+const BASE = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__ ? apiLocal(Constants.expoConfig?.hostUri) : null) ?? 'http://localhost:3013/api/v1';
 
 export type Detalle = { field: string; message: string };
 
