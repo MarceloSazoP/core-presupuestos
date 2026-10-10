@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Image, { type StaticImageData } from "next/image";
-import type { ReactNode } from "react";
-import { PAISES_ORDENADOS, tasaLegible } from "@/lib/paises";
+import type { CSSProperties, ReactNode } from "react";
+import { PAISES_ORDENADOS } from "@/lib/paises";
 import appInicio from "./capturas/app-inicio.png";
 import appTerminado from "./capturas/app-terminado.png";
 import appVisita from "./capturas/app-visita.png";
@@ -9,6 +9,8 @@ import clienteTelefono from "./capturas/cliente-telefono.png";
 import equipos from "./capturas/equipos.png";
 import { ConsultaForm } from "./consulta-form";
 import { HojaDemo } from "./hoja-demo";
+import { PaisesElegibles } from "./paises-elegibles";
+import { Revelar } from "./revelar";
 import { VinculoQr } from "./vinculo-qr";
 
 export const metadata: Metadata = {
@@ -31,7 +33,7 @@ const PANTALLAS: { foto: StaticImageData; alt: string; titulo: string; detalle: 
     foto: appTerminado,
     alt: "La app con un presupuesto enviado: su estado, el total, hasta cuándo vale y el próximo contacto, con los botones Ver PDF y Llamar",
     titulo: "Listo para enviar",
-    detalle: "El total, hasta cuándo vale y cuándo volver a llamar, a la vista. El PDF y el envío por WhatsApp o correo, a un toque.",
+    detalle: "El total, hasta cuándo vale y cuándo volver a llamar, a la vista. Se lo envías por correo o WhatsApp con un toque.",
   },
   {
     foto: appInicio,
@@ -41,26 +43,43 @@ const PANTALLAS: { foto: StaticImageData; alt: string; titulo: string; detalle: 
   },
 ];
 
-const PASOS = [
+// Los cuatro pasos, cada uno con una tarjeta que imita lo que se ve en la app en ese momento (filas con ícono y valor, el total, el
+// botón que recibe el cliente o el sello de aceptado).
+type Muestra = { icono?: keyof typeof ICONOS; texto: string; valor?: string; tipo?: "total" | "boton" | "ok" | "sello" };
+const PASOS: { titulo: string; detalle: string; muestra: Muestra[] }[] = [
   {
     titulo: "Captura en la visita",
-    detalle: "Escribe, graba la voz, saca fotos y anota medidas. Pensado para terreno: también sin señal.",
-    muestra: ["Nota de voz · 0:42", "3 fotos", "Largo del pasillo · 6,5 m"],
+    detalle: "Fotos, voz, medidas y notas, a un toque. Pensado para terreno: también sin señal.",
+    muestra: [
+      { icono: "microfono", texto: "Nota de voz", valor: "0:42" },
+      { icono: "camara", texto: "Fotos", valor: "3" },
+      { icono: "regla", texto: "Largo del pasillo", valor: "6,5 m" },
+    ],
   },
   {
     titulo: "Prepáralo donde te acomode",
-    detalle: "Termínalo ahí mismo en el celular o, ya en casa, abre el presupuesto con su código en el computador: ítems con cantidad, unidad (m², gl, hh…) y precio. El total se calcula solo.",
-    muestra: ["Cable 2,5 mm² · 30 m · $26.700", "Revisión de tablero · 1 gl · $35.000", "Total · $111.700"],
+    detalle: "En el celular o, ya en casa, en el computador con su código. El total se calcula solo.",
+    muestra: [
+      { texto: "Cable 2,5 mm² · 30 m", valor: "$26.700" },
+      { texto: "Revisión de tablero", valor: "$35.000" },
+      { texto: "Total", valor: "$111.700", tipo: "total" },
+    ],
   },
   {
     titulo: "Envía al cliente",
-    detalle: "Le llega por correo o WhatsApp, con tu logo y tus datos y un botón para aceptarlo. Cuando acepta, recibe el PDF con el timbre «Aceptado» y tú lo ves en la app.",
-    muestra: ["Correo con «Aceptar»", "WhatsApp", "PDF al aceptar"],
+    detalle: "Le llega por correo o WhatsApp con tus datos y un botón para aceptarlo.",
+    muestra: [
+      { icono: "correo", texto: "Correo enviado a Juan", tipo: "ok" },
+      { texto: "Aceptar el presupuesto", tipo: "boton" },
+    ],
   },
   {
     titulo: "Haz seguimiento",
-    detalle: "Anota cuándo volver a llamar y ese día te llega un aviso. Marca si el cliente aceptó o rechazó; si lo rechazó, rehazlo como una versión nueva.",
-    muestra: ["Próximo contacto · en 3 días", "Aceptado", "Versión 2"],
+    detalle: "Ese día te llega un aviso para llamar. Si lo acepta, lo ves al instante en la app.",
+    muestra: [
+      { icono: "agenda", texto: "Próximo contacto", valor: "en 3 días" },
+      { texto: "Aceptado", tipo: "sello" },
+    ],
   },
 ];
 
@@ -76,6 +95,8 @@ const ICONOS = {
   ver: "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z",
   enviar: "M2.01 21 23 12 2.01 3 2 10l15 2-15 2z",
   aceptar: "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z",
+  microfono: "M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z",
+  correo: "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z",
   candado: "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z",
   enlace: "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z",
 };
@@ -159,21 +180,50 @@ function Telefono({ foto, alt }: { foto: StaticImageData; alt: string }) {
 
 const TITULO_SECCION = "text-[clamp(1.75rem,3.5vw,3rem)] font-semibold leading-tight tracking-[-0.025em]";
 
+// El lugar en una cascada (.entrar y .revelar, globals.css): cada uno llega un poco después del anterior.
+const turno = (i: number) => ({ "--i": i }) as CSSProperties;
+
+// Una pantalla en miniatura de un paso: filas con ícono y valor, el total, el botón que ve el cliente o el sello de aceptado.
+function MiniPantalla({ filas }: { filas: Muestra[] }) {
+  return (
+    <ul className="flotante mt-auto flex flex-col gap-2.5 p-4 text-sm">
+      {filas.map((f) => (
+        <li key={f.texto} className={f.tipo === "total" ? "flex items-center justify-between gap-3 border-t border-borde pt-2.5 font-semibold" : "flex items-center justify-between gap-3"}>
+          {f.tipo === "boton" ? (
+            <span className="rounded-lg bg-[var(--acento)] px-3 py-1.5 font-semibold text-white">{f.texto}</span>
+          ) : f.tipo === "sello" ? (
+            <span className="rounded-md border-2 border-[var(--ok)] px-2.5 py-0.5 text-xs font-bold tracking-[0.14em] text-[var(--ok)]">{f.texto.toUpperCase()}</span>
+          ) : (
+            <span className="flex min-w-0 items-center gap-2">
+              {f.icono ? <Icono d={ICONOS[f.icono]} className="size-4 shrink-0 text-muted" /> : null}
+              <span className="truncate">{f.texto}</span>
+              {f.tipo === "ok" ? <Icono d={ICONOS.aceptar} className="size-4 shrink-0 text-[var(--ok)]" /> : null}
+            </span>
+          )}
+          {f.valor ? <span className="shrink-0 tabular-nums text-muted">{f.valor}</span> : null}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 type Punto = { icono: string; titulo: string; detalle: string };
 
 // Una fila de «el resto del sistema»: la imagen y, al lado, qué es y qué se puede hacer. El texto ocupa todo el ancho que queda (los
 // puntos en tarjetas de a dos) para que la pantalla ancha no quede con un hueco; `invertido` alterna el lado de la imagen.
-function Lado({ visual, rotulo, titulo, detalle, puntos, invertido = false }: { visual: ReactNode; rotulo: string; titulo: string; detalle: string; puntos: Punto[]; invertido?: boolean }) {
+// `angosto`: la imagen es un teléfono (alto y delgado) y su columna se angosta para que el texto use el resto del ancho.
+function Lado({ visual, rotulo, titulo, detalle, puntos, invertido = false, angosto = false }: { visual: ReactNode; rotulo: string; titulo: string; detalle: string; puntos: Punto[]; invertido?: boolean; angosto?: boolean }) {
+  const columnas = angosto ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]" : invertido ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,35rem)]" : "lg:grid-cols-[minmax(0,35rem)_minmax(0,1fr)]";
   return (
-    <div className={`grid gap-8 lg:items-center lg:gap-16 ${invertido ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,35rem)]" : "lg:grid-cols-[minmax(0,35rem)_minmax(0,1fr)]"}`}>
-      <div className={invertido ? "lg:order-last" : ""}>{visual}</div>
+    <div className={`grid gap-8 lg:items-center lg:gap-16 ${columnas}`}>
+      <div className={`revelar ${invertido ? "lg:order-last" : ""}`}>{visual}</div>
       <div className="flex flex-col gap-4">
-        <p className="text-sm font-semibold text-acento-texto">{rotulo}</p>
-        <h3 className="text-[clamp(1.5rem,2.4vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]">{titulo}</h3>
-        <p className="max-w-3xl text-lg leading-relaxed text-muted">{detalle}</p>
+        <p className="revelar text-sm font-semibold text-acento-texto" style={turno(1)}>{rotulo}</p>
+        <h3 className="revelar text-[clamp(1.5rem,2.4vw,2.25rem)] font-semibold leading-tight tracking-[-0.02em]" style={turno(1)}>{titulo}</h3>
+        <p className="revelar max-w-3xl text-lg leading-relaxed text-muted" style={turno(2)}>{detalle}</p>
         <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-          {puntos.map((p) => (
-            <li key={p.titulo} className="flotante flex gap-4 p-5">
+          {puntos.map((p, n) => (
+            <li key={p.titulo} className="revelar flotante flex gap-4 p-5" style={turno(2 + n)}>
               <span className="icono-suave">
                 <Icono d={p.icono} />
               </span>
@@ -191,16 +241,18 @@ function Lado({ visual, rotulo, titulo, detalle, puntos, invertido = false }: { 
 
 export default function Landing() {
   return (
-    <main className="marca overflow-x-clip">
-      {/* Barra del anuncio (oscura, como la de Brex): lo que viene y un atajo a cómo funciona. */}
-      <p className="bg-[#15191e] px-4 py-2 text-center text-sm font-medium text-white">
-        Próximamente en Android y iPhone ·{" "}
-        <a href="#que-hace" className="text-ember underline-offset-4 hover:underline">
-          Mira cómo funciona
-        </a>
-      </p>
+    <main className="marca por-secciones overflow-x-clip">
+      <Revelar />
+      {/* Cada pantalla, una sección (globals.css, .seccion-pantalla): la primera lleva la barra del anuncio, el menú y la portada. */}
+      <div className="seccion-pantalla seccion-inicio">
+        {/* Barra del anuncio (oscura, como la de Brex): lo que viene y un atajo a cómo funciona. */}
+        <p className="bg-[#15191e] px-4 py-2 text-center text-sm font-medium text-white">
+          Próximamente en Android y iPhone ·{" "}
+          <a href="#que-hace" className="text-ember underline-offset-4 hover:underline">
+            Mira cómo funciona
+          </a>
+        </p>
 
-      <div>
         <nav aria-label="Principal" className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
           <p className="flex items-center gap-2.5 whitespace-nowrap text-lg font-bold tracking-tight">
             <span className="icono-marca size-8">
@@ -220,13 +272,13 @@ export default function Landing() {
           </div>
         </nav>
 
-        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-28 lg:pt-12 xl:grid-cols-[minmax(0,1fr)_58%] xl:gap-x-[4%]">
+        <section className="relative grid gap-12 px-4 pb-20 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] lg:items-start lg:gap-16 lg:px-12 lg:pb-12 lg:pt-8 xl:grid-cols-[minmax(0,1fr)_58%] xl:gap-x-[4%]">
           <div className="flex flex-col gap-6">
-            <p className="pastilla">Para los países de habla hispana</p>
+            <p className="pastilla entrar" style={turno(0)}>Para los países de habla hispana</p>
             <h1 className="max-w-3xl text-[clamp(2.5rem,6vw,5rem)] font-semibold leading-[1.04] tracking-[-0.03em] [text-wrap:balance] lg:text-[clamp(2.5rem,4.4vw,4.5rem)] lg:max-w-[min(100%,32rem)] xl:text-[clamp(2.5rem,3.6vw,4.5rem)] xl:max-w-[34rem] 2xl:max-w-[44rem]">
               Del terreno al presupuesto, sin olvidar nada.
             </h1>
-            <p className="max-w-xl text-lg leading-relaxed text-muted lg:max-w-[min(100%,30rem)] xl:max-w-[32rem] 2xl:max-w-[38rem] 2xl:text-xl">
+            <p className="entrar max-w-xl text-lg leading-relaxed text-muted lg:max-w-[min(100%,30rem)] xl:max-w-[32rem] 2xl:max-w-[38rem] 2xl:text-xl" style={turno(1)}>
               Anota lo que ves en la visita (notas, fotos, medidas y voz) y entrega un presupuesto profesional en minutos.
               Hecho para electricistas, gasfíteres, plomeros, instaladores y técnicos independientes.
             </p>
@@ -237,7 +289,8 @@ export default function Landing() {
             <section
               id="consulta"
               aria-labelledby="consultar"
-              className="flotante scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:mx-0 xl:mt-[3%] xl:w-[46%] xl:min-w-[19rem] xl:max-w-[28rem] xl:shrink-0 2xl:p-6"
+              style={turno(2)}
+              className="entrar flotante scroll-mt-6 p-5 lg:mx-auto lg:w-full lg:max-w-md xl:mx-0 xl:mt-[3%] xl:w-[46%] xl:min-w-[19rem] xl:max-w-[28rem] xl:shrink-0 2xl:p-6"
             >
               <ConsultaForm />
               <p aria-hidden="true" className="my-4 flex items-center gap-3 text-sm font-medium text-muted">
@@ -253,20 +306,23 @@ export default function Landing() {
       </div>
 
       {/* Qué es y qué hace, con la app tal como se ve. */}
-      <section id="que-hace" className="scroll-mt-6 px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <div className="flex max-w-3xl flex-col gap-4">
-          <p className="text-sm font-semibold text-acento-texto">La app, en terreno</p>
-          <h2 className={TITULO_SECCION}>Todo lo de la visita, en tu teléfono.</h2>
+      <section id="que-hace" className="seccion-pantalla scroll-mt-6 px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        {/* En pantallas anchas, el título y el texto lado a lado: así los teléfonos caben en la misma pantalla. */}
+        <div className="revelar flex max-w-3xl flex-col gap-4 lg:grid lg:max-w-none lg:grid-cols-2 lg:items-end lg:gap-x-16">
+          <div className="flex flex-col gap-4">
+            <p className="text-sm font-semibold text-acento-texto">La app, en terreno</p>
+            <h2 className={TITULO_SECCION}>Todo lo de la visita, en tu teléfono.</h2>
+          </div>
           <p className="text-lg leading-relaxed text-muted">
             CORE Presupuestos es una app para quienes trabajan en terreno. Anotas lo que ves mientras estás con el cliente, armas el presupuesto
-            con sus ítems y precios, se lo envías en PDF y te recuerda cuándo volver a llamarlo. Sin libretas, sin fotos perdidas en la galería y
+            con sus ítems y precios, se lo envías para que lo acepte con un toque y te recuerda cuándo volver a llamarlo. Sin libretas, sin fotos perdidas en la galería y
             sin planillas.
           </p>
         </div>
-        <ul className="mt-12 grid gap-14 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
-          {PANTALLAS.map((p) => (
-            <li key={p.titulo} className="flex flex-col gap-6">
-              <div className="mx-auto w-full max-w-[17rem]">
+        <ul className="mt-12 grid gap-14 sm:grid-cols-2 lg:mt-8 lg:grid-cols-3 lg:gap-10">
+          {PANTALLAS.map((p, n) => (
+            <li key={p.titulo} className="revelar flex flex-col gap-6" style={turno(n)}>
+              <div className="telefono-pantalla mx-auto w-full max-w-[17rem]">
                 <Telefono foto={p.foto} alt={p.alt} />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -278,34 +334,37 @@ export default function Landing() {
         </ul>
       </section>
 
-      <section id="como-funciona" className="scroll-mt-6 bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <h2 className={`max-w-2xl ${TITULO_SECCION}`}>Cuatro pasos. Ninguna libreta perdida.</h2>
-        <ol className="mt-10 flex flex-col gap-10">
-          {PASOS.map((paso, i) => (
-            <li key={paso.titulo} className="grid gap-4 md:grid-cols-[4.5rem_minmax(0,1fr)_minmax(0,24rem)] md:items-start md:gap-8">
-              <p aria-hidden="true" className="text-5xl font-semibold leading-none tabular-nums tracking-[-0.03em]">
-                {i + 1}
-              </p>
-              <div className="flex max-w-xl flex-col gap-2">
-                <h3 className="text-xl font-semibold tracking-tight">{paso.titulo}</h3>
-                <p className="text-muted">{paso.detalle}</p>
-              </div>
-              <ul className="flotante flex flex-col gap-1.5 p-5 text-sm">
-                {paso.muestra.map((m) => (
-                  <li key={m} className="tabular-nums">
-                    {m}
-                  </li>
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ol>
+      <section id="como-funciona" className="seccion-pantalla scroll-mt-6 bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <div className="revelar flex max-w-3xl flex-col gap-4">
+          <p className="text-sm font-semibold text-acento-texto">Cómo funciona</p>
+          <h2 className={TITULO_SECCION}>Cuatro pasos. Ninguna libreta perdida.</h2>
+        </div>
+        {/* Una línea de tiempo: en pantallas anchas, los cuatro pasos en fila, unidos por una línea que se dibuja de izquierda a derecha
+            al llegar (.dibujar). Cada paso termina en su pantalla en miniatura, alineadas abajo. */}
+        <div className="relative mt-12 lg:mt-14">
+          <div aria-hidden="true" className="revelar dibujar absolute left-5 top-[1.1875rem] hidden h-0.5 bg-foreground lg:block" style={{ right: "calc((100% - 6rem) / 4 - 1.25rem)" }} />
+          <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            {PASOS.map((paso, i) => (
+              <li key={paso.titulo} className="revelar flex flex-col gap-5" style={turno(i + 1)}>
+                <span aria-hidden="true" className="relative grid size-10 place-items-center rounded-full bg-foreground font-semibold tabular-nums text-[var(--background)] ring-8 ring-niebla">
+                  {i + 1}
+                </span>
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-xl font-semibold tracking-tight">{paso.titulo}</h3>
+                  <p className="text-muted">{paso.detalle}</p>
+                </div>
+                <MiniPantalla filas={paso.muestra} />
+              </li>
+            ))}
+          </ol>
+        </div>
       </section>
 
       {/* El resto del sistema: la web para terminarlo y lo que ve el cliente. */}
-      <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <h2 className={`max-w-2xl ${TITULO_SECCION}`}>En el computador y en el teléfono de tu cliente.</h2>
-        <div className="mt-12 flex flex-col gap-20">
+      {/* Es alta para una sola pantalla: el computador y el teléfono del cliente van cada uno en la suya. */}
+      <section className="seccion-pantalla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <h2 className={`revelar max-w-2xl ${TITULO_SECCION}`}>En el computador y en el teléfono de tu cliente.</h2>
+        <div className="mt-12 lg:mt-6">
           <Lado
             visual={
               // La foto de los equipos mide 1036 px: a 35 rem (560 px) sigue nítida incluso en pantallas de doble densidad.
@@ -328,11 +387,16 @@ export default function Landing() {
               { icono: ICONOS.enviar, titulo: "Terminar y enviar", detalle: "Por correo, con el botón para que tu cliente lo acepte, o por WhatsApp." },
             ]}
           />
+        </div>
+      </section>
+      <section className="seccion-pantalla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <div>
           <Lado
             invertido
+            angosto
             visual={
               <div className="flex justify-center">
-                <div className="w-full max-w-[15rem]">
+                <div className="telefono-pantalla w-full max-w-[17rem] [--resto:9rem]">
                   <Telefono foto={clienteTelefono} alt="Lo que recibe el cliente en su teléfono: quién lo envía, el número del presupuesto, el detalle, el total y el botón Aceptar" />
                 </div>
               </div>
@@ -350,107 +414,89 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
+      <section className="seccion-pantalla bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <div className="revelar flex max-w-3xl flex-col gap-4">
           <h2 className={TITULO_SECCION}>Hecho para el oficio.</h2>
-          <ul className="grid gap-10 sm:grid-cols-2">
-            {BENEFICIOS.map((b) => (
-              <li key={b.titulo} className="flex gap-4">
-                <span className="icono-suave bg-white">
-                  <Icono d={b.icono} />
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  <h3 className="text-[1.0625rem] font-semibold">{b.titulo}</h3>
-                  <p className="text-muted">{b.detalle}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      {/* Los países salen de la misma tabla que usan la app y el servidor: si cambia una tasa, la portada la muestra sola. */}
-      <section id="paises" aria-labelledby="titulo-paises" className="scroll-mt-6 py-16 lg:py-20">
-        <div className="flex max-w-3xl flex-col gap-4 px-4 sm:px-6 lg:px-12 lg:max-w-[54rem]">
-          <h2 id="titulo-paises" className={TITULO_SECCION}>
-            Para los países de habla hispana.
-          </h2>
           <p className="text-lg leading-relaxed text-muted">
-            Todo en español, con la moneda de tu país y su impuesto calculado con la tasa que corresponde. Eliges tu país una vez y listo. Si la
-            ley cambia una tasa, la actualizamos; los presupuestos que ya enviaste no cambian.
+            Pensado para quien trabaja en terreno: lo justo para no olvidar nada y cobrar bien, sin volverse un sistema complicado.
           </p>
         </div>
-        {/* Carrusel continuo: dos copias de la lista y la pista corre media vuelta (una copia) para empalmar sin salto. La segunda copia
-            no la lee el lector de pantalla. Con «reducir movimiento» queda quieto y se recorre deslizando. */}
-        <div className="carrusel mt-10">
-          <ul className="carrusel-pista">
-            {[...PAISES_ORDENADOS, ...PAISES_ORDENADOS].map((p, i) => (
-              <li key={`${p.country}-${i}`} aria-hidden={i >= PAISES_ORDENADOS.length || undefined} className="carrusel-tarjeta flotante">
-                {/* Banderas de flag-icons (MIT) en PNG de 96 × 72: las banderas emoji no se ven en Windows. */}
-                <span className="flex items-center gap-2.5 font-semibold leading-tight">
-                  <Image src={`/banderas/${p.country.toLowerCase()}.png`} alt="" width={32} height={24} unoptimized className="shrink-0 rounded-[3px] ring-1 ring-borde" />
-                  {p.name}
-                </span>
-                <span>
-                  <span className="text-3xl font-semibold tabular-nums tracking-[-0.02em]">{tasaLegible(p.vat_rate)} %</span>{" "}
-                  <span className="text-muted">{p.vat_label}</span>
-                </span>
-                <span className="text-sm text-muted">
-                  {p.currency} ({p.symbol})
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* Tarjetas de 3 en 3 en pantallas anchas: llenan la pantalla de la sección en vez de dejar una lista corta flotando. */}
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:mt-8 lg:grid-cols-3">
+          {BENEFICIOS.map((b, n) => (
+            <li key={b.titulo} className="revelar flotante flex flex-col gap-4 p-6" style={turno(n % 3)}>
+              <span className="icono-suave">
+                <Icono d={b.icono} />
+              </span>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-[1.0625rem] font-semibold">{b.titulo}</h3>
+                <p className="text-muted">{b.detalle}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <section id="preguntas" className="scroll-mt-6 bg-niebla px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
-          <h2 className={TITULO_SECCION}>Preguntas frecuentes.</h2>
-          {/* <details> nativo: se abre con teclado y lector de pantalla sin código extra. */}
-          <div className="flex max-w-3xl flex-col divide-y divide-borde border-y border-borde">
-            {PREGUNTAS.map((p) => (
-              <details key={p.pregunta} className="pregunta group py-5">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-[1.0625rem] font-semibold [&::-webkit-details-marker]:hidden">
-                  {p.pregunta}
-                  <span aria-hidden="true" className="text-2xl font-normal leading-none text-muted transition-transform duration-200 group-open:rotate-45">
-                    +
-                  </span>
-                </summary>
-                <p className="mt-2 max-w-2xl text-muted">{p.respuesta}</p>
-              </details>
-            ))}
+      <section id="paises" aria-labelledby="titulo-paises" className="seccion-pantalla scroll-mt-6 px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
+        <PaisesElegibles>
+          <div className="revelar flex flex-col gap-4">
+            <h2 id="titulo-paises" className={TITULO_SECCION}>
+              Para los países de habla hispana.
+            </h2>
+            <p className="text-lg leading-relaxed text-muted">
+              Todo en español, con la moneda de tu país y su impuesto con la tasa que corresponde. Elige uno y mira cómo queda.
+            </p>
           </div>
-        </div>
+        </PaisesElegibles>
       </section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-12 lg:py-20">
-        <div className="flotante grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:p-10">
-          <div className="flex max-w-2xl flex-col gap-2">
-            <h2 className="text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">¿Tu profesional te envió un código?</h2>
-            <p className="text-muted">Ingrésalo para ver tu presupuesto y aceptarlo.</p>
+      {/* La última pantalla: las preguntas frecuentes junto a la consulta del cliente, y el pie abajo. */}
+      <div className="seccion-pantalla seccion-final">
+        <section id="preguntas" className="scroll-mt-6 bg-niebla px-4 py-16 sm:px-6 lg:flex lg:flex-1 lg:flex-col lg:justify-center lg:px-12 lg:py-8">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:gap-20">
+            <div className="flex flex-col gap-8">
+              <h2 className={`revelar ${TITULO_SECCION}`}>Preguntas frecuentes.</h2>
+              <div className="revelar flotante flex flex-col items-start gap-3 p-6" style={turno(1)}>
+                <h3 className="text-xl font-semibold tracking-[-0.02em]">¿Tu profesional te envió un código?</h3>
+                <p className="text-muted">Ingrésalo para ver tu presupuesto y aceptarlo.</p>
+                <a href="#consulta" className="boton">
+                  Consultar mi presupuesto
+                </a>
+              </div>
+            </div>
+            {/* <details> nativo: se abre con teclado y lector de pantalla sin código extra. */}
+            <div className="revelar flex max-w-3xl flex-col divide-y divide-borde border-y border-borde" style={turno(1)}>
+              {PREGUNTAS.map((p) => (
+                <details key={p.pregunta} className="pregunta group py-4">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-[1.0625rem] font-semibold [&::-webkit-details-marker]:hidden">
+                    {p.pregunta}
+                    <span aria-hidden="true" className="text-2xl font-normal leading-none text-muted transition-transform duration-200 group-open:rotate-45">
+                      +
+                    </span>
+                  </summary>
+                  <p className="mt-2 max-w-2xl text-muted">{p.respuesta}</p>
+                </details>
+              ))}
+            </div>
           </div>
-          <a href="#consulta" className="boton">
-            Consultar mi presupuesto
-          </a>
-        </div>
-      </section>
+        </section>
 
-      <footer className="bg-[#000710] px-4 py-12 text-sm text-[#b9bbc6] sm:px-6 lg:px-12">
-        <div className="flex flex-col justify-between gap-8 sm:flex-row">
-          <div className="flex max-w-sm flex-col gap-2">
-            <p className="font-semibold text-white">CORE Presupuestos</p>
-            <p>Presupuestos para profesionales independientes de los países de habla hispana. Presupuesto comercial: no es un documento tributario.</p>
+        <footer className="bg-[#000710] px-4 py-12 text-sm text-[#b9bbc6] sm:px-6 lg:px-12">
+          <div className="flex flex-col justify-between gap-8 sm:flex-row">
+            <div className="flex max-w-sm flex-col gap-2">
+              <p className="font-semibold text-white">CORE Presupuestos</p>
+              <p>Presupuestos para profesionales independientes de los países de habla hispana. Presupuesto comercial: no es un documento tributario.</p>
+            </div>
+            <nav aria-label="Pie de página" className="flex flex-col gap-2 sm:items-end">
+              <a href="#que-hace" className="hover:text-white">Qué hace</a>
+              <a href="#como-funciona" className="hover:text-white">Cómo funciona</a>
+              <a href="#paises" className="hover:text-white">Países</a>
+              <a href="#preguntas" className="hover:text-white">Preguntas frecuentes</a>
+              <a href="#consulta" className="hover:text-white">Consultar un presupuesto</a>
+            </nav>
           </div>
-          <nav aria-label="Pie de página" className="flex flex-col gap-2 sm:items-end">
-            <a href="#que-hace" className="hover:text-white">Qué hace</a>
-            <a href="#como-funciona" className="hover:text-white">Cómo funciona</a>
-            <a href="#paises" className="hover:text-white">Países</a>
-            <a href="#preguntas" className="hover:text-white">Preguntas frecuentes</a>
-            <a href="#consulta" className="hover:text-white">Consultar un presupuesto</a>
-          </nav>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </main>
   );
 }

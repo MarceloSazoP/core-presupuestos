@@ -473,35 +473,27 @@ button {
     }
   }
 
-  /* Carrusel de los países (portada): la pista lleva dos copias de la lista y corre una (−50 %) en línea recta, sin fin. Cada tarjeta
-     lleva su margen a la derecha (no `gap`) para que la media vuelta empalme exacta. Se detiene al pasar el mouse y los bordes se
-     desvanecen con una máscara. Solo `transform`: corre fuera del hilo principal. */
-  .carrusel {
-    overflow: hidden;
-    mask-image: linear-gradient(to right, transparent, #000 4rem, #000 calc(100% - 4rem), transparent);
-  }
-  .carrusel-pista {
+  /* Los países para elegir (portada): un botón por país; el elegido, con el borde y un fondo del acento. */
+  .pais {
     display: flex;
-    width: max-content;
-    animation: carrusel 90s linear infinite;
+    width: 100%;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    background: var(--card);
+    font-weight: 500;
+    transition: border-color 150ms var(--ease), background-color 150ms var(--ease);
   }
-  .carrusel-tarjeta {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    width: 14rem;
-    flex-shrink: 0;
-    margin-right: 0.75rem;
-    padding: 1.25rem;
-  }
-  @keyframes carrusel {
-    to {
-      transform: translateX(-50%);
-    }
+  .pais[aria-pressed="true"] {
+    border-color: var(--acento);
+    background: color-mix(in oklab, var(--acento) 8%, var(--card));
   }
   @media (hover: hover) and (pointer: fine) {
-    .carrusel:hover .carrusel-pista {
-      animation-play-state: paused;
+    .pais:hover:not([aria-pressed="true"]) {
+      border-color: var(--borde-campo);
     }
   }
 }
@@ -509,18 +501,6 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .asentar {
     animation: none;
-  }
-  /* El carrusel queda quieto y se recorre deslizando: sin la copia repetida ni la máscara. */
-  .carrusel {
-    overflow-x: auto;
-    mask-image: none;
-  }
-  .carrusel-pista {
-    animation: none;
-    padding-inline: 1rem;
-  }
-  .carrusel-tarjeta[aria-hidden="true"] {
-    display: none;
   }
   .boton,
   .boton-secundario,
@@ -562,6 +542,76 @@ button {
   }
 }
 
+/* Portada (marketing, se ve una o pocas veces: aquí el movimiento explica y puede durar más que en la app).
+   .entrar: lo de arriba entra en cascada al cargar, solo CSS (el título no: es lo primero que se pinta y no debe esperar).
+   .revelar: lo de más abajo sube y se aclara al llegar a la pantalla, una vez (revelar.tsx pone data-visible). Sin data-revelar en
+   <html> (sin JavaScript o con «reducir movimiento») no se esconde nada. --i escalona un grupo: 70 ms por elemento. */
+.entrar {
+  animation: entrar 500ms var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.revelar {
+  transition: opacity 700ms var(--ease), transform 700ms var(--ease);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+html[data-revelar] .revelar:not([data-visible]) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+/* Portada por secciones (pantallas de 1024 px o más): cada giro de la rueda, «Av Pág» o flecha lleva al comienzo de la sección
+   siguiente (scroll snap nativo). Cada sección mide al menos una pantalla y centra lo suyo; una más alta que la pantalla se recorre por
+   dentro antes de pasar. En el teléfono el scroll es libre: ahí las secciones son mucho más altas que la pantalla y saltar molesta. */
+@media (min-width: 1024px) and (min-height: 600px) {
+  html:has(.por-secciones) {
+    scroll-snap-type: y mandatory;
+  }
+  .seccion-pantalla {
+    scroll-snap-align: start;
+    scroll-margin-top: 0;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .seccion-inicio,
+  .seccion-final {
+    justify-content: flex-start;
+  }
+  /* Aire según el alto de la pantalla (antes, 5 rem fijos arriba y abajo) y teléfonos que se achican en pantallas bajas: así cada
+     sección entra en una pantalla de notebook. 0,46 es la proporción del teléfono (ancho / alto). */
+  .seccion-pantalla:not(.seccion-inicio, .seccion-final) {
+    padding-block: clamp(2rem, 6svh, 5rem);
+  }
+  .telefono-pantalla {
+    max-width: min(var(--tope, 17rem), calc((100svh - var(--resto, 25rem)) * 0.46)); /* --resto: el alto de lo demás de su sección */
+  }
+}
+/* La línea que une los cuatro pasos se dibuja de izquierda a derecha al llegar (en vez de subir y aclararse como lo demás). */
+.dibujar {
+  transform-origin: left center;
+  transition: transform 1100ms var(--ease);
+}
+html[data-revelar] .dibujar:not([data-visible]) {
+  opacity: 1;
+  transform: scaleX(0);
+}
+/* La firma de la hoja de ejemplo se traza después del total (como quien firma al terminar). pathLength=1 en el trazo. */
+.firmar path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: firmar 900ms var(--ease) 1050ms forwards;
+}
+@keyframes firmar {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
 /* El timbre «ACEPTADO» de la vista del cliente (/q) se estampa al aparecer: baja de un poco más grande y girado a su lugar. Es un
    momento único para el cliente (acepta una vez), por eso admite 300 ms; sin rebote. */
 .timbre {
@@ -626,6 +676,19 @@ dialog.modal[open]::backdrop {
   .aparecer,
   .timbre {
     transition: opacity 150ms linear;
+  }
+  .entrar {
+    animation-name: aclarar;
+    animation-duration: 300ms;
+  }
+  .firmar path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes aclarar {
+  from {
+    opacity: 0;
   }
 }
 

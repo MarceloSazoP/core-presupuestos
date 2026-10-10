@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { cant, clp } from "@/lib/formato";
 import { simboloUnidad } from "@/lib/opciones";
 import { calcularTotales, totalLinea } from "@/lib/totales";
@@ -9,6 +10,9 @@ const ITEMS = [
 ];
 
 // Muestra de cómo queda un presupuesto: una hoja blanca sobre dos copias apiladas, planas y con borde fino (sistema «Brex»).
+// Al cargar cuenta cómo se arma, una vez: la hoja se asienta, llegan los ítems uno por uno, después el total y al final se dibuja la
+// firma (.entrar y .firmar, globals.css).
+const turno = (i: number) => ({ "--i": i }) as CSSProperties;
 export function HojaDemo() {
   const { total } = calcularTotales(ITEMS, 0);
   return (
@@ -33,8 +37,8 @@ export function HojaDemo() {
         </div>
 
         <ul className="flex flex-col divide-y divide-borde/50 py-[0.5em] text-[0.875em]">
-          {ITEMS.map((item) => (
-            <li key={item.descripcion} className="flex items-baseline justify-between gap-[1em] py-[0.625em]">
+          {ITEMS.map((item, n) => (
+            <li key={item.descripcion} className="entrar flex items-baseline justify-between gap-[1em] py-[0.625em]" style={turno(5 + n)}>
               <div>
                 <p className="font-medium">{item.descripcion}</p>
                 <p className="text-[0.75em] text-muted">
@@ -46,7 +50,7 @@ export function HojaDemo() {
           ))}
         </ul>
 
-        <div className="flex items-baseline justify-between border-t-2 border-foreground pt-[0.75em]">
+        <div className="entrar flex items-baseline justify-between border-t-2 border-foreground pt-[0.75em]" style={turno(9)}>
           <p className="font-semibold">Total</p>
           <p className="text-[1.5em] font-bold tabular-nums">{clp(total)}</p>
         </div>
@@ -54,8 +58,8 @@ export function HojaDemo() {
         <div className="mt-[0.75em] flex items-end justify-between gap-[1em]">
           <p className="text-[0.75em] text-muted">Garantía 6 meses · Validez 15 días</p>
           <div className="w-[9em] shrink-0">
-            <svg viewBox="0 0 176 44" className="-mb-[0.25em] h-[2em] w-full" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 30c8-22 14-26 16-20 3 9-10 26-6 27 6 1 14-24 22-22 7 2-4 17 2 18 8 1 10-12 18-12 5 0 0 11 6 11 7 0 12-9 20-10 6-1 8 5 14 3 8-3 12-6 24-4" />
+            <svg viewBox="0 0 176 44" className="firmar -mb-[0.25em] h-[2em] w-full" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path pathLength={1} d="M6 30c8-22 14-26 16-20 3 9-10 26-6 27 6 1 14-24 22-22 7 2-4 17 2 18 8 1 10-12 18-12 5 0 0 11 6 11 7 0 12-9 20-10 6-1 8 5 14 3 8-3 12-6 24-4" />
             </svg>
             <div className="border-t border-foreground pt-1 text-[0.6875em] leading-tight">
               <p className="font-semibold">Firma: R. Sazo</p>
