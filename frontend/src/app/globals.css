@@ -562,6 +562,30 @@ button {
   }
 }
 
+/* El timbre «ACEPTADO» de la vista del cliente (/q) se estampa al aparecer: baja de un poco más grande y girado a su lugar. Es un
+   momento único para el cliente (acepta una vez), por eso admite 300 ms; sin rebote. */
+.timbre {
+  transition: opacity 200ms var(--ease), transform 300ms var(--ease);
+}
+@starting-style {
+  .timbre {
+    opacity: 0;
+    transform: scale(1.12) rotate(-4deg);
+  }
+}
+/* Preguntas frecuentes (portada): la respuesta se abre al ritmo del «+» que gira (200 ms). Es el único caso en que se anima el alto: un
+   acordeón no tiene equivalente con transform. Los navegadores sin ::details-content la abren de golpe, como antes. */
+.pregunta {
+  interpolate-size: allow-keywords;
+}
+.pregunta::details-content {
+  block-size: 0;
+  overflow-y: clip;
+  transition: block-size 200ms var(--ease), content-visibility 200ms allow-discrete;
+}
+.pregunta[open]::details-content {
+  block-size: auto;
+}
 /* Modal: fundido y escala desde el centro (no está anclado a un botón). Entra en 200 ms y sale más rápido. */
 dialog.modal {
   opacity: 0;
@@ -593,10 +617,15 @@ dialog.modal[open]::backdrop {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .aparecer,
   dialog.modal,
-  dialog.modal::backdrop {
+  dialog.modal::backdrop,
+  .pregunta::details-content {
     transition: none;
+  }
+  /* Menos movimiento, no cero: se queda el fundido y el desplazamiento o el giro ocurren de una vez. */
+  .aparecer,
+  .timbre {
+    transition: opacity 150ms linear;
   }
 }
 

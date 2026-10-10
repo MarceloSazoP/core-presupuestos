@@ -253,6 +253,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
       <Stack spacing={2} sx={{ gridArea: "cabecera", minWidth: 0 }}>
         {hayNovedad ? (
           <Alert
+            className="aparecer"
             severity="warning"
             role="status"
             action={
@@ -514,7 +515,7 @@ export function Editor({ inicial }: { inicial: Inicial }) {
             </Alert>
           ) : null}
           {estado.guardado ? (
-            <Alert severity="success" role="status">
+            <Alert className="aparecer" severity="success" role="status">
               {estado.guardado}
             </Alert>
           ) : null}

@@ -77,7 +77,7 @@ export default async function VistaPublica({ params, searchParams }: { params: P
     <Box component="main" sx={{ mx: "auto", width: "100%", maxWidth: "52rem", px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 4 }, display: "flex", flexDirection: "column", gap: 3 }}>
       {/* Aceptado: la confirmación va primero, grande, y dice que el PDF le llega por correo. */}
       {q.accepted_on ? (
-        <Alert severity="success" icon={<CheckCircleOutlined fontSize="inherit" />} sx={{ fontSize: "1.0625rem", py: 2, "& .MuiAlert-icon": { fontSize: 32 } }}>
+        <Alert className="aparecer" severity="success" icon={<CheckCircleOutlined fontSize="inherit" />} sx={{ fontSize: "1.0625rem", py: 2, "& .MuiAlert-icon": { fontSize: 32 } }}>
           <AlertTitle sx={{ fontSize: "1.25rem", fontWeight: 600 }}>Presupuesto aceptado</AlertTitle>
           {q.customer_has_email ? "Te enviamos a tu correo el presupuesto en formato PDF." : `Quedó registrado el ${dia(q.accepted_on)}.`}
         </Alert>
@@ -117,9 +117,9 @@ export default async function VistaPublica({ params, searchParams }: { params: P
             <Typography variant="body2" color="text.secondary">
               {q.issued_on ? dia(q.issued_on) : fecha(q.finalized_at, q.timezone)}
             </Typography>
-            {/* El timbre, como el del PDF: verde, con la fecha de aceptación. */}
+            {/* El timbre, como el del PDF: verde, con la fecha de aceptación. Se estampa al aparecer (globals.css, .timbre). */}
             {q.accepted_on ? (
-              <Box sx={{ display: "inline-flex", flexDirection: "column", alignItems: "center", mt: 1.5, px: 2, py: 0.5, border: 2, borderColor: "success.main", borderRadius: 1, color: "success.main" }}>
+              <Box className="timbre" sx={{ display: "inline-flex", flexDirection: "column", alignItems: "center", mt: 1.5, px: 2, py: 0.5, border: 2, borderColor: "success.main", borderRadius: 1, color: "success.main" }}>
                 <Typography component="span" sx={{ fontWeight: 700, letterSpacing: "0.12em" }}>
                   ACEPTADO
                 </Typography>

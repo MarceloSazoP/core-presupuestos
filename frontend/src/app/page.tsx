@@ -410,7 +410,7 @@ export default function Landing() {
           {/* <details> nativo: se abre con teclado y lector de pantalla sin código extra. */}
           <div className="flex max-w-3xl flex-col divide-y divide-borde border-y border-borde">
             {PREGUNTAS.map((p) => (
-              <details key={p.pregunta} className="group py-5">
+              <details key={p.pregunta} className="pregunta group py-5">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-[1.0625rem] font-semibold [&::-webkit-details-marker]:hidden">
                   {p.pregunta}
                   <span aria-hidden="true" className="text-2xl font-normal leading-none text-muted transition-transform duration-200 group-open:rotate-45">
