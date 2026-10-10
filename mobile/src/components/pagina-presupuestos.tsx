@@ -5,12 +5,13 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { ActivityIndicator, Searchbar, Text } from 'react-native-paper';
 import { api, mensajeDe } from '@/api/client';
 import type { ResumenPresupuesto } from '@/api/types';
 import { OjoTonal } from '@/components/boton-ojo';
 import { FilaPresupuesto } from '@/components/fila-presupuesto';
 import { Icono } from '@/components/ui';
+import { coincide } from '@/lib/buscar';
 import type { EstadoElegible } from '@/lib/estados';
 import { LISTA, useDinero } from '@/lib/montos';
 import { cancelarRecordatorio, reconciliar, sincronizarRecordatorios } from '@/lib/notificaciones';
@@ -34,6 +35,9 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
   const [refrescando, setRefrescando] = useState(false);
 
   const [pestana, setPestana] = useState<Pestana>('pendientes');
+  // Buscar mira todos los estados a la vez: nadie recuerda en qué pestaña quedó un presupuesto. Elegir una pestaña deja de buscar.
+  const [busqueda, setBusqueda] = useState('');
+  const buscando = busqueda.trim() !== '';
   const { pendientes } = useCola();
   const sinSenal = useSinSenal(); // sin señal lo explica el aviso de arriba: no se repite el error de carga en rojo
   const colaVacia = pendientes === 0;
@@ -81,9 +85,13 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
     }
   }, []);
 
-  const elegirPestana = setPestana;
+  const elegirPestana = (p: Pestana) => {
+    setBusqueda('');
+    setPestana(p);
+  };
   const cuentas = contar(lista ?? []);
-  const visibles = (lista ?? []).filter((q) => pestanaDe(q) === pestana);
+  const visibles = (lista ?? []).filter((q) => (buscando ? coincide(q, busqueda) : pestanaDe(q) === pestana));
+  const conBuscador = (lista?.length ?? 0) > 5 || buscando; // con pocos presupuestos se ven todos: el buscador sobraría
   // Lo que suman los de la pestaña, por moneda (si hubiera de más de un país, cada suma con la suya): «$2.206.422 en total».
   const sumas = new Map<string, number>();
   for (const q of visibles) if (q.total > 0) sumas.set(q.currency ?? 'CLP', (sumas.get(q.currency ?? 'CLP') ?? 0) + q.total);
@@ -101,7 +109,7 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
     const destino = PESTANAS[posicion + paso];
     if (!destino) return;
     void Haptics.selectionAsync();
-    setPestana(destino.id);
+    elegirPestana(destino.id);
   };
   const aInicio = (paso: number) => {
     if (paso > 0) return; // hacia la izquierda desde la última pestaña: no hay más
@@ -124,6 +132,8 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
         renderItem={({ item }) => <FilaPresupuesto q={item} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
         ItemSeparatorComponent={Separador}
         contentContainerStyle={{ paddingTop: espacio.l, paddingBottom: abajo + espacio.l }}
+        keyboardShouldPersistTaps="handled" // con el teclado abierto, tocar un resultado lo abre al primer toque
+        keyboardDismissMode="on-drag"
         refreshing={refrescando}
         onRefresh={async () => {
           setRefrescando(true);
@@ -134,21 +144,37 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
           <View style={e.cabecera}>
             <Sincronizacion />
             {error && !sinSenal ? <Text variant="bodySmall" style={{ color: t.error }} accessibilityRole="alert">{error}</Text> : null}
+            {conBuscador ? (
+              <Searchbar
+                placeholder="Buscar cliente, número o trabajo"
+                value={busqueda}
+                onChangeText={setBusqueda}
+                icon={({ size, color }) => <Icono nombre="buscar" tamano={size} color={color} />}
+                clearIcon={({ size, color }) => <Icono nombre="borrar" tamano={size} color={color} />}
+                clearAccessibilityLabel="Borrar la búsqueda"
+                autoCorrect={false}
+                returnKeyType="search"
+                elevation={0}
+                style={[e.buscador, { backgroundColor: t.campo }]}
+                inputStyle={e.textoBuscador}
+              />
+            ) : null}
             {/* Una línea con cuántos hay y cuánto suman (en Pendientes, cómo se elimina uno) y, al lado, el ojo que oculta los montos de la
                 lista: igual que «Resumen» y su ojo en Inicio. La barra de arriba queda igual en las dos páginas. */}
             {visibles.length > 0 ? (
               <View style={e.resumen}>
                 <View style={e.resumenTextos}>
                   <Text variant="bodyMedium" style={{ color: t.suave }}>
-                    <Text style={[e.fuerte, { color: t.texto }]}>{datos.resumen(visibles.length)}</Text>
-                    {enTotal ? (
+                    <Text style={[e.fuerte, { color: t.texto }]}>{buscando ? `${visibles.length} ${visibles.length === 1 ? 'resultado' : 'resultados'}` : datos.resumen(visibles.length)}</Text>
+                    {buscando ? ' en todos los estados' : null}
+                    {enTotal && !buscando ? (
                       <>
                         {' · '}
                         <Text style={e.cifra}>{enTotal}</Text> en total
                       </>
                     ) : null}
                   </Text>
-                  {datos.ayuda ? <Text variant="bodySmall" style={{ color: t.suave }}>{datos.ayuda}</Text> : null}
+                  {datos.ayuda && !buscando ? <Text variant="bodySmall" style={{ color: t.suave }}>{datos.ayuda}</Text> : null}
                 </View>
                 <OjoTonal clave={LISTA} />
               </View>
@@ -165,6 +191,14 @@ export function PaginaPresupuestos({ alInicio, abajo }: { alInicio: () => void; 
               </View>
               <Text variant="titleMedium" style={[e.centrado, e.fuerte]}>Aún no tienes presupuestos</Text>
               <Text variant="bodyMedium" style={[e.centrado, e.explicacion, { color: t.suave }]}>Cuando estés en una visita, toca el botón + de abajo: anota al cliente y el trabajo, y después sigue con fotos, medidas e ítems.</Text>
+            </View>
+          ) : buscando ? (
+            <View style={e.vacio}>
+              <View style={[e.vacioIcono, { backgroundColor: `${t.suave}${t.oscuro ? '24' : '1A'}` }]}>
+                <Icono nombre="buscar" tamano={26} color={t.suave} />
+              </View>
+              <Text variant="titleMedium" style={[e.centrado, e.fuerte]}>Ninguno coincide con «{busqueda.trim()}»</Text>
+              <Text variant="bodyMedium" style={[e.centrado, e.explicacion, { color: t.suave }]}>Busca por el nombre del cliente, el número del presupuesto o el trabajo.</Text>
             </View>
           ) : (
             <View style={e.vacio}>
@@ -189,6 +223,8 @@ const e = StyleSheet.create({
   // Lo de arriba de la lista, con el mismo espacio que entre las tarjetas.
   cabecera: { gap: espacio.s, paddingHorizontal: espacio.l, paddingBottom: espacio.m },
   resumen: { flexDirection: 'row', alignItems: 'center', gap: espacio.s, paddingLeft: espacio.xs },
+  buscador: { borderRadius: 999 },
+  textoBuscador: { fontSize: 16 }, // 16: el mínimo cómodo de leer (y el de la web, que no hace zoom)
   resumenTextos: { flex: 1, gap: 2 },
   fuerte: { fontWeight: '600' },
   cifra: { fontVariant: ['tabular-nums'] },
